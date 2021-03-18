@@ -12,12 +12,15 @@ Bottom line width, text height and img height can be customized!
 # Api key
 To get the metadata / cover images this script uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.
 
-This value needs to be sabed on ```./config.json``` like: ```{"apiKey": "value"}```
+To use the api key and save it for future use you can execute the script like this: ```python3 EmbyCoverRatings.py '/Movies/*/*' apiKey```.<br/>
+This only needs to be run once with the api key, as it will be stored inside ```config.json```
+
+Alternatively you can create ```config.json``` located next to the script and save the api key like: ```{"apiKey": "value"}```
 
 # Usage
 If movie library looks like this
 ```
-Movies
+/Movies
 ├── Movie1
 │    └──Movie1.mkv
 ├── Movie2
