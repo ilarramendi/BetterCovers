@@ -5,17 +5,16 @@ from time import sleep
 from PIL import Image, ImageFont, ImageDraw
 from os import path
 import json
+import sys
 
 brHeight = 40
 imHeight = 30
 txHeight = 25
 
-apiKey = ''
+extensions = ['mp4', 'mkv']
 
-if path.exists('./config.json'):
-    with open('./config.json', 'r') as json_file:
-        js = json.load(json_file)
-        apiKey = js['apiKey'] if 'apiKey' in js else ''
+with open('./config.json', 'r') as json_file:
+    apiKey = json.load(json_file)['apiKey']
 
 def downloadImage(url, path, retry):
     response = requests.get(url)
@@ -34,8 +33,12 @@ def downloadImage(url, path, retry):
         logText('Failed to download: ' + url, error = True)
         return False
 
+files = []
+for ex in extensions:
+    files += glob(sys.argv[1] + '.' + ex)
+
 i = 1
-for file in glob('/media/c/movies/*/*.mkv'): 
+for file in files: 
     if not path.exists(file.rpartition('/')[0] + '/cover.jpg'):
         name, year = re.findall('\/([^\/]+)\((\d+)\)', file)[0]
         info = {}

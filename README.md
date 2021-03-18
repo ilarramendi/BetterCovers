@@ -15,7 +15,16 @@ To get the metadata / cover images this script uses [omdbapi](http://www.omdbapi
 This value needs to be sabed on ```./config.json``` like: ```{"apiKey": "value"}```
 
 # Usage
-```python3 EmbyCoverRatings.py '/path/to/movies/*/*.mkv'```
+If movie library looks like this
+```
+Movies
+├── Movie1
+│    └──Movie1.mkv
+├── Movie2
+│    └──Movie2.mp4 
+└──  ...
+```
+```python3 EmbyCoverRatings.py '/Movies/*/*'```
 
 # Example
 ![image](https://user-images.githubusercontent.com/30437204/111556201-bea89580-8768-11eb-9371-88b215089072.png)
