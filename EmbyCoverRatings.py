@@ -46,7 +46,7 @@ for file in files:
         
         response = requests.get('http://www.omdbapi.com/?apikey=' + apiKey + '&t=' + name.replace(' ', '+'))
         res = response.json()
-        if response.status_code != 200 or 'Error' in res: print('No movies found')
+        if response.status_code != 200 or 'Error' in res: print(name, 'No movies found')
         else:
             yr = int(re.findall('\d{4}' ,res['Year'])[0])
             if yr > int(year) + 1 or yr < int(year) - 1: print('Wrong movie found', name, res['Title'], year, yr)
@@ -69,15 +69,17 @@ for file in files:
                     font = ImageFont.truetype("Roboto-Medium.ttf", txHeight)
                     le = 300 // len(info2)
                     x = 0
-                    spc = 10 // len(info2)
+                    space = 10 // len(info2)
                     for rt in info2:
-                        print((brHeight - txHeight) // 2)
                         im = Image.open(rt + ".png")
                         tsize = draw.textsize(info2[rt], font)[0]
-                        sp  = (le - im.size[0] - tsize - spc) // 2
+                        sp  = (le - im.size[0] - tsize - space) // 2
                         img.paste(im, (x + sp, img.size[1] - imHeight - (brHeight - imHeight) // 2), im)
-                        draw.text((x + sp + im.size[0] + spc, img.size[1] - txHeight - (brHeight - txHeight) // 2), info2[rt],(0,0,0),font=font)
+                        draw.text((x + sp + im.size[0] + space, img.size[1] - txHeight - (brHeight - txHeight) // 2), info2[rt],(0,0,0),font=font)
                         x += le
 
                     img.save(file.rpartition('/')[0] + '/cover.jpg')
+                    print(res['Title'] + ' Cover Saved!')
+                else: print(res['Title'] + ' No ratings found or poster missing.')
+
     
