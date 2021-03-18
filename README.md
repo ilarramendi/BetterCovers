@@ -13,7 +13,8 @@ Bottom line width, text height, img height, text color and border color can be c
 # Api key
 To get the metadata / cover images this script uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.
 
-To use the api key and save it for future use you can execute the script like this: ```python3 EmbyCoverRatings.py '/Movies/*/*' apiKey```.<br/>
+To use the api key and save it for future use you can execute the script like this:  
+ ```python3 EmbyCoverRatings.py '/Movies/*/*' apiKey```  
 This only needs to be run once with the api key, as it will be stored inside ```config.json```
 
 Alternatively you can create ```config.json``` located next to the script and save the api key like: ```{"apiKey": "value"}```
@@ -31,4 +32,4 @@ If movie library looks like this
 ```python3 EmbyCoverRatings.py '/Movies/*/*'```
 
 # Example
-![Example](https://user-images.githubusercontent.com/30437204/111710427-70f36200-8828-11eb-9744-aafbcb71ea27.png)a
+![Example](https://user-images.githubusercontent.com/30437204/111710427-70f36200-8828-11eb-9744-aafbcb71ea27.png)
