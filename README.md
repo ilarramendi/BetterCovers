@@ -1,0 +1,1 @@
+# Emby-Cover-Ratings
