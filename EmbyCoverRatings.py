@@ -14,8 +14,12 @@ rectangleColor = (25, 25, 25, int(255 * 0.8))
 textColor = '#fcfcfc'
 extensions = ['mp4', 'mkv']
 
-with open('./config.json', 'r') as json_file:
-    apiKey = json.load(json_file)['apiKey']
+
+if len(sys.argv) ==  3:
+    with open('./config.json', 'w') as js: json.dump({'apiKey': sys.argv[2]}, js)
+    apiKey = sys.argv[2]
+else:
+    with open('./config.json', 'r') as js: apiKey = json.load(js)['apiKey']
 
 def downloadImage(url, path, retry):
     response = requests.get(url)
