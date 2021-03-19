@@ -1,7 +1,7 @@
 # Cover Ratings
 **This is still a WIP!**
 
-Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn/etc library with RottenTomatoes, IMDB and Metascore scores.
+Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn library with RottenTomatoes, IMDB and Metascore scores.
 
 **Update: It works with series now too!**  
 **Update: Added executable for easyer use!**  
