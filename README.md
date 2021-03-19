@@ -21,13 +21,12 @@ To use the api key and save it for future use you can execute the script like th
  ```python3 CoverRatings.py '/Movies/*' apiKey```  
 This only needs to be run once with the api key, as it will be stored inside ```config.json```
 
-<br><br><br>
 # Supported media folder names are:
 Recommended: ```/media/Movie Name (year)``` or ```/media/Movie Name year```  
 Ok: ```/media/Movie Name```
 
 # Usage
-If movie library looks like this
+If movie library looks like this:
 
 ```
 /Movies
@@ -39,6 +38,8 @@ If movie library looks like this
 
 ```
 use: ```python3 CoverRatings.py '/Movies/*'```
+
+If tv library looks like this:
 ```
 /Tv
   ├── Series1 (year)
