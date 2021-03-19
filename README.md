@@ -25,11 +25,11 @@ If movie library looks like this
 
 ```
 /Movies
-├── Movie1 (year)
-│    └──Movie1.mkv
-├── Movie2 (year)
-│    └──Movie2.mp4 
-└──  ...
+  ├── Movie1 (year)
+  │      └── Movie1.mkv
+  ├── Movie2 (year)
+  │      └── Movie2.mp4 
+  └──  ...
 ```
 ```python3 CoverRatings.py '/Movies/*/*'```
 
