@@ -26,26 +26,29 @@ Recommended: ```/media/Movie Name (year)``` or ```/media/Movie Name year```
 Ok: ```/media/Movie Name```
 
 # Usage
-If movie library looks like this:
 
+If library looks like this:
+
+Movies:
 ```
-/Movies
-  ├── Movie1 (year)
-  │      └── Movie1.mkv
-  ├── Movie2 (year)
-  │      └── Movie2.mp4 
+/media
+  ├── Movie 1 (year)
+  │      └── Movie 1.mkv
+  ├── Movie 2 (year)
+  │      └── Movie 2.mp4 
   └──  ...
 
 ```
-use: ```python3 CoverRatings.py '/Movies/*'```
+or
 
-If tv library looks like this:
+TV Shows:
 ```
-/Tv
-  ├── Series1 (year)
-  │      └── Season 1
-  ├── Series2 (year)
+/media
+  ├── Tv Show 1 (year)
+  │      ├── Season 1
+  │      └──  ...
+  ├── Tv show 2 (year)
   │      └── Season 1
   └──  ...
 ```
-use: ```python3 CoverRatings.py '/Tv/*'```
+use: ```python3 CoverRatings.py '/media/*'```
