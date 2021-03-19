@@ -46,7 +46,8 @@ def downloadImage(url, path, retry):
     else: 
         logText('Failed to download: ' + url, error = True)
         return False
-for file in glob([pt for pt in sys.argv if '/' in pt][0]): 
+
+for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]): 
     if path.exists(file + '/poster.jpg'): continue # Skip if cover exists
     
     # Parse name from file
