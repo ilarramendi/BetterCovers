@@ -10,6 +10,7 @@ Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn/et
 # Example (Emby)
 ![example](https://user-images.githubusercontent.com/30437204/111736686-17595a80-885d-11eb-9884-bfba192114d8.png)
 
+
 Cover images are saved as poster.jpg inside the folder of the media.  
 Scores alignment can be customized with [parameters](#aditional-parameters).  
 After executing the script you have to update the library metadata on Emby/Plex/Jellyfin for this to take effect!
@@ -67,3 +68,19 @@ Parameters can be used without any particular order
 ```-t '#000000ac'``` Change text color (color can be a hex with 6 digits to set transparency)  
 ```-s 3``` Set space between image and text  
 ```-a abc456``` Set and save the api key
+
+# Customization Examples
+Bottom Center (default):  
+![bottom-center](https://user-images.githubusercontent.com/30437204/111842780-bf633800-88de-11eb-9de3-4f10bf4a7c50.png)
+
+Top Right:  
+![top-right](https://user-images.githubusercontent.com/30437204/111842790-c427ec00-88de-11eb-9b4d-28ccbb221686.png)
+
+Top Center:  
+![top-center](https://user-images.githubusercontent.com/30437204/111842806-cab66380-88de-11eb-9184-a85ab43837ff.png)
+
+Bottom Left:  
+![bottom-left](https://user-images.githubusercontent.com/30437204/111842814-cd18bd80-88de-11eb-9731-16d1f30dafa0.png)
+
+Bottom Right:  
+![bottom-right](https://user-images.githubusercontent.com/30437204/111842847-de61ca00-88de-11eb-9a74-1a70dd939645.png)  
