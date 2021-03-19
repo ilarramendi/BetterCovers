@@ -1,10 +1,14 @@
-
 # Cover Ratings
 **This is still a WIP!**
 
-Lightweight script intended to automaticaly generate cover images for Emby, Plex, Jellyfinn, etc. MOVIES library with RottenTomatoes, IMDB and Metascore ratings.
+Script intended to automaticaly generate cover images for Emby, Plex, Jellyfinn, etc. library with RottenTomatoes, IMDB and Metascore scores.
 
-Cover images are saved as cover.jpg inside the same folder as the video file.
+**Update: It works with series now too!**
+
+# Example (Emby)
+![example](https://user-images.githubusercontent.com/30437204/111736274-49b68800-885c-11eb-8247-b2fb9ed1df2a.png)
+
+Cover images are saved as cover.jpg inside the folder of the media.
 
 After executing the script you have to update the library metadata on emby/plex for this to take effect!
 
@@ -14,12 +18,14 @@ Bottom line width, text height, img height, text color and border color can be c
 To get the metadata / cover images this script uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.
 
 To use the api key and save it for future use you can execute the script like this:  
- ```python3 CoverRatings.py '/Movies/*/*' apiKey```  
+ ```python3 CoverRatings.py '/Movies/*' apiKey```  
 This only needs to be run once with the api key, as it will be stored inside ```config.json```
 
-Alternatively you can create ```config.json``` located next to the script and save the api key like: ```{"apiKey": "value"}```
 <br><br><br>
-**Movie folder names should be like: ```Movie Name (year)``` !!!**  
+# Supported media folder names are:
+Recommended: ```/media/Movie Name (year)``` or ```/media/Movie Name year```  
+Ok: ```/media/Movie Name```
+
 # Usage
 If movie library looks like this
 
@@ -30,8 +36,15 @@ If movie library looks like this
   ├── Movie2 (year)
   │      └── Movie2.mp4 
   └──  ...
-```
-```python3 CoverRatings.py '/Movies/*/*'```
 
-# Example
-![Example](https://user-images.githubusercontent.com/30437204/111710427-70f36200-8828-11eb-9744-aafbcb71ea27.png)
+```
+use: ```python3 CoverRatings.py '/Movies/*'```
+```
+/Tv
+  ├── Series1 (year)
+  │      └── Season 1
+  ├── Series2 (year)
+  │      └── Season 1
+  └──  ...
+```
+use: ```python3 CoverRatings.py '/Tv/*'```
