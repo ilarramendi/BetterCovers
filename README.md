@@ -18,14 +18,16 @@ To use the api key and save it for future use you can execute the script like th
 This only needs to be run once with the api key, as it will be stored inside ```config.json```
 
 Alternatively you can create ```config.json``` located next to the script and save the api key like: ```{"apiKey": "value"}```
-
+<br><br><br>
+**Movie folder names should be like: ```Movie Name (year)``` !!!**  
 # Usage
 If movie library looks like this
+
 ```
 /Movies
-├── Movie1
+├── Movie1 (year)
 │    └──Movie1.mkv
-├── Movie2
+├── Movie2 (year)
 │    └──Movie2.mp4 
 └──  ...
 ```
