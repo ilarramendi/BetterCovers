@@ -3,7 +3,8 @@
 
 Script intended to automaticaly generate cover images for Emby, Plex, Jellyfinn, etc. library with RottenTomatoes, IMDB and Metascore scores.
 
-**Update: It works with series now too!**
+**Update: It works with series now too!**  
+**Update: Added executable for easyer use!**  
 
 # Example (Emby)
 ![example](https://user-images.githubusercontent.com/30437204/111736686-17595a80-885d-11eb-9884-bfba192114d8.png)
@@ -18,15 +19,20 @@ Bottom line width, text height, img height, text color and border color can be c
 To get the metadata / cover images this script uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.
 
 To use the api key and save it for future use you can execute the script like this:  
- ```python3 CoverRatings.py '/Movies/*' apiKey```  
+ ```./CoverRatings '/Movies/*' apiKey```  
 This only needs to be run once with the api key, as it will be stored inside ```config.json```
 
 # Supported media folder names are:
 Recommended: ```/media/Movie Name (year)``` or ```/media/Movie Name year```  
-Ok: ```/media/Movie Name```
+Working: ```/media/Movie Name```
+
+# Downloading
+To download the latest copy of the script run:  
+``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.1/CoverRatings; chmod +x CoverRatings```  
+Also you can download the whole project and run the executable or the python script.
+
 
 # Usage
-
 If library looks like this:
 
 Movies:
@@ -51,4 +57,4 @@ TV Shows:
   │      └── Season 1
   └──  ...
 ```
-use: ```python3 CoverRatings.py '/media/*'```
+use: ```./CoverRatings '/media/*'```
