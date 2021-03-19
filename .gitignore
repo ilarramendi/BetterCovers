@@ -1,2 +1,6 @@
 config.json
 cover.jpg
+dist
+build
+__pycache__
+CoverRatings.spec

@@ -19,10 +19,14 @@ if len(sys.argv) == 3:
 else: 
     with open('./config.json', 'r') as js: apiKey = json.load(js)['apiKey']
 
+def resource_path(relative_path):
+    try: base_path = sys._MEIPASS
+    except Exception: base_path = path.abspath(".")
+    return path.join(base_path, relative_path)
 
 def downloadImage(url, path, retry):
     response = requests.get(url)
-    i = 0
+    i = 0 
     while response.status_code != 200 and i < retry:
         sleep(1)
         response = requests.get(url)
@@ -36,7 +40,6 @@ def downloadImage(url, path, retry):
     else: 
         logText('Failed to download: ' + url, error = True)
         return False
-
 
 for file in glob(sys.argv[1]): 
     if path.exists(file + '/cover.jpg'): continue # Skip if cover exists
@@ -77,7 +80,7 @@ for file in glob(sys.argv[1]):
         continue
 
     # Download image
-    if 'Poster' not in res or not downloadImage(res['Poster'], 'cover.jpg', 3):
+    if not ('Poster' in res and res['Poster'] != 'N/A' and downloadImage(res['Poster'], 'cover.jpg', 3)):
         print('Poster missing or failed to download for: ' + res['Title'])
         continue
 
@@ -93,7 +96,7 @@ for file in glob(sys.argv[1]):
     x = 0
     space = 15 // len(infoIndex)
     for rt in infoIndex:
-        im = Image.open(rt + ".png")
+        im = Image.open(resource_path('media/' + rt + ".png"))
         tsize = draw.textsize(info[rt], font)[0]
         sp  = (le - im.size[0] - tsize - space) // 2
         img.paste(im, (x + sp, img.size[1] - imHeight - (brHeight - imHeight) // 2), im)
