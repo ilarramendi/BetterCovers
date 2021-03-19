@@ -6,7 +6,7 @@ Script intended to automaticaly generate cover images for Emby, Plex, Jellyfinn,
 **Update: It works with series now too!**
 
 # Example (Emby)
-![example](https://user-images.githubusercontent.com/30437204/111736274-49b68800-885c-11eb-8247-b2fb9ed1df2a.png)
+![example](https://user-images.githubusercontent.com/30437204/111736686-17595a80-885d-11eb-9884-bfba192114d8.png)
 
 Cover images are saved as cover.jpg inside the folder of the media.
 
