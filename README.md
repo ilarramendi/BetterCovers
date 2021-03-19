@@ -44,9 +44,7 @@ Movies:
   │      └── Movie 2.mp4 
   └──  ...
 
-```
-or
-
+```  
 TV Shows:
 ```
 /media
@@ -57,14 +55,14 @@ TV Shows:
   │      └── Season 1
   └──  ...
 ```
-use: ```./CoverRatings '/media/*'```
+***Use:*** ```./CoverRatings '/media/*'```
 
 # Aditional Parameters
 Parameters can be used without any particular order  
 ```-vt``` Align scores on top  
 ```-hl``` Align scores to the left   
 ```-hr``` Align scores to the right  
-```-b '#ff0000ff'``` Change background color (color can be a hex with 6 digits to set transparency)  
+```-b '#ff0000ff'``` Change background color (color can be a hex with 6 digits to set transparency, '#0000' for disabled)  
 ```-t '#000000ac'``` Change text color (color can be a hex with 6 digits to set transparency)  
 ```-s 3``` Set space between image and text  
 ```-a abc456``` Set and save the api key
