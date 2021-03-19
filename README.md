@@ -27,9 +27,9 @@ Recommended: ```/media/Movie Name (year)``` or ```/media/Movie Name year```
 Working: ```/media/Movie Name```
 
 # Downloading
-To download the latest copy of the script run:  
+To download the latest executable of the script run:  
 ``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.2/CoverRatings; chmod +x CoverRatings```  
-Also you can download the whole project and run the executable or the python script.
+Also you can download the whole project and run the python script.
 
 
 # Usage
