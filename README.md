@@ -8,7 +8,7 @@ Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn li
 **Update: Added parameters for alignment and change color, also it should work with jellyfin now!**
 
 # Example (Emby)
-![example](https://user-images.githubusercontent.com/30437204/111736686-17595a80-885d-11eb-9884-bfba192114d8.png)
+![example](https://user-images.githubusercontent.com/30437204/111847986-c5f6ad00-88e8-11eb-9e56-8605cfac43c6.png)
 
 
 Cover images are saved as poster.jpg inside the folder of the media.  
