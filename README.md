@@ -15,6 +15,12 @@ Cover images are saved as poster.jpg inside the folder of the media.
 Scores alignment can be customized with [parameters](#aditional-parameters).  
 After executing the script you have to update the library metadata on Emby/Plex/Jellyfin for this to take effect!
 
+# Downloading
+To download the latest executable of the script run:  
+``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.2/CoverRatings; chmod +x CoverRatings```  
+Also you can download the whole project and run the python script.
+
+
 # Api key
 To get the metadata / cover images this script uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.
 
@@ -25,12 +31,6 @@ This only needs to be run once with the api key, as it will be stored inside ```
 # Supported media folder names are:
 Recommended: ```/media/Movie Name (year)``` or ```/media/Movie Name year```  
 Working: ```/media/Movie Name```
-
-# Downloading
-To download the latest executable of the script run:  
-``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.2/CoverRatings; chmod +x CoverRatings```  
-Also you can download the whole project and run the python script.
-
 
 # Usage
 If library looks like this:
