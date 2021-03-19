@@ -89,7 +89,7 @@ for file in glob(sys.argv[1]):
     overlay = Image.new('RGBA', img.size, (0,0,0,0))
     ImageDraw.Draw(overlay).rectangle(((0, img.size[1] - brHeight), (img.size[0], img.size[1])), fill=rectangleColor) # Rectangle
     img = Image.alpha_composite(img, overlay).convert("RGB")
-    font = ImageFont.truetype("Roboto-Medium.ttf", txHeight) # Font can be customized here
+    font = ImageFont.truetype(resource_path("media/Roboto-Medium.ttf"), txHeight) # Font can be customized here
     draw = ImageDraw.Draw(img)
 
     le = 300 // len(infoIndex)
