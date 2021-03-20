@@ -68,7 +68,7 @@ Parameters can be used without any particular order
 ```-b '#ff0000ff'``` Change background color (color can be a hex with 6 digits to set transparency, '#0000' for disabled)  
 ```-t '#000000ac'``` Change text color (color can be a hex with 6 digits to set transparency)  
 ```-s 3``` Set space between image and text  
-```-a abc456``` Set and save the api key
+```-a abc456``` Set and save the api key  
 ```-o``` Overwrite existing covers
 
 # Customization Examples
