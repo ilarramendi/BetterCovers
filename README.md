@@ -19,7 +19,7 @@ After executing the script you have to update the library metadata on Emby/Plex/
 
 # Downloading
 To download the latest executable of the script run:  
-``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.3/CoverRatings; chmod +x CoverRatings```  
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.3.5/CoverRatings; chmod +x CoverRatings```  
 Also you can download the whole project and run the python script.
 
 
