@@ -81,6 +81,8 @@ for file in files:
     res = response.json()
     if 'Error' in res: 
         print('\033[93mNo info found for:', name, year, '\033[0m')
+        if res['Error'] != 'Movie not found!':
+            print('\033[91', res, '\033[0m')
         continue
     if year and abs(int(year) - int(findall('\d{4}' ,res['Year'])[0])) > 1: 
         print('\033[93mWrong info found: ' + name + ' (' + year + ') | ' + res['Title'] + ' (' + res['Year'] + ')\033[0m')
