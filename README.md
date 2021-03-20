@@ -5,11 +5,13 @@ Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn li
 
 **Update: It works with series now too!**  
 **Update: Added executable for easyer use!**  
-**Update: Added parameters for alignment and change color, also it should work with jellyfin now!**
+**Update: Added parameters for alignment and change color, also it should work with jellyfin now!**  
+**Update: Added suport for media info tags!!**
 
 # Example (Emby)
-![example](https://user-images.githubusercontent.com/30437204/111847986-c5f6ad00-88e8-11eb-9e56-8605cfac43c6.png)
-
+No MediaInfo                    Example with MediaInfo:  
+![example](https://user-images.githubusercontent.com/30437204/111854875-673d2d80-8900-11eb-877c-c6866767705a.png)
+![mediaInfo](https://user-images.githubusercontent.com/30437204/111854713-6e177080-88ff-11eb-9f05-29b8f69e1da7.png)  
 
 Cover images are saved as poster.jpg inside the folder of the media.  
 Scores alignment can be customized with [parameters](#aditional-parameters).  
@@ -17,7 +19,7 @@ After executing the script you have to update the library metadata on Emby/Plex/
 
 # Downloading
 To download the latest executable of the script run:  
-``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.2/CoverRatings; chmod +x CoverRatings```  
+``` wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.3/CoverRatings; chmod +x CoverRatings```  
 Also you can download the whole project and run the python script.
 
 
@@ -59,6 +61,7 @@ TV Shows:
 
 # Aditional Parameters
 Parameters can be used without any particular order  
+```-i``` Adds 4K and HDR logo to images (only works with movies ATM)  
 ```-vt``` Align scores on top  
 ```-hl``` Align scores to the left   
 ```-hr``` Align scores to the right  

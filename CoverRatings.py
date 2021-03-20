@@ -1,6 +1,6 @@
 from glob import glob
 from re import findall
-from subprocess import call
+from subprocess import call, getstatusoutput
 from requests import get
 from time import sleep
 from PIL import Image, ImageFont, ImageDraw
@@ -11,13 +11,13 @@ import sys
 brHeight = 40
 imHeight = 30
 txHeight = 25
-space = 3
+space = 5 if not '-s' in sys.argv else int(sys.argv[sys.argv.index('-s') + 1])
 padding = 15
 rectangleColor = '#191919af' if not '-b' in sys.argv else sys.argv[sys.argv.index('-b') + 1]
 textColor = '#ffffffb4' if not '-t' in sys.argv else sys.argv[sys.argv.index('-t') + 1]
 hAlign = 'l' if '-hl' in sys.argv else 'r' if '-hr' in sys.argv else 'c'
 vAlign = 't' if '-vt' in sys.argv else 'b'
-
+mediaInfo = '-i' in sys.argv
 
 if '-a' in sys.argv:
     apiKey = sys.argv[sys.argv.index('-a') + 1]
@@ -50,20 +50,20 @@ def downloadImage(url, path, retry):
 for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]): 
     if path.exists(file + '/poster.jpg'): continue # Skip if cover exists
     
-    # Parse name from file
+    # region Parse name from file
     inf = findall("\/([^\/]+) \(?(\d{4})\)?$", file)
     if len(inf) == 0: inf = findall("\/([^\/]+)$", file)
     else: inf = inf[0]
-
     if len(inf) == 0:
         print('\033[93mCant parse name from: ' + file + '\033[0m')
         continue
-    
+    # endregion
+
     name = inf[0]
     year = inf[1] if len(inf) == 2 else False
     info = {}
     
-    # Search file on omdbapi
+    # region Search file on omdbapi
     response = get('http://www.omdbapi.com/?apikey=' + apiKey + '&tomatoes=true&t=' + name.replace(' ', '+') + ('&y=' + year if year else ''))
     res = response.json()
     if response.status_code != 200 or 'Error' in res: 
@@ -72,8 +72,9 @@ for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]):
     if year and abs(int(year) - int(findall('\d{4}' ,res['Year'])[0])) > 1: 
         print('Wrong info found: ' + name + ' (' + year + ') | ' + res['Title'] + ' (' + res['Year'] + ')')
         continue
+    # endregion
     
-    # Parse ratings
+    # region Parse ratings
     if 'Metascore' in res: info['mts'] = res['Metascore']
     if 'imdbRating' in res: info['imdb'] = res['imdbRating']
     rts = [rt for rt in res['Ratings'] if rt['Source'] == 'Rotten Tomatoes']
@@ -84,13 +85,15 @@ for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]):
         print('No ratings found for:', res['Title'])
         continue
     infoIndex.sort()
+    # endregion
 
-    # Download image
+    # region Download image
     if not ('Poster' in res and res['Poster'] != 'N/A' and downloadImage(res['Poster'], 'cover.jpg', 3)):
         print('Poster missing or failed to download for: ' + res['Title'])
         continue
+    # endregion
 
-    # Add ratings to images
+    # region Add ratings to images
     img = Image.open("./cover.jpg").convert("RGBA").resize((300,450))
     overlay = Image.new('RGBA', img.size, (0,0,0,0))
     recsize = ((0, img.size[1] - brHeight if vAlign == 'b' else 0), (img.size[0], img.size[1] if vAlign == 'b' else brHeight)) 
@@ -111,7 +114,32 @@ for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]):
         txtPos = (x + sp + im.size[0] + space if hAlign == 'c' else x + space * 2 + im.size[0] if hAlign == 'l' else imgPos[0] + im.size[0] + space, img.size[1] - txHeight - (brHeight - txHeight) // 2 - 1 if vAlign == 'b' else (brHeight - txHeight) // 2 - 1)
         draw.text(txtPos, info[rt], textColor, font=font)
         x = x + le if hAlign == 'c' else txtPos[0] + tsize if hAlign == 'l' else imgPos[0]
-
+    # endregion
+    
+    # region Add mediaInfo to images
+    if mediaInfo:
+        mediaFiles = []
+        for ex in ['mkv', 'mp4']: mediaFiles += glob(file + '/*.' + ex)
+        if len(mediaFiles) == 1:
+            out = getstatusoutput('mediainfo "' + mediaFiles[0] + '" --Inform="Video;%colour_primaries%,%Height%,%Format%"')
+            if out[0] == 0:
+                x = img.size[0] - space
+                y = brHeight + 2 if vAlign == 't' else 5
+                if '2160' in out[1]:
+                    im = Image.open(resource_path('media/4k.png'))
+                    img.paste(im, (x - im.size[0], y), im)
+                    x -= im.size[0] + space
+                #if 'HEVC' in out[1]:
+                #    im = Image.open(resource_path('media/hevc.png'))
+                #    img.paste(im, (x - im.size[0], y), im)
+                #    x -= im.size[0] + space
+                if 'BT.2020' in out[1]:
+                    im = Image.open(resource_path('media/hdr.png'))
+                    img.paste(im, (x - im.size[0], y), im)
+            else: print('Error getting media info, Is mediainfo installed?', out[1])
+        else: print('No media files found')
+    # endregion
+    
     img.save(file + '/poster.jpg')
     call(['rm', './cover.jpg'])
     print('\033[92m' + 'Cover image saved for: ' + res['Title'] + '\033[0m')
