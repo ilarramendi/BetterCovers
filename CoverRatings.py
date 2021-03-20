@@ -4,7 +4,7 @@ from subprocess import call, getstatusoutput
 from requests import get
 from time import sleep
 from PIL import Image, ImageFont, ImageDraw
-from os import path
+from os import path, access, W_OK
 import json
 import sys
 
@@ -50,13 +50,16 @@ def downloadImage(url, path, retry):
 
 i = 1
 files = sorted(glob([pt for pt in sys.argv[1:] if '/' in pt][0]))
+lenFiles = str(len(files))
 for file in files:
-    print('[' + str(i) + '/' + str(len(files)) +'] ', end='')
+    print('[' + str(i).zfill(len(lenFiles)) + '/' + lenFiles +'] ', end='')
     i += 1
     if path.exists(file + '/poster.jpg') and not overWrite: # Skip if cover exists
         print('Cover already exists and overwrite is disabled')
         continue 
-    
+    if not access(file, W_OK) or (path.exists(file + '/poster.jpg') and not access(file + '/poster.jpg', W_OK)):
+        print('\033[91mCant write poster (acces denied) on:', file, '\033[0m')
+        continue
     # region Parse name from file
     inf = findall("\/([^\/]+) \(?(\d{4})\)?$", file)
     if len(inf) == 0: inf = findall("\/([^\/]+)$", file)
@@ -72,8 +75,11 @@ for file in files:
     
     # region Search file on omdbapi
     response = get('http://www.omdbapi.com/?apikey=' + apiKey + '&tomatoes=true&t=' + name.replace(' ', '+') + ('&y=' + year if year else ''))
+    if response.status_code != 200 or'application/json' not in response.headers.get('content-type'): 
+        print('\033[91mError connecting to omdbapi:', name, year, '\033[0m')
+        continue
     res = response.json()
-    if response.status_code != 200 or 'Error' in res: 
+    if 'Error' in res: 
         print('\033[93mNo info found for:', name, year, '\033[0m')
         continue
     if year and abs(int(year) - int(findall('\d{4}' ,res['Year'])[0])) > 1: 
@@ -101,7 +107,6 @@ for file in files:
     # endregion
 
     # region Add ratings to images
-    
     if len(infoIndex) > 0:
         img = Image.open("./cover.jpg").convert("RGBA").resize((300,450))
         overlay = Image.new('RGBA', img.size, (0,0,0,0))
@@ -151,5 +156,6 @@ for file in files:
     # endregion
     
     img.save(file + '/poster.jpg')
+    img.close()
     call(['rm', './cover.jpg'])
     print('\033[92m' + 'Cover image saved for: ' + res['Title'] + '\033[0m')
