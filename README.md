@@ -9,8 +9,8 @@ Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn li
 **Update: Added suport for media info tags!!**
 
 # Example (Emby)
-No MediaInfo                    Example with MediaInfo:  
-![example](https://user-images.githubusercontent.com/30437204/111854875-673d2d80-8900-11eb-877c-c6866767705a.png)
+Without MediaInfo:     With MediaInfo:  
+![example](https://user-images.githubusercontent.com/30437204/111854875-673d2d80-8900-11eb-877c-c6866767705a.png) 
 ![mediaInfo](https://user-images.githubusercontent.com/30437204/111854713-6e177080-88ff-11eb-9f05-29b8f69e1da7.png)  
 
 Cover images are saved as poster.jpg inside the folder of the media.  
@@ -71,17 +71,10 @@ Parameters can be used without any particular order
 ```-a abc456``` Set and save the api key
 
 # Customization Examples
-Bottom Center (default):  
-![bottom-center](https://user-images.githubusercontent.com/30437204/111842780-bf633800-88de-11eb-9de3-4f10bf4a7c50.png)
-
-Top Right:  
-![top-right](https://user-images.githubusercontent.com/30437204/111842790-c427ec00-88de-11eb-9b4d-28ccbb221686.png)
-
-Top Center:  
-![top-center](https://user-images.githubusercontent.com/30437204/111842806-cab66380-88de-11eb-9184-a85ab43837ff.png)
-
-Bottom Left:  
-![bottom-left](https://user-images.githubusercontent.com/30437204/111842814-cd18bd80-88de-11eb-9731-16d1f30dafa0.png)
-
-Bottom Right:  
+Bottom Center (default):    Top Right:          Top Center:  
+![bottom-center](https://user-images.githubusercontent.com/30437204/111842780-bf633800-88de-11eb-9de3-4f10bf4a7c50.png) 
+![top-right](https://user-images.githubusercontent.com/30437204/111842790-c427ec00-88de-11eb-9b4d-28ccbb221686.png) 
+![top-center](https://user-images.githubusercontent.com/30437204/111842806-cab66380-88de-11eb-9184-a85ab43837ff.png)  
+Bottom Left:         Bottom Right:  
+![bottom-left](https://user-images.githubusercontent.com/30437204/111842814-cd18bd80-88de-11eb-9731-16d1f30dafa0.png) 
 ![bottom-right](https://user-images.githubusercontent.com/30437204/111842847-de61ca00-88de-11eb-9a74-1a70dd939645.png)  
