@@ -18,6 +18,7 @@ textColor = '#ffffffb4' if not '-t' in sys.argv else sys.argv[sys.argv.index('-t
 hAlign = 'l' if '-hl' in sys.argv else 'r' if '-hr' in sys.argv else 'c'
 vAlign = 't' if '-vt' in sys.argv else 'b'
 mediaInfo = '-i' in sys.argv
+overWrite = '-o' in sys.argv
 
 if '-a' in sys.argv:
     apiKey = sys.argv[sys.argv.index('-a') + 1]
@@ -47,8 +48,10 @@ def downloadImage(url, path, retry):
         logText('Failed to download: ' + url, error = True)
         return False
 
-for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]): 
-    if path.exists(file + '/poster.jpg'): continue # Skip if cover exists
+for file in glob([pt for pt in sys.argv[1:] if '/' in pt][0]):
+    if path.exists(file + '/poster.jpg') and not overWrite: # Skip if cover exists
+        print('Cover already exists and overwrite is disabled')
+        continue 
     
     # region Parse name from file
     inf = findall("\/([^\/]+) \(?(\d{4})\)?$", file)
