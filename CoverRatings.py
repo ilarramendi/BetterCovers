@@ -23,8 +23,11 @@ overWrite = '-o' in sys.argv
 if '-a' in sys.argv:
     apiKey = sys.argv[sys.argv.index('-a') + 1]
     with open('./config.json', 'w') as js: json.dump({'apiKey': apiKey}, js)
-else: 
+elif path.exists('./config.json'):
     with open('./config.json', 'r') as js: apiKey = json.load(js)['apiKey']
+else: 
+    print('Please supply an api key with: -a apiKey')
+    sys.exit()
 
 def resource_path(relative_path):
     try: base_path = sys._MEIPASS
@@ -65,7 +68,7 @@ for file in files:
     if len(inf) == 0: inf = findall("\/([^\/]+)$", file)
     else: inf = inf[0]
     if len(inf) == 0:
-        print('\033[93mCant parse name from: ' + file + '\033[0m')
+        print('\033[93mCant parse name from:', file, '\033[0m')
         continue
     # endregion
 
@@ -75,14 +78,17 @@ for file in files:
     
     # region Search file on omdbapi
     response = get('http://www.omdbapi.com/?apikey=' + apiKey + '&tomatoes=true&t=' + name.replace(' ', '+') + ('&y=' + year if year else ''))
+    if response.status_code == 401:
+        print('\033[91mDaily Api Limit Reached!!!!!\033[0m')
+        break
     if response.status_code != 200 or'application/json' not in response.headers.get('content-type'): 
-        print('\033[91mError connecting to omdbapi:', name, year, '\033[0m')
+        print('\033[91mError connecting to omdbapi, code:', response.status_code, name, '\033[0m')
         continue
     res = response.json()
     if 'Error' in res: 
         print('\033[93mNo info found for:', name, year, '\033[0m')
         if res['Error'] != 'Movie not found!':
-            print('\033[91', res, '\033[0m')
+            print('\033[91', res['Error'], '\033[0m')
         continue
     if year and abs(int(year) - int(findall('\d{4}' ,res['Year'])[0])) > 1: 
         print('\033[93mWrong info found: ' + name + ' (' + year + ') | ' + res['Title'] + ' (' + res['Year'] + ')\033[0m')
@@ -146,10 +152,10 @@ for file in files:
                     im = Image.open(resource_path('media/4k.png'))
                     img.paste(im, (x - im.size[0], y), im)
                     x -= im.size[0] + space
-                #if 'HEVC' in out[1]:
-                #    im = Image.open(resource_path('media/hevc.png'))
-                #    img.paste(im, (x - im.size[0], y), im)
-                #    x -= im.size[0] + space
+                if 'HEVC' in out[1]:
+                    im = Image.open(resource_path('media/hevc.png'))
+                    img.paste(im, (x - im.size[0], y), im)
+                    x -= im.size[0] + space
                 if 'BT.2020' in out[1]:
                     im = Image.open(resource_path('media/hdr.png'))
                     img.paste(im, (x - im.size[0], y), im)
@@ -157,7 +163,8 @@ for file in files:
         else: print('No media files found, skipping MediaInfo for:', res['Title'])
     # endregion
     
+    print('\033[92m' + 'Cover image ' + ('overwriten' if path.exists(file + '/poster.jpg') else'saved') + ' for: ' + res['Title'] + '\033[0m')
     img.save(file + '/poster.jpg')
     img.close()
     call(['rm', './cover.jpg'])
-    print('\033[92m' + 'Cover image saved for: ' + res['Title'] + '\033[0m')
+    
