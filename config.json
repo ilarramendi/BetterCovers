@@ -1,0 +1,152 @@
+{
+     "tmdbApi": "",
+     "omdbApi": "",
+     "episode": {
+          "mediainfo": {
+               "alignment": "center",
+               "color": "#0001",
+               "config": {
+                    "AVC": true,
+                    "HD": true,
+                    "HDR": true,
+                    "HEVC": true,
+                    "SD": true,
+                    "UHD": true,
+                    "UHD-HDR": true
+               },
+               "imgWidth": "120px",
+               "padding": "6px",
+               "position": "top",
+               "space": "12px"
+          },
+          "ratings": {
+               "alignment": "center",
+               "color": "#0005",
+               "config": {
+                    "IMDB": true,
+                    "MTS": true,
+                    "RT": true,
+                    "TMDB": true
+               },
+               "fontFamily": "Roboto",
+               "fontSize": "42px",
+               "iconSpace": "8px",
+               "imgWidth": "80px",
+               "padding": "5px",
+               "position": "left",
+               "space": "10px",
+               "textColor": "white"
+          }
+     },
+     "movie": {
+          "mediainfo": {
+               "alignment": "center",
+               "color": "#0001",
+               "config": {
+                    "AVC": true,
+                    "HD": true,
+                    "HDR": true,
+                    "HEVC": true,
+                    "SD": true,
+                    "UHD": true,
+                    "UHD-HDR": true
+               },
+               "imgWidth": "120px",
+               "padding": "6px",
+               "position": "top",
+               "space": "12px"
+          },
+          "ratings": {
+               "alignment": "center",
+               "color": "#0005",
+               "config": {
+                    "IMDB": true,
+                    "MTS": true,
+                    "RT": true,
+                    "TMDB": true
+               },
+               "fontFamily": "Roboto",
+               "fontSize": "42px",
+               "iconSpace": "8px",
+               "imgWidth": "80px",
+               "padding": "5px",
+               "position": "left",
+               "space": "10px",
+               "textColor": "white"
+          }
+     },
+     "season": {
+          "mediainfo": {
+               "alignment": "center",
+               "color": "#0001",
+               "config": {
+                    "AVC": true,
+                    "HD": true,
+                    "HDR": true,
+                    "HEVC": true,
+                    "SD": true,
+                    "UHD": true,
+                    "UHD-HDR": true
+               },
+               "imgWidth": "120px",
+               "padding": "6px",
+               "position": "top",
+               "space": "12px"
+          },
+          "ratings": {
+               "alignment": "center",
+               "color": "#0005",
+               "config": {
+                    "IMDB": true,
+                    "MTS": true,
+                    "RT": true,
+                    "TMDB": true
+               },
+               "fontFamily": "Roboto",
+               "fontSize": "42px",
+               "iconSpace": "8px",
+               "imgWidth": "80px",
+               "padding": "5px",
+               "position": "left",
+               "space": "10px",
+               "textColor": "white"
+          }
+     },
+     "tv": {
+          "mediainfo": {
+               "alignment": "center",
+               "color": "#0001",
+               "config": {
+                    "AVC": true,
+                    "HD": true,
+                    "HDR": true,
+                    "HEVC": true,
+                    "SD": true,
+                    "UHD": true,
+                    "UHD-HDR": true
+               },
+               "imgWidth": "120px",
+               "padding": "6px",
+               "position": "top",
+               "space": "12px"
+          },
+          "ratings": {
+               "alignment": "center",
+               "color": "#0005",
+               "config": {
+                    "IMDB": true,
+                    "MTS": true,
+                    "RT": true,
+                    "TMDB": true
+               },
+               "fontFamily": "Roboto",
+               "fontSize": "42px",
+               "iconSpace": "8px",
+               "imgWidth": "80px",
+               "padding": "5px",
+               "position": "left",
+               "space": "10px",
+               "textColor": "white"
+          }
+     }
+}
