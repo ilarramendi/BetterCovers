@@ -12,31 +12,37 @@ Most important things can be customized in the [config](#config) file, and it ca
 After executing the script you have to update the library metadata on Emby/Plex/Jellyfin for this to take effect!
 
 # Dependencies
-When compiled should only have 2 external dependencies: `mediainfo` and `cutycapt`  
-You can install them with: `sudo apt install cutycapt mediainfo`
+When compiled only has 2 external dependencies: `mediainfo` and `cutycapt`  
+You can install them with: `sudo apt install -y cutycapt mediainfo`
 
 This script also needs a X server running to execute, if you are not using a graphical display its posible to use a lighweight server like xvfb:  
-`xvfb-run --server-args="-screen 1, 1024x768x24" ./BetterCovers '/movies/*'`
+`xvfb-run -a ./BetterCovers '/movies/*'`
 
 # Downloading
 To download the latest executable of the script run: WIP  
 <!-- ```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.3.5/CoverRatings; chmod +x CoverRatings```  -->
 
-Also you can download the whole project and run the python script.
+Also you can download the whole project and run `python3 BetterCovers.py`.
 
 # Api key
 At the moment the scripts needs 2 api keys to work, sorry about that :(  
 To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/).  
-And to get missing metadata and ratings from IMDB, RT and MTS it uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.
+And to get missing metadata and ratings from IMDB, RT and MTS it uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
+It can probably work without the OMDB api key but will only have ratings from TMDB
 
 To use the api keys and save it for future use you can execute the script like this:  
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
 This only needs to be run once with the api keys, as they will be stored inside ```config.json```
 
-# Supported media folder names are:
-Recommended: ```/media/Movie Name (year)```, ```/media/Movie Name year``` or ```/media/Movie.Name.year```  
-OK: ```/media/Movie Name```
-
+# Supported media folder names are: 
+ ```/media/Media Name (year)```  
+ ```/media/Media Name year```  
+ ```/media/Media.Name.year```  
+ ```/media/Media_Name year```  
+  ```/media/Media Name (year) [tags]```  
+ The year is not needed but its recommended to find the correct media
+ 
+ 
 # Usage
 If library looks like this:
 
@@ -50,6 +56,9 @@ Movies:
   └──  ...
 
 ```  
+
+or
+
 TV Shows:
 ```
 /media
@@ -68,9 +77,10 @@ The idea of this script is to be fully customizable, for this purpouse you can c
 # Config.json
 
 # Replacing Images
-Images can be placed inside a folder called `media` next to the executable/script, needed file names are:  
+Images can be placed inside a folder called `media` next to the executable/script, file names are:  
 `UHD.png, HD.png, SD.png, HDR.png, SDR.png, HEVC.png, AVC.png, RT.png, TMDB.png, IMDB.png, MTS.png`  
-Names are self explanatory.
+If a file is not found it uses the one stored inside the executable
+
 
 # Custom html/css  
 This is way you can fully customize covers how you like.  
