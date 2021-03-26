@@ -8,12 +8,16 @@ from os import access, W_OK
 from os.path import exists, abspath, join
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
+import time
 from urllib.parse import quote
+from threading import Thread
 
 overWrite = '-o' in sys.argv
+threads = 4 if not '-w' in sys.argv else int(sys.argv[sys.argv.index('-w') + 1])
 config = {}
 minVotes = 5
+extensions = ['mkv', 'mp4']
 
 if '-a' in sys.argv:
     config['omdbApi'] = sys.argv[sys.argv.index('-a') + 1]
@@ -24,10 +28,23 @@ else:
     print('Please supply an api key with: -a apiKey')
     sys.exit()
 
+with open('./cover.html', 'r') as fl: coverHTML = fl.read()
+
 def getConfigEnabled(conf):
     for cf in conf:
         if conf[cf]: return True
     return False
+
+def frequent(list):
+    count = 0
+    no = list[0]
+    for i in list:
+        current_freq = list.count(i)
+        if (current_freq > count):
+            count = current_freq
+            num = i
+    print(list, num)
+    return num 
 
 def resource_path(relative_path):
     try: base_path = sys._MEIPASS
@@ -113,87 +130,12 @@ def getMediaName(folder):
         return (False, False)
     return inf + [False]
 
-def addMediaInfoToImage(img, info, cfg, y):
-    hAlign = cfg['alignment']['horizontal']
-    height = cfg['imageHeight']
-    config = cfg['config']
-    padding = cfg['padding']
-    space = cfg['space']
-
-    x = img.size[0] - padding if hAlign == 'right' else padding
-    if info[0] != "HDR":
-        if config[info[1]]:
-            with Image.open(resource_path('media/' + info[1] + '.png')) as im: 
-                im.thumbnail((100, height), Image.ANTIALIAS)
-                img.paste(im, (x - (im.size[0] if hAlign == 'right' else 0), y), im)
-                x += (im.size[0] + space) * (-1 if hAlign == 'right' else 1)
-    elif info[1] == "UHD" and config['UHD-HDR']:
-        with Image.open(resource_path('media/UHD-HDR.png')) as im: 
-            im.thumbnail((100, height), Image.ANTIALIAS)
-            img.paste(im, (x - (im.size[0] if hAlign == 'right' else 0), y), im)
-            x += (im.size[0] + space) * (-1 if hAlign == 'right' else 1)
-    else:
-        if config['HDR']:
-            with Image.open(resource_path('media/HDR.png')) as im:
-                im.thumbnail((100, height), Image.ANTIALIAS)
-                img.paste(im, (x - (im.size[0] if hAlign == 'right' else 0), y), im)
-                x += (im.size[0] + space) * (-1 if hAlign == 'right' else 1)
-        if config[info[1]]:
-            with Image.open(resource_path('media/' + info[1] + '.png')) as im: 
-                im.thumbnail((100, height), Image.ANTIALIAS)
-                img.paste(im, (x - (im.size[0] if hAlign == 'right' else 0), y), im)
-                x += (im.size[0] + space) * (-1 if hAlign == 'right' else 1)
-    if config[info[2]]:
-        with Image.open(resource_path('media/' + info[2] + '.png')) as im:
-                im.thumbnail((100, height), Image.ANTIALIAS)
-                img.paste(im, (x - (im.size[0] if hAlign == 'right' else 0), y), im)    
-
-def addRatingsToImage(img, ratings, cfg):
-    vAlign = cfg['alignment']['vertical']
-    hAlign = cfg['alignment']['horizontal']
-    textHeight = cfg['textHeight']
-    borderHeight = cfg['borderHeight']
-    imgHeight = cfg['imageHeight']
-    textColor = cfg['textColor']
-    borderColor = cfg['borderColor']
-    padding = cfg['padding']
-    space = cfg['space']
-    config = cfg['config']
-    
-    overlay = Image.new('RGBA', img.size, (0,0,0,0))
-    recsize = (
-        (0, img.size[1] - borderHeight if vAlign == 'bottom' else 0),
-        (img.size[0], img.size[1] if vAlign == 'bottom' else borderHeight)) 
-    ImageDraw.Draw(overlay).rectangle(recsize, fill=borderColor)
-    res = Image.alpha_composite(img, overlay).convert("RGB")
-    font = ImageFont.truetype(resource_path("media/font.ttf"), textHeight)
-    draw = ImageDraw.Draw(res)
-
-    le = (300 - padding) // len(ratings) 
-    x = padding if hAlign == 'center' else 300 if hAlign == 'right' else 0
-    
-    #for rt in ratings if hAlign != 'right' else reversed(ratings):
-    for rt in ratings:
-        if config[rt]:
-            im = Image.open(resource_path('media/' + rt + ".png")) 
-            im.thumbnail((150, imgHeight), Image.ANTIALIAS)
-            tsize = draw.textsize(ratings[rt], font)[0]
-            sp = (le - im.size[0] - tsize - space) // 2
-            imgPos = (
-                x + sp if hAlign == 'center' else (x + space) if hAlign == 'left' else x - tsize - space * 2 - im.size[0],
-                (res.size[1] - imgHeight - (borderHeight - imgHeight) // 2) if vAlign == 'bottom' else (borderHeight - imgHeight) // 2)
-            res.paste(im, imgPos, im)
-            txtPos = (
-                x + sp + im.size[0] + space if hAlign == 'center' else x + space * 2 + im.size[0] if hAlign == 'left' else imgPos[0] + im.size[0] + space,
-                res.size[1] - textHeight - (borderHeight - textHeight) // 2 - 1 if vAlign == 'bottom' else (borderHeight - textHeight) // 2 - 1)
-            draw.text(txtPos, ratings[rt], textColor, font=font)
-            x = x + le if hAlign == 'center' else txtPos[0] + tsize if hAlign == 'left' else imgPos[0]
-    return res
-
-def downloadImage(src, retry):
+def downloadImage(url, retry, src):
     i = 0
     while i < retry:
-        try: return Image.open(get(src, stream=True).raw).convert("RGBA")
+        try:
+            img = Image.open(get(url, stream=True).raw).save(src)
+            return True
         except Exception as e:
             print(e,'xd')
             sleep(0.5)
@@ -205,12 +147,11 @@ def avg(lst):
     return "{:.1f}".format(sum(lst) / len(lst)) if len(lst) > 0 else 0
 
 def getSeasonsMetadata(imdbid, tmdbid, seasons):
-    metadata = {}
+    metadata = {'seasons': {}}
     for path, sn in seasons:
         res = getJSON('https://api.themoviedb.org/3/tv/' + tmdbid + '/season/' + str(sn) + '?api_key=c13bbebafbd3dad0e281c6241304aeff&language=en')
         if not res:
-            print('Error getting info for season:', sn)
-            continue
+            print('Error getting info on TMDB for season:', sn)
         season = {'episodes': {}, 'ratings': {}, 'path': path}
         #print(json.dumps(res, indent=4, sort_keys=True))
         if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = res['poster_path']
@@ -240,8 +181,36 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons):
         if avr != 0: season['ratings']['IMDB'] = avr
         avr = avg([season['episodes'][ep]['ratings']['TMDB'] for ep in season['episodes'] if 'TMDB' in season['episodes'][ep]['ratings']])
         if avr != 0: season['ratings']['TMDB'] = avr
-
-        if season != {'episodes': {}, 'ratings': {}, 'path': path}: metadata[sn] = season
+        if getConfigEnabled(config['tv']['mediainfo']['config']) or getConfigEnabled(config['season']['mediainfo']['config']) or getConfigEnabled(config['episode']['mediainfo']['config']):
+            mediaFiles = []
+            res = []
+            codec = []
+            hdr = []
+            for ex in extensions: mediaFiles += glob(join(path, '*.' + ex))
+            #print(json.dumps(season['episodes'], indent=4, sort_keys=True))
+            for fl in mediaFiles:
+                ep = findall('[Ss]\d{1,3}[Ee](\d{1,4})', fl)
+                if len(ep) > 0 and int(ep[0]) in season['episodes']:
+                    ep = int(ep[0])
+                    minfo = getMediaInfo(fl)   
+                    hdr.append(minfo[0])
+                    res.append(minfo[1])
+                    codec.append(minfo[2])
+                    season['episodes'][ep]['mediainfo'] = minfo
+            if len(hdr) > 0 and len(res) > 0 and len(codec) > 0:
+                season['mediainfo'] = [frequent(hdr), frequent(codec), frequent(res)]
+        if season != {'episodes': {}, 'ratings': {}, 'path': path}: metadata['seasons'][sn] = season
+    #print(json.dumps(metadata, indent=4, sort_keys=True))
+    res = []
+    codec = []
+    hdr = []
+    for mt in metadata['seasons']:
+        if 'mediainfo' in metadata['seasons'][mt]:
+            minfo = metadata['seasons'][mt]['mediainfo']
+            hdr.append(minfo[0])
+            res.append(minfo[1])
+            codec.append(minfo[2])
+    if len(hdr) > 0 and len(res) > 0 and len(codec) > 0: metadata['mediainfo'] = [frequent(hdr), frequent(codec), frequent(res)]
     #print(json.dumps(metadata, indent=4, sort_keys=True))
     return metadata
 
@@ -252,57 +221,134 @@ def getSeasons(folder):
         res = findall('(.*\/[Ss]eason[ ._-](\d{1,3}))', fl)
         if len(res) == 1: seasons.append(res[0])
     return seasons
+  
+def generateImage(config, ratings, mediainfo, url, thread):
+    st = time.time()
+    img = downloadImage(url, 4, './threads/' + str(thread) + '/cover.png')
+    #print('d', timedelta(seconds=round(time.time() - st)))
+    if not img: return False
+    HTML = coverHTML
+    dictionary = {
+        'top': '$horizontal $start',
+        'bottom': '$horizontal $end',
+        'left': '$vertical $start',
+        'right': '$vertical $end'
+    }
 
-def createImages(metadata, type, folder):
-    if 'cover' in metadata:
-        if (not exists(join(folder, 'poster.jpg')) or overWrite):
-            startTime = datetime.now()
-            img = downloadImage('https://image.tmdb.org/t/p/w342' + metadata['cover'] if metadata['cover'][0] == '/' else metadata['cover'], 5)
-            if img:
-                if getConfigEnabled(config[type]['ratings']['config']) and len(metadata['ratings']) > 0:
-                    img = addRatingsToImage(img, metadata['ratings'], config[type]['ratings'])
-                if type == 'movie' and getConfigEnabled(config[type]['mediainfo']['config']):
-                    mediaFiles = []
-                    for ex in ['mkv', 'mp4']: mediaFiles += glob(file + '/*.' + ex)
-                    if len(mediaFiles) > 0:
-                        minfo = getMediaInfo(mediaFiles[0])
-                        if minfo: addMediaInfoToImage(img, minfo, config[type], 
-                                    config[type]['ratings']['borderHeight'] + config[type]['space'] if config[type]['ratings']['alignment']['vertical'] == 'top' and len(metadata['ratings']) > 0 else 5)
-                action = 'overwriten' if exists(file + '/poster.jpg') else 'saved'
-                img.save(join(folder, 'poster.jpg'))
-                diff = datetime.now() - startTime
-                print('\033[92mCover image ' + action + ' for: ' + metadata['title'] + ' in ' + str(diff.seconds * 1000 + diff.microseconds // 1000) + 'ms\033[0m')
-        else: print('cover exists, not overwtiting')
-    if type == 'tv' and getConfigEnabled(config['season']['ratings']['config']):
-        for sn in sorted(metadata['seasons'], key=int):
-            startTime = datetime.now()
-            season = metadata['seasons'][sn]
-            out = join(season['path'], 'poster.jpg')
-            if (not exists(out) or overWrite):
-                if 'cover' in season:
-                    if len(season['ratings']) > 0:
-                        img = downloadImage('https://image.tmdb.org/t/p/w342' + season['cover'] if season['cover'][0] == '/' else season['cover'], 5)
-                        if img: img = addRatingsToImage(img, season['ratings'], config['season']['ratings'])
-                
-                    action = 'overwriten' if exists(out) else 'saved'
-                    img.save(out)
-                    diff = datetime.now() - startTime
-                    print('\033[92mCover image ' + action + ' for: ' + metadata['title'] + ' Season ' + sn + ' in ' + str(diff.seconds * 1000 + diff.microseconds // 1000) + 'ms\033[0m')
-            else: print('cover exists, not overwtiting')
-                       
-def processFolder(folder):
+    align = dictionary[config['ratings']['position']].replace('$', 'r')
+    align += ' ra' + config['ratings']['alignment'] + ' '
+    align += dictionary[config['mediainfo']['position']].replace('$', 'm')
+    align += ' ma' + config['mediainfo']['alignment']
+    HTML = HTML.replace('containerClass', align)
+    
+    rts = ''
+    minfo = ''
+
+    HTML += '\n<style>\n' + generateCSS(config) + '\n</style>'
+
+    for rt in ratings: rts += "<div class = 'ratingContainer'><img src= '../../media/" + rt + ".png' class='ratingIcon'><label class='ratingText'>" + ratings[rt] + "</label></div>\n"
+    for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src= '../../media/" + mi + ".png' class='mediainfoIcon'></div>\n"  
+    HTML = HTML.replace('<!--RATINGS-->', rts)
+    HTML = HTML.replace('<!--MEDIAINFO-->', minfo)
+    with open('./threads/' + str(thread) + '/tmp.html', 'w') as out:
+        out.write(HTML)
+    st = time.time()
+
+    
+    #print('g', timedelta(seconds=round(time.time() - st)))        
+    return 0 == call(['cutycapt --url="file:///home/ilarramendi/scripts/Cover-Ratings/threads/' + str(thread) + '/tmp.html" --delay=1000 --min-width=600 --out="./threads/' + str(thread) + '/tmp.jpg"'], shell=True)            
+
+def processFolder(folder, thread):
+    st = time.time()
     seasons = getSeasons(folder)
     type = 'tv' if len(seasons) > 0 else 'movie'
     name, year = getMediaName(folder)
-    metadata = getMetadata(name, type, year)
-    #print(json.dumps(metadata, indent=4, sort_keys=True))
-    if type == 'tv' and 'tmdbid' in metadata: 
-        metadata['seasons'] = getSeasonsMetadata(metadata['imdbid'] if 'imdbid' in metadata else False, metadata['tmdbid'], seasons)
-    createImages(metadata, type, folder)
-    #print(json.dumps(metadata, indent=10, sort_keys=True))
 
-files = sorted(glob([pt for pt in sys.argv[1:] if '/' in pt][0]))
-lenFiles = str(len(files))
-for index, file in  enumerate(files): 
-    #print('[' + str(index + 1) + '/' + lenFiles + ']')
-    processFolder(file)
+    #print(name, '(' + year + ')' if year else '')
+    if not overWrite and type == 'movie' and exists(join(folder, 'poster.jpg')):
+        return print('Poster exists')
+    
+    #print('Downloading metadata for:', name)
+    metadata = getMetadata(name, type, year)
+    if 'cover' not in metadata: return print('\033[93mCover image not found :C\033[0m')
+    
+    if type == 'movie' and getConfigEnabled(config['movie']['mediainfo']['config']):
+        mediaFiles = []
+            
+        for ex in extensions: mediaFiles += glob(join(folder, '*.' + ex))
+        if len(mediaFiles) > 0:
+            #print('Getting media info for:', name)
+            minfo = getMediaInfo(mediaFiles[0])
+            if minfo:
+                metadata['mediainfo'] = minfo
+            else: print('Error getting metadata!')
+        else: print('No video files found!')
+    elif type == 'tv' and 'tmdbid' in metadata:
+        print('Getting seasons metadata and mediainfo for:', name)
+        sns = getSeasonsMetadata(metadata['imdbid'] if 'imdbid' in metadata else False, metadata['tmdbid'], seasons)
+        metadata['seasons'] = sns['seasons']
+        if 'mediainfo' in sns: metadata['mediainfo'] = sns['mediainfo'] 
+    
+    #print(json.dumps(metadata, indent=10, sort_keys=True))
+    #print('Generating cover for:', name)
+    st2 = time.time()
+    img = generateImage(
+        config['movie'],
+        metadata['ratings'] if 'ratings' in metadata else [],
+        metadata['mediainfo'] if 'mediainfo' in metadata else [],
+        'https://image.tmdb.org/t/p/original' + metadata['cover'],
+        thread
+    )
+    if img: 
+        call(['mv', './threads/' + str(thread) + '/tmp.jpg', join(folder, 'poster.jpg')])
+        print('\033[92m[' + str(thread) + '] Succesfully generated cover for', name, 'in', timedelta(seconds=round(time.time() - st)), timedelta(seconds=round(time.time() - st2)), '\033[0m')
+    else: print('\033[91mError generating image\033[0m')
+
+def generateCSS(config):
+    minfo = config['mediainfo']
+    rts = config['ratings']
+    
+    body = 'body {\n'
+    
+    body += '--mediainfoContainerMargin: ' + minfo['space'] + ';\n'
+    body += '--mediainfoPadding: ' + minfo['padding'] + ';\n'
+    body += '--mediainfoBColor: ' + minfo['color'] + ';\n' 
+    body += '--mediainfoIconWidth: ' + minfo['imgWidth'] + ';\n'
+    
+    body += '--ratingContainerMargin: ' + rts['space'] + ';\n'
+    body += '--ratingIconMargin: ' + rts['iconSpace'] + ';\n'
+    body += '--ratingsContainerPadding: ' + rts['padding'] + ';\n'
+    body += '--ratingsContainerBColor: ' + rts['color'] + ';\n'
+    body += '--ratingIconWidth: ' + rts['imgWidth'] + ';\n'
+    body += '--ratingTextColor: ' + rts['textColor'] + ';\n'
+    body += '--ratingTextFontFamily: ' + rts['fontFamily'] + ';\n'
+    body += '--ratingTextFontSize: ' + rts['fontSize'] + ';\n'
+
+    body += '}'
+
+    return body
+
+path = [pt for pt in sys.argv[1:] if '/' in pt][0]
+files = sorted(glob(path)) if '*' in path else [path]
+lenThread = len(files) // threads
+thrs = []
+
+if not exists('./threads'): call(['mkdir', './threads'])
+
+# Start threads
+i = 0
+while i < threads:
+    i += 1
+    if not exists('./threads/' + str(i)): call(['mkdir', './threads/' + str(i)])
+    fn = lambda i: [processFolder(fl, i) for fl in files[(i - 1) * lenThread:i * lenThread]]
+    thread = Thread(target=fn, args=(i,))
+    thread.start()
+    thrs.append(thread)
+
+if not exists('./threads/' + str(i)): call(['mkdir', './threads/' + str(i)])
+thread = Thread(target=lambda i: [processFolder(fl, i) for fl in files[i * lenThread:]], args=(i,))
+thread.start()
+thrs.append(thread)
+
+for th in thrs: th.join()
+call(['rm', './threads', '-r'])

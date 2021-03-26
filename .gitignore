@@ -5,3 +5,6 @@ build
 __pycache__
 CoverRatings.spec
 test.py
+threads
+live.py
+cover.css.map
