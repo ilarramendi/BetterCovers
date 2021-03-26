@@ -5,30 +5,44 @@ from requests import get
 from time import sleep
 from PIL import Image, ImageFont, ImageDraw
 from os import access, W_OK
-from os.path import exists, abspath, join
-import json
-import sys
+from os.path import exists, realpath, join
+import sys 
 from datetime import timedelta
 import time
 from urllib.parse import quote
-from threading import Thread
 
-overWrite = '-o' in sys.argv
-threads = 4 if not '-w' in sys.argv else int(sys.argv[sys.argv.index('-w') + 1])
-config = {}
-minVotes = 5
-extensions = ['mkv', 'mp4']
+def generateCSS(config):
+    minfo = config['mediainfo']
+    rts = config['ratings']
+    
+    body = 'body {\n'
+    
+    body += '--mediainfoContainerMargin: ' + minfo['space'] + ';\n'
+    body += '--mediainfoPadding: ' + minfo['padding'] + ';\n'
+    body += '--mediainfoBColor: ' + minfo['color'] + ';\n' 
+    body += '--mediainfoIconWidth: ' + minfo['imgWidth'] + ';\n'
+    
+    body += '--ratingContainerMargin: ' + rts['space'] + ';\n'
+    body += '--ratingIconMargin: ' + rts['iconSpace'] + ';\n'
+    body += '--ratingsContainerPadding: ' + rts['padding'] + ';\n'
+    body += '--ratingsContainerBColor: ' + rts['color'] + ';\n'
+    body += '--ratingIconWidth: ' + rts['imgWidth'] + ';\n'
+    body += '--ratingTextColor: ' + rts['textColor'] + ';\n'
+    body += '--ratingTextFontFamily: ' + rts['fontFamily'] + ';\n'
+    body += '--ratingTextFontSize: ' + rts['fontSize'] + ';\n'
 
-if '-a' in sys.argv:
-    config['omdbApi'] = sys.argv[sys.argv.index('-a') + 1]
-    #with open('./config.json', 'w') as js: json.dump({'omdbApi': apiKey}, js)
-elif exists('./config.json'):
-    with open('./config.json', 'r') as js: config = json.load(js)
-else: 
-    print('Please supply an api key with: -a apiKey')
-    sys.exit()
+    body += '}'
 
-with open('./cover.html', 'r') as fl: coverHTML = fl.read()
+    return body
+
+def resource_path(name):
+    pt = join(realpath(__file__).rpartition('/')[0], name)
+    if exists(pt): return pt
+    try:
+        return join(sys._MEIPASS, name)
+    except Exception: 
+        print('\033[91mMissing file:', name, '\033[0m')
+        call(['pkill', '-f', 'BetterCovers'])
 
 def getConfigEnabled(conf):
     for cf in conf:
@@ -43,24 +57,15 @@ def frequent(list):
         if (current_freq > count):
             count = current_freq
             num = i
-    print(list, num)
     return num 
-
-def resource_path(relative_path):
-    try: base_path = sys._MEIPASS
-    except Exception: base_path = abspath(".")
-    return join(base_path, relative_path)
 
 def getJSON(url):
     response = get(url)
     if response.status_code == 401: # API hit limit
         print('\033[91mDaily Api Limit Reached!!!!!\033[0m')
-        sys.exit()
+        call(['pkill', '-f', 'BetterCovers'])
     if response.status_code != 200 or 'application/json' not in response.headers.get('content-type'): # Wrong response from server
-        print('\033[91mError connecting, code:', response.status_code, '\033[0m')
-        if response.status_code != 404: 
-            print(url)
-            print(response.text)
+        print('\033[91mError connecting, code:', response.status_code, url, '\033[0m')
         return False
     try:
         return response.json()
@@ -70,26 +75,26 @@ def getJSON(url):
     
     res = response.json()
 
-def getMetadata(name, type, year):
+def getMetadata(name, type, year, omdbApi, tmdbApi):
     metadata = {'ratings': {}}
-    if config['tmdbAPI'] != '': 
-        res = getJSON('https://api.themoviedb.org/3/search/' + type + '?api_key=' + config['tmdbAPI'] + '&language=en&page=1&include_adult=false&query=' + quote(name) + ('&year=' + year if year else ''))
+    if tmdbApi != '': 
+        res = getJSON('https://api.themoviedb.org/3/search/' + type + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&query=' + quote(name) + ('&year=' + year if year else ''))
         if res and 'results' in res and len(res['results']) > 0:
             res = res['results'][0]
             if 'poster_path' in res and res['poster_path']:
-                metadata['cover'] = res['poster_path']
+                metadata['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
             if 'backdrop_path' in res: metadata['backdrop'] = res['backdrop_path']
             if 'vote_average' in res: metadata['ratings']['TMDB'] = str(res['vote_average'])
             if 'id' in res:
                 metadata['tmdbid'] = str(res['id'])
-                ids = getJSON('https://api.themoviedb.org/3/' + type + '/' + metadata['tmdbid'] + '/external_ids?api_key=' + config['tmdbAPI'])
+                ids = getJSON('https://api.themoviedb.org/3/' + type + '/' + metadata['tmdbid'] + '/external_ids?api_key=' + tmdbApi)
                 if ids and 'imdb_id' in ids and ids['imdb_id']: metadata['imdbid'] = ids['imdb_id']
             if 'title' in res: metadata['title'] = res['title']
             elif 'name' in res: metadata['title'] = res['name'] 
         else: print('No results found on TMDB for:', name, year if year else '')
           
-    if config['omdbApi'] != '':
-        url = 'http://www.omdbapi.com/?apikey=' + config['omdbApi'] + '&tomatoes=true'
+    if omdbApi != '':
+        url = 'http://www.omdbapi.com/?apikey=' + omdbApi + '&tomatoes=true'
         url += '&i=' + metadata['imdbid'] if 'imdbid' in metadata else '&t=' + quote((metadata['title'] if 'title' in metadata else name).replace(' ', '+')) + ('&y=' + year if year else '')
         res = getJSON(url)
         if res:
@@ -122,9 +127,9 @@ def getMediaInfo(file):
         return False
 
 def getMediaName(folder):
-    inf = findall("\/([^\/]+)[ \.]\(?(\d{4})\)?$", folder)
+    inf = findall("\/([^\/]+)[ \.]\(?(\d{4})\)?", folder)
     if len(inf) == 0: inf = findall("\/([^\/]+)$", folder)
-    else: return inf[0]
+    else: return [inf[0][0].translate({'.': ' ', '_': ' '}), inf[0][1]]
     if len(inf) == 0:
         print('\033[93mCant parse name from: ' + file + '\033[0m')
         return (False, False)
@@ -134,10 +139,9 @@ def downloadImage(url, retry, src):
     i = 0
     while i < retry:
         try:
-            img = Image.open(get(url, stream=True).raw).save(src)
+            Image.open(get(url, stream=True).raw).save(src)
             return True
         except Exception as e:
-            print(e,'xd')
             sleep(0.5)
         i += 1
     print('\033[91mFailed to download:', url, '\033[0m')
@@ -146,15 +150,16 @@ def downloadImage(url, retry, src):
 def avg(lst):
     return "{:.1f}".format(sum(lst) / len(lst)) if len(lst) > 0 else 0
 
-def getSeasonsMetadata(imdbid, tmdbid, seasons):
+def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediainfo, minvotes):
     metadata = {'seasons': {}}
     for path, sn in seasons:
-        res = getJSON('https://api.themoviedb.org/3/tv/' + tmdbid + '/season/' + str(sn) + '?api_key=c13bbebafbd3dad0e281c6241304aeff&language=en')
+        res = getJSON('https://api.themoviedb.org/3/tv/' + tmdbid + '/season/' + str(sn) + '?api_key=' + tmdbApi + '&language=en')
         if not res:
             print('Error getting info on TMDB for season:', sn)
+            continue
         season = {'episodes': {}, 'ratings': {}, 'path': path}
-        #print(json.dumps(res, indent=4, sort_keys=True))
-        if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = res['poster_path']
+
+        if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
         if 'episodes' in res:
             for ep in res['episodes']:
                 episode = {'ratings': {}}
@@ -164,8 +169,9 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons):
                     #print(json.dumps(ep, indent=4, sort_keys=True))
                     episode['ratings']['TMDB'] = float(ep['vote_average'])
                 if episode != {'ratings': {}}: season['episodes'][ep['episode_number']] = episode
-        if config['omdbApi'] != '' and imdbid:
-            res = getJSON('http://www.omdbapi.com/?i=' + imdbid + '&Season=' + sn + '&apikey=' + config['omdbApi'])
+        
+        if omdbApi != '' and imdbid:
+            res = getJSON('http://www.omdbapi.com/?i=' + imdbid + '&Season=' + sn + '&apikey=' + omdbApi)
             if res and 'Episodes' in res:
                 for ep in res['Episodes']:
                     if 'Episode' in ep and ep['Episode'].isdigit() and int(ep['Episode']) in season['episodes']:
@@ -181,7 +187,7 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons):
         if avr != 0: season['ratings']['IMDB'] = avr
         avr = avg([season['episodes'][ep]['ratings']['TMDB'] for ep in season['episodes'] if 'TMDB' in season['episodes'][ep]['ratings']])
         if avr != 0: season['ratings']['TMDB'] = avr
-        if getConfigEnabled(config['tv']['mediainfo']['config']) or getConfigEnabled(config['season']['mediainfo']['config']) or getConfigEnabled(config['episode']['mediainfo']['config']):
+        if episodeMediainfo:
             mediaFiles = []
             res = []
             codec = []
@@ -222,10 +228,11 @@ def getSeasons(folder):
         if len(res) == 1: seasons.append(res[0])
     return seasons
   
-def generateImage(config, ratings, mediainfo, url, thread):
+def generateImage(config, ratings, mediainfo, url, thread, coverHTML):
     st = time.time()
-    img = downloadImage(url, 4, './threads/' + str(thread) + '/cover.png')
+    img = downloadImage(url, 4, join(resource_path('threads/' + str(thread)), 'cover.png'))
     #print('d', timedelta(seconds=round(time.time() - st)))
+    st = time.time()
     if not img: return False
     HTML = coverHTML
     dictionary = {
@@ -241,114 +248,31 @@ def generateImage(config, ratings, mediainfo, url, thread):
     align += ' ma' + config['mediainfo']['alignment']
     HTML = HTML.replace('containerClass', align)
     
+    HTML +='<link rel="stylesheet" href="' + resource_path('cover.css') + '">'
+    HTML += '\n<style>\n' + generateCSS(config) + '\n</style>'
+    
     rts = ''
     minfo = ''
-
-    HTML += '\n<style>\n' + generateCSS(config) + '\n</style>'
-
-    for rt in ratings: rts += "<div class = 'ratingContainer'><img src= '../../media/" + rt + ".png' class='ratingIcon'><label class='ratingText'>" + ratings[rt] + "</label></div>\n"
-    for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src= '../../media/" + mi + ".png' class='mediainfoIcon'></div>\n"  
+    
+    for rt in ratings: rts += "<div class = 'ratingContainer'><img src='" + resource_path('media/' + rt + '.png') + "' class='ratingIcon'><label class='ratingText'>" + ratings[rt] + "</label></div>\n"
+    for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src='" + resource_path('media/' + mi + '.png') + "' class='mediainfoIcon'></div>\n"  
     HTML = HTML.replace('<!--RATINGS-->', rts)
     HTML = HTML.replace('<!--MEDIAINFO-->', minfo)
-    with open('./threads/' + str(thread) + '/tmp.html', 'w') as out:
+    with open(resource_path('threads/' + str(thread)) + '/tmp.html', 'w') as out:
         out.write(HTML)
     st = time.time()
-
     
-    #print('g', timedelta(seconds=round(time.time() - st)))        
-    return 0 == call(['cutycapt --url="file:///home/ilarramendi/scripts/Cover-Ratings/threads/' + str(thread) + '/tmp.html" --delay=1000 --min-width=600 --out="./threads/' + str(thread) + '/tmp.jpg"'], shell=True)            
+    cm = call(['cutycapt --url="file://' + resource_path(join('threads', str(thread), 'tmp.html')) + '" --delay=1000 --min-width=600 --out="' + resource_path(join('threads', str(thread))) + '/tmp.jpg"'], shell=True)            
+    #print('p', timedelta(seconds=round(time.time() - st)))
+    return join('threads', str(thread), 'tmp.jpg') if cm == 0 else False
 
-def processFolder(folder, thread):
-    st = time.time()
-    seasons = getSeasons(folder)
-    type = 'tv' if len(seasons) > 0 else 'movie'
-    name, year = getMediaName(folder)
-
-    #print(name, '(' + year + ')' if year else '')
-    if not overWrite and type == 'movie' and exists(join(folder, 'poster.jpg')):
-        return print('Poster exists')
-    
-    #print('Downloading metadata for:', name)
-    metadata = getMetadata(name, type, year)
-    if 'cover' not in metadata: return print('\033[93mCover image not found :C\033[0m')
-    
-    if type == 'movie' and getConfigEnabled(config['movie']['mediainfo']['config']):
-        mediaFiles = []
-            
-        for ex in extensions: mediaFiles += glob(join(folder, '*.' + ex))
-        if len(mediaFiles) > 0:
-            #print('Getting media info for:', name)
-            minfo = getMediaInfo(mediaFiles[0])
-            if minfo:
-                metadata['mediainfo'] = minfo
-            else: print('Error getting metadata!')
-        else: print('No video files found!')
-    elif type == 'tv' and 'tmdbid' in metadata:
-        print('Getting seasons metadata and mediainfo for:', name)
-        sns = getSeasonsMetadata(metadata['imdbid'] if 'imdbid' in metadata else False, metadata['tmdbid'], seasons)
-        metadata['seasons'] = sns['seasons']
-        if 'mediainfo' in sns: metadata['mediainfo'] = sns['mediainfo'] 
-    
-    #print(json.dumps(metadata, indent=10, sort_keys=True))
-    #print('Generating cover for:', name)
-    st2 = time.time()
-    img = generateImage(
-        config['movie'],
-        metadata['ratings'] if 'ratings' in metadata else [],
-        metadata['mediainfo'] if 'mediainfo' in metadata else [],
-        'https://image.tmdb.org/t/p/original' + metadata['cover'],
-        thread
-    )
-    if img: 
-        call(['mv', './threads/' + str(thread) + '/tmp.jpg', join(folder, 'poster.jpg')])
-        print('\033[92m[' + str(thread) + '] Succesfully generated cover for', name, 'in', timedelta(seconds=round(time.time() - st)), timedelta(seconds=round(time.time() - st2)), '\033[0m')
-    else: print('\033[91mError generating image\033[0m')
-
-def generateCSS(config):
-    minfo = config['mediainfo']
-    rts = config['ratings']
-    
-    body = 'body {\n'
-    
-    body += '--mediainfoContainerMargin: ' + minfo['space'] + ';\n'
-    body += '--mediainfoPadding: ' + minfo['padding'] + ';\n'
-    body += '--mediainfoBColor: ' + minfo['color'] + ';\n' 
-    body += '--mediainfoIconWidth: ' + minfo['imgWidth'] + ';\n'
-    
-    body += '--ratingContainerMargin: ' + rts['space'] + ';\n'
-    body += '--ratingIconMargin: ' + rts['iconSpace'] + ';\n'
-    body += '--ratingsContainerPadding: ' + rts['padding'] + ';\n'
-    body += '--ratingsContainerBColor: ' + rts['color'] + ';\n'
-    body += '--ratingIconWidth: ' + rts['imgWidth'] + ';\n'
-    body += '--ratingTextColor: ' + rts['textColor'] + ';\n'
-    body += '--ratingTextFontFamily: ' + rts['fontFamily'] + ';\n'
-    body += '--ratingTextFontSize: ' + rts['fontSize'] + ';\n'
-
-    body += '}'
-
-    return body
-
-path = [pt for pt in sys.argv[1:] if '/' in pt][0]
-files = sorted(glob(path)) if '*' in path else [path]
-lenThread = len(files) // threads
-thrs = []
-
-if not exists('./threads'): call(['mkdir', './threads'])
-
-# Start threads
-i = 0
-while i < threads:
-    i += 1
-    if not exists('./threads/' + str(i)): call(['mkdir', './threads/' + str(i)])
-    fn = lambda i: [processFolder(fl, i) for fl in files[(i - 1) * lenThread:i * lenThread]]
-    thread = Thread(target=fn, args=(i,))
-    thread.start()
-    thrs.append(thread)
-
-if not exists('./threads/' + str(i)): call(['mkdir', './threads/' + str(i)])
-thread = Thread(target=lambda i: [processFolder(fl, i) for fl in files[i * lenThread:]], args=(i,))
-thread.start()
-thrs.append(thread)
-
-for th in thrs: th.join()
-call(['rm', './threads', '-r'])
+def generateSeasonsImages(name, seasons, config, thread, coverHTML):
+    for sn in seasons:
+        st = time.time()
+        season = seasons[sn]
+        if exists(join(season['path'], 'poster.jpg')) and not access(join(season['path'], 'poster.jpg'), W_OK): 
+            print('\033[91mCant write to:', join(season['path'], 'poster.jpg'), '\033[0m')
+        elif 'cover' in season and generateImage(config, season['ratings'], season['mediainfo'], season['cover'], thread, coverHTML):
+            call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), join(season['path'], 'poster.jpg')])
+            print('\033[92m[' + str(thread) + '] Succesfully generated cover for', name, 'season', sn, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
+        else: print('error generating image for season:', sn)
