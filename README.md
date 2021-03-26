@@ -4,10 +4,8 @@
 Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn library embeded with RT, IMDB, MTS and TMDB scores and media info.  
 It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.
 
-# Example (Emby)
-Without MediaInfo:     With MediaInfo:  
-![example](https://user-images.githubusercontent.com/30437204/111854875-673d2d80-8900-11eb-877c-c6866767705a.png) 
-![mediaInfo](https://user-images.githubusercontent.com/30437204/111854713-6e177080-88ff-11eb-9f05-29b8f69e1da7.png)  
+# Example
+![example](https://user-images.githubusercontent.com/30437204/112571443-cac6cf80-8dc6-11eb-8975-ef5f6e956a02.png) 
 
 Cover images are saved as poster.jpg inside the folder of the media.  
 Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
