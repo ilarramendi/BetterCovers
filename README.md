@@ -34,7 +34,7 @@ To use the api keys and save it for future use you can execute the script like t
 This only needs to be run once with the api keys, as they will be stored inside ```config.json```
 
 # Supported media folder names are:
-Recommended: ```/media/Movie Name (year)```, ```/media/Movie Name year``` or ```/media/Movie.Name.year```
+Recommended: ```/media/Movie Name (year)```, ```/media/Movie Name year``` or ```/media/Movie.Name.year```  
 OK: ```/media/Movie Name```
 
 # Usage
@@ -59,7 +59,7 @@ TV Shows:
   ├── Tv show 2 (year)
   │      └── Season 1
   └──  ...
-```
+```  
 ***Use:*** ```./BetterCovers '/media/*'```
 
 # Customization
@@ -90,7 +90,7 @@ For each enabled PROVIDER, and `<!--MEDIAINFO-->` with:
 </div>
 ```  
 For each enabled mediainfo PROPERTY.  
-In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html.
+In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and add a stylesheet import to the default cover.css or a new file located next to the executable
 
 # Parameters
 `-o` Ovewrite covers  
