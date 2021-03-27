@@ -5,7 +5,7 @@ Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn li
 It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.
 
 # Example
-![example](https://user-images.githubusercontent.com/30437204/112571443-cac6cf80-8dc6-11eb-8975-ef5f6e956a02.png) 
+![example](https://user-images.githubusercontent.com/30437204/112705360-2784c180-8e7d-11eb-9fb6-609594b8a215.png) 
 
 Cover images are saved as poster.jpg inside the folder of the media.  
 Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
@@ -19,8 +19,10 @@ This script also needs a X server running to execute, if you are not using a gra
 `xvfb-run -a ./BetterCovers '/movies/*'`
 
 # Downloading
-To download the latest executable of the script run: WIP  
-<!-- ```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/0.3.5/CoverRatings; chmod +x CoverRatings```  -->
+To download the latest executable (LINUX) of the script run:  
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.4-linux/BetterCovers; chmod +x CoverRatings```  
+In addition to the executable you need to download the default configuration file `config.json` to do this you can run:  
+```wget https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json```
 
 Also you can download the whole project and run `python3 BetterCovers.py`.
 
@@ -34,14 +36,13 @@ To use the api keys and save it for future use you can execute the script like t
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
 This only needs to be run once with the api keys, as they will be stored inside ```config.json```
 
-# Supported media folder names are: 
+# Supported media folder names
  ```/media/Media Name (year)```  
  ```/media/Media Name year```  
  ```/media/Media.Name.year```  
  ```/media/Media_Name year```  
   ```/media/Media Name (year) [tags]```  
  The year is not needed but its recommended to find the correct media
- 
  
 # Usage
 If library looks like this:
@@ -75,6 +76,7 @@ TV Shows:
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
 
 # Config.json
+WIP
 
 # Replacing Images
 Images can be placed inside a folder called `media` next to the executable/script, file names are:  
