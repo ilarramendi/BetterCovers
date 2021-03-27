@@ -82,6 +82,7 @@ TV Shows:
 - [ ] Add to PyPi?
 - [ ] Plugin for most common media servers
 - [ ] Use existing cover
+- [ ] Episodes support, get cover from internet or extract with ffmpeg
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
