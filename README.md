@@ -9,7 +9,7 @@ It generates an html file with the cover and then makes a png from that file wit
 
 Cover images are saved as poster.jpg inside the folder of the media.  
 Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
-After executing the script you have to update the library metadata on Emby/Plex/Jellyfin for this to take effect!
+After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
 # Dependencies
 When compiled only has 2 external dependencies: `mediainfo` and `cutycapt`  
