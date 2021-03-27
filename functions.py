@@ -37,8 +37,10 @@ def generateCSS(config):
 
 def resource_path(name):
     pt = join(realpath(__file__).rpartition('/')[0], name)
-    if exists(pt): return pt
+    if exists(pt): 
+        return pt
     try:
+        print(join(sys._MEIPASS, name))
         return join(sys._MEIPASS, name)
     except Exception: 
         print('\033[91mMissing file:', name, '\033[0m')
@@ -193,7 +195,6 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
             codec = []
             hdr = []
             for ex in extensions: mediaFiles += glob(join(path, '*.' + ex))
-            #print(json.dumps(season['episodes'], indent=4, sort_keys=True))
             for fl in mediaFiles:
                 ep = findall('[Ss]\d{1,3}[Ee](\d{1,4})', fl)
                 if len(ep) > 0 and int(ep[0]) in season['episodes']:
@@ -206,7 +207,7 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
             if len(hdr) > 0 and len(res) > 0 and len(codec) > 0:
                 season['mediainfo'] = [frequent(hdr), frequent(codec), frequent(res)]
         if season != {'episodes': {}, 'ratings': {}, 'path': path}: metadata['seasons'][sn] = season
-    #print(json.dumps(metadata, indent=4, sort_keys=True))
+
     res = []
     codec = []
     hdr = []
@@ -217,7 +218,6 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
             res.append(minfo[1])
             codec.append(minfo[2])
     if len(hdr) > 0 and len(res) > 0 and len(codec) > 0: metadata['mediainfo'] = [frequent(hdr), frequent(codec), frequent(res)]
-    #print(json.dumps(metadata, indent=4, sort_keys=True))
     return metadata
 
 def getSeasons(folder):
@@ -231,7 +231,6 @@ def getSeasons(folder):
 def generateImage(config, ratings, mediainfo, url, thread, coverHTML):
     st = time.time()
     img = downloadImage(url, 4, join(resource_path('threads/' + str(thread)), 'cover.png'))
-    #print('d', timedelta(seconds=round(time.time() - st)))
     st = time.time()
     if not img: return False
     HTML = coverHTML
@@ -264,7 +263,7 @@ def generateImage(config, ratings, mediainfo, url, thread, coverHTML):
     
     cm = call(['cutycapt --url="file://' + resource_path(join('threads', str(thread), 'tmp.html')) + '" --delay=1000 --min-width=600 --out="' + resource_path(join('threads', str(thread))) + '/tmp.jpg"'], shell=True)            
     #print('p', timedelta(seconds=round(time.time() - st)))
-    return join('threads', str(thread), 'tmp.jpg') if cm == 0 else False
+    return resource_path(join('threads', str(thread), 'tmp.jpg')) if cm == 0 else False
 
 def generateSeasonsImages(name, seasons, config, thread, coverHTML):
     for sn in seasons:

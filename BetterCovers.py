@@ -93,10 +93,9 @@ if not exists(resource_path('cover.css')):
 
 # Get temp folder or path next to script
 try:
-    pt = _MEIPASS
+    pt = sys._MEIPASS
 except Exception: 
     pt = realpath(__file__).rpartition('/')[0]
-
 # Create temp files for threads
 if not exists(join(pt, 'threads')): call(['mkdir', join(pt, 'threads')])
 for i in range(threads):
