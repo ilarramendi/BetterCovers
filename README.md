@@ -1,4 +1,4 @@
-# Cover Ratings
+# Better Covers
 **This is still a WIP!**
 
 Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn library embeded with RT, IMDB, MTS and TMDB scores and media info.  
@@ -21,15 +21,17 @@ This script also needs a X server running to execute, if you are not using a gra
 # Downloading
 To download the latest executable (LINUX) of the script run:  
 ```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.4-linux/BetterCovers; chmod +x CoverRatings```  
+
 In addition to the executable you need to download the default configuration file `config.json` to do this you can run:  
 ```wget https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json```
 
-Also you can download the whole project and run `python3 BetterCovers.py`.
+Alternatively you can download the whole project and run `python3 BetterCovers.py`.
 
 # Api key
 At the moment the scripts needs 2 api keys to work, sorry about that :(  
-To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/).  
-And to get missing metadata and ratings from IMDB, RT and MTS it uses [omdbapi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
+To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/), to get a key you have to create an account.
+
+And to get missing metadata and ratings from IMDB, RT and MTS it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
 It can probably work without the OMDB api key but will only have ratings from TMDB
 
 To use the api keys and save it for future use you can execute the script like this:  
@@ -71,6 +73,15 @@ TV Shows:
   └──  ...
 ```  
 ***Use:*** ```./BetterCovers '/media/*'```
+
+# Planned features
+- [ ] Executable for windows
+- [ ] Option to save images on Emby metadata folder to improve menu loading time (if metadata is on faster drive)
+- [ ] Different themes (suggestions are apreciate)
+- [ ] Improve to run as a service and make script to create service on linux
+- [ ] Add to PyPi?
+- [ ] Plugin for most common media servers
+- [ ] Use existing cover
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
