@@ -1,11 +1,13 @@
 # Better Covers
-**This is still a WIP!**
+_**This is still a WIP!**_
 
 Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn library embeded with RT, IMDB, MTS and TMDB scores and media info.  
 It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.
 
 # Example
-![example](https://user-images.githubusercontent.com/30437204/112705360-2784c180-8e7d-11eb-9fb6-609594b8a215.png) 
+
+![example](https://user-images.githubusercontent.com/30437204/112571443-cac6cf80-8dc6-11eb-8975-ef5f6e956a02.png) 
+![episodes](https://user-images.githubusercontent.com/30437204/113343343-15d06d80-9306-11eb-8f83-df947e4c44e8.png)
 
 Cover images are saved as poster.jpg inside the folder of the media.  
 Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
@@ -82,7 +84,7 @@ TV Shows:
 - [ ] Add to PyPi?
 - [ ] Plugin for most common media servers
 - [ ] Use existing cover
-- [ ] Episodes support, get cover from internet or extract with ffmpeg
+- [x] Episodes support, get cover from internet or extract with ffmpeg (ffmpeg extraction still missing)
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
@@ -92,7 +94,7 @@ WIP
 
 # Replacing Images
 Images can be placed inside a folder called `media` next to the executable/script, file names are:  
-`UHD.png, HD.png, SD.png, HDR.png, SDR.png, HEVC.png, AVC.png, RT.png, TMDB.png, IMDB.png, MTS.png`  
+`UHD.png, HD.png, SD.png, HDR.png, UHD-HDR.png, SDR.png, HEVC.png, AVC.png, RT.png, TMDB.png, IMDB.png, MTS.png`  
 If a file is not found it uses the one stored inside the executable
 
 
@@ -121,3 +123,6 @@ In addition to this it overwrites the same variables that are on `:root {}` from
 `-w number` Number of threads to use, default 4  
 `-omdb apiKey` Store the OMDB api key  
 `-tmdb apiKey` Store TMDB api key  
+
+# Credits
+This project was inspired by [Rating Poster Database](https://ratingposterdb.com/)!

@@ -5,12 +5,11 @@
     --mediainfoPadding: 6px;
     --mediainfoBColor: #0002;
 
-    --mediainfoIconWidth: 80px;
-
+    --mediainfoIconSize: 80px;
 
     /* Ratings */
     --ratingIconMargin: 6px;
-    --ratingIconWidth: 60px;
+    --ratingIconSize: 60px;
     
     --ratingContainerMargin: 10px;
     
@@ -23,7 +22,6 @@
 }
 
 .container {
-    width: 600px;
     position: relative;
 }
 
@@ -51,6 +49,7 @@ body, html {width: min-content;height: min-content;margin: 0}
         &.rastart .ratingsContainer {margin-right: auto;}
         .ratingIcon {margin-right: var(--ratingIconMargin);}
         .ratingContainer:not(:first-child) {margin-left: var(--ratingContainerMargin);}
+        .ratingIcon {height: var(--ratingIconSize);}
     }
 
     &.rvertical {
@@ -60,6 +59,8 @@ body, html {width: min-content;height: min-content;margin: 0}
         &.racenter .ratingsContainer {height: 100%;}
         .ratingsContainer, .ratingContainer {flex-direction: column;}
         .ratingContainer:not(:first-child) {margin-top: var(--ratingContainerMargin);}
+        .ratingIcon {width: var(--ratingIconSize);}
+
     }
 
     &.mhorizontal {
@@ -68,6 +69,7 @@ body, html {width: min-content;height: min-content;margin: 0}
         &.maend .mediainfoContainer {margin-left: auto;}
         &.mastart .mediainfoContainer {margin-right: auto;}
         .mediainfoImgContainer:not(:first-child) {margin-left: var(--mediainfoContainerMargin);} 
+        .mediainfoIcon {height: var(--mediainfoIconSize);}
     }
 
     &.mvertical {
@@ -76,6 +78,7 @@ body, html {width: min-content;height: min-content;margin: 0}
         &.maend .mediainfoContainer {align-self: flex-end;}
         &.macenter .mediainfoContainer {height: 100%;}
         .mediainfoImgContainer:not(:first-child) {margin-top: var(--mediainfoContainerMargin);} 
+        .mediainfoIcon {width: var(--mediainfoIconSize);}
     }
 }
 
@@ -88,7 +91,7 @@ body, html {width: min-content;height: min-content;margin: 0}
     height: min-content;
 }
 
-.mediainfoIcon {width: var(--mediainfoIconWidth);}
+
 
 .mediainfoImgContainer, .ratingContainer {
     display: flex;
@@ -119,3 +122,4 @@ body, html {width: min-content;height: min-content;margin: 0}
 .tester {flex: 1;display: flex;}
 
 
+ 

@@ -3,10 +3,10 @@
   --mediainfoContainerMargin: 12px;
   --mediainfoPadding: 6px;
   --mediainfoBColor: #0002;
-  --mediainfoIconWidth: 80px;
+  --mediainfoIconSize: 80px;
   /* Ratings */
   --ratingIconMargin: 6px;
-  --ratingIconWidth: 60px;
+  --ratingIconSize: 60px;
   --ratingContainerMargin: 10px;
   --ratingsContainerPadding: 6px;
   --ratingsContainerBColor: #0005;
@@ -16,7 +16,6 @@
 }
 
 .container {
-  width: 600px;
   position: relative;
 }
 
@@ -82,6 +81,10 @@ body, html {
   margin-left: var(--ratingContainerMargin);
 }
 
+.infoContainer.rhorizontal .ratingIcon {
+  height: var(--ratingIconSize);
+}
+
 .infoContainer.rvertical {
   -webkit-box-orient: horizontal;
   -webkit-box-direction: normal;
@@ -116,6 +119,10 @@ body, html {
   margin-top: var(--ratingContainerMargin);
 }
 
+.infoContainer.rvertical .ratingIcon {
+  width: var(--ratingIconSize);
+}
+
 .infoContainer.mhorizontal.mend .mediainfoContainer {
   -ms-flex-item-align: end;
       align-self: flex-end;
@@ -135,6 +142,10 @@ body, html {
 
 .infoContainer.mhorizontal .mediainfoImgContainer:not(:first-child) {
   margin-left: var(--mediainfoContainerMargin);
+}
+
+.infoContainer.mhorizontal .mediainfoIcon {
+  height: var(--mediainfoIconSize);
 }
 
 .infoContainer.mvertical .mediainfoContainer {
@@ -161,6 +172,10 @@ body, html {
   margin-top: var(--mediainfoContainerMargin);
 }
 
+.infoContainer.mvertical .mediainfoIcon {
+  width: var(--mediainfoIconSize);
+}
+
 .mediainfoContainer {
   background-color: var(--mediainfoBColor);
   padding: var(--mediainfoPadding);
@@ -175,10 +190,6 @@ body, html {
   height: -webkit-min-content;
   height: -moz-min-content;
   height: min-content;
-}
-
-.mediainfoIcon {
-  width: var(--mediainfoIconWidth);
 }
 
 .mediainfoImgContainer, .ratingContainer {
