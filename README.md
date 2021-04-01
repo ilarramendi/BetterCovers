@@ -1,4 +1,3 @@
-
 # Better Covers
 _**This is still a WIP!**_
 
@@ -7,7 +6,7 @@ It generates an html file with the cover and then makes a png from that file wit
 
 # Example
 
-![MOVIES/SHOWS](https://user-images.githubusercontent.com/30437204/113346328-166b0300-930a-11eb-9b68-cfd9c462cace.png)
+![MOVIES/SHOWS](https://user-images.githubusercontent.com/30437204/113347383-7c0bbf00-930b-11eb-927e-a80042595cbd.png)
 ![SEASONS](https://user-images.githubusercontent.com/30437204/113346273-00f5d900-930a-11eb-828a-052861f8fd5c.png)
 ![EPISODES](https://user-images.githubusercontent.com/30437204/113343343-15d06d80-9306-11eb-8f83-df947e4c44e8.png)
 
