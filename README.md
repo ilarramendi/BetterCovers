@@ -1,3 +1,4 @@
+
 # Better Covers
 _**This is still a WIP!**_
 
@@ -6,8 +7,9 @@ It generates an html file with the cover and then makes a png from that file wit
 
 # Example
 
-![example](https://user-images.githubusercontent.com/30437204/112571443-cac6cf80-8dc6-11eb-8975-ef5f6e956a02.png) 
-![episodes](https://user-images.githubusercontent.com/30437204/113343343-15d06d80-9306-11eb-8f83-df947e4c44e8.png)
+![MOVIES/SHOWS](https://user-images.githubusercontent.com/30437204/113346328-166b0300-930a-11eb-9b68-cfd9c462cace.png)
+![SEASONS](https://user-images.githubusercontent.com/30437204/113346273-00f5d900-930a-11eb-828a-052861f8fd5c.png)
+![EPISODES](https://user-images.githubusercontent.com/30437204/113343343-15d06d80-9306-11eb-8f83-df947e4c44e8.png)
 
 Cover images are saved as poster.jpg inside the folder of the media.  
 Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
