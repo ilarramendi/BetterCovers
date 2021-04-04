@@ -10,7 +10,7 @@ Better-Covers is a script to automaticaly generate cover images with embeded rat
 
 Cover images are saved as poster.jpg inside the folder of the media (or filename.jpg for episodes).  
 It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.    
-Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
+Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
 # Dependencies
