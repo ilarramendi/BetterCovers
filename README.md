@@ -1,22 +1,23 @@
 # Better Covers
-_**This is still a WIP!**_
+_**This is still a WIP!**_  
 
-Script intended to automaticaly generate cover images for Emby/Plex/Jellyfinn library embeded with RT, IMDB, MTS and TMDB scores and media info.  
-It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.
+This project was inspired by [RPDB](https://ratingposterdb.com/)  
+Better-Covers is a script to automaticaly generate cover images with embeded ratings and mediainfo! 
 
-# Example
+# Examples
+<img src="https://user-images.githubusercontent.com/30437204/113496415-bd4ccc00-94cf-11eb-8828-10f9c50294d7.jpg" width="400"><img src="https://user-images.githubusercontent.com/30437204/113496407-b02fdd00-94cf-11eb-8c11-8e04087d7935.jpg" width="400">
+<img src="https://user-images.githubusercontent.com/30437204/113496507-b96d7980-94d0-11eb-91c3-2ee5531f91f5.jpg" width="800">
 
-![MOVIES/SHOWS](https://user-images.githubusercontent.com/30437204/113347383-7c0bbf00-930b-11eb-927e-a80042595cbd.png)
-![SEASONS](https://user-images.githubusercontent.com/30437204/113346273-00f5d900-930a-11eb-828a-052861f8fd5c.png)
-![EPISODES](https://user-images.githubusercontent.com/30437204/113343343-15d06d80-9306-11eb-8f83-df947e4c44e8.png)
-
-Cover images are saved as poster.jpg inside the folder of the media.  
+Cover images are saved as poster.jpg inside the folder of the media (or filename.jpg for episodes).  
+It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.    
 Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
 # Dependencies
-When compiled only has 2 external dependencies: `mediainfo` and `cutycapt`  
-You can install them with: `sudo apt install -y cutycapt mediainfo`
+The only non optional external dependency is `cutycapt` to generate the images.  
+This can be installed with: `sudo apt install -y cutycapt`.  
+Aditionaly to generate cover images for episodes it uses `ffmpeg` (only needed if image generation is enabled for episodes).  
+And `mediainfo` to get mediainfo from files (only needed if mediainfo is enabled for any type of media).  
 
 This script also needs a X server running to execute, if you are not using a graphical display its posible to use a lighweight server like xvfb:  
 `xvfb-run -a ./BetterCovers '/movies/*'`
@@ -28,25 +29,26 @@ To download the latest executable (LINUX) of the script run:
 In addition to the executable you need to download the default configuration file `config.json` to do this you can run:  
 ```wget https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json```
 
-Alternatively you can download the whole project and run `python3 BetterCovers.py`.
+Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
 
 # Api key
 At the moment the scripts needs 2 api keys to work, sorry about that :(  
 To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/), to get a key you have to create an account.
 
 And to get missing metadata and ratings from IMDB, RT and MTS it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
-It can probably work without the OMDB api key but will only have ratings from TMDB
+The script can work without any api key, but it only will generate covers for episodes with embeded mediainfo if generateImages is enabled, in the future this will also be posible with existing cover images.
 
 To use the api keys and save it for future use you can execute the script like this:  
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
 This only needs to be run once with the api keys, as they will be stored inside ```config.json```
+
 
 # Supported media folder names
  ```/media/Media Name (year)```  
  ```/media/Media Name year```  
  ```/media/Media.Name.year```  
  ```/media/Media_Name year```  
-  ```/media/Media Name (year) [tags]```  
+ ```/media/Media Name (year) [tags]```  
  The year is not needed but its recommended to find the correct media
  
 # Usage
@@ -85,23 +87,40 @@ TV Shows:
 - [ ] Add to PyPi?
 - [ ] Plugin for most common media servers
 - [ ] Use existing cover
-- [x] Episodes support, get cover from internet or extract with ffmpeg (ffmpeg extraction still missing)
+- [x] Episodes support, get cover from internet or extract with ffmpeg
+- [ ] Add aditional mediainfo properties (dolby, ATMOS, language?, audio channels)
+- [ ] Add studio/provider
+- [ ] 
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
 
 # Config.json
-WIP
+The config file is divided in 4 sections: `tv`, `season`, `episode` and `movie`. Each section can be customized individually.  
+| Name           | Description                                        | Values                     |
+| -------------- | -------------------------------------------------- | -------------------------- | 
+| config         | Sets which ratings/mediainfo item is enabled       |                            |
+| position       | Position of item                                   | top, bottom, left or right |
+| alignment      | Alignment on position                              | start, center or end       |
+| imgSize        | Icon size                                          | HTML size, ex: 60px        |
+| padding        | Container padding                                  | HTML size, ex: 60px        |
+| space          | Space between each icon                            | HTML size, ex: 60px        |
+| color          | Container background color                         | HTML Color, ex: #ff0000ff  |
+| fontFamily     | Text font family                                   | HTML Font, ex: Arial       |
+| textColor      | Text color                                         | HTML Color ex: #ff0000ff   |
+| fontSize       | Text size                                          | HTML size, ex: 60px        |
+| iconSpace      | Space between ratings icon and text                | HTML size, ex: 60px        |
+| generateImages | Generate images with ffmpeg instead of downloading | boolean                    |
 
 # Replacing Images
 Images can be placed inside a folder called `media` next to the executable/script, file names are:  
-`UHD.png, HD.png, SD.png, HDR.png, UHD-HDR.png, SDR.png, HEVC.png, AVC.png, RT.png, TMDB.png, IMDB.png, MTS.png`  
+`UHD.png`, `HD.png`, `SD.png`, `HDR.png`, `UHD-HDR.png`, `SDR.png`, `HEVC.png`, `AVC.png`, `RT.png`, `TMDB.png`, `IMDB.png`, `MTS.png`  
 If a file is not found it uses the one stored inside the executable
 
-
 # Custom html/css  
-This is way you can fully customize covers how you like.  
+This way you can fully customize covers how you like.  
 Its recommended editing the scss file and compiling it to css!  
+Files need to be stored next to the executable/script.  
 The html file is customized from the script to add the images/ratings (this will probably change in the future),  
 it replaces the tag `<!--RATINGS-->` with:
 ```
@@ -117,13 +136,10 @@ For each enabled PROVIDER, and `<!--MEDIAINFO-->` with:
 </div>
 ```  
 For each enabled mediainfo PROPERTY.  
-In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and add a stylesheet import to the default cover.css or a new file located next to the executable
+In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and adds a stylesheet import to the default cover.css or a new file located next to the executable.
 
 # Parameters
 `-o` Ovewrite covers  
-`-w number` Number of threads to use, default 4  
+`-w number` Number of workers to use, default 10 (ryzen 3800x can handle up to 200 workers)  
 `-omdb apiKey` Store the OMDB api key  
-`-tmdb apiKey` Store TMDB api key  
-
-# Credits
-This project was inspired by [Rating Poster Database](https://ratingposterdb.com/)!
+`-tmdb apiKey` Store TMDB api key

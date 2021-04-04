@@ -3,7 +3,7 @@ from subprocess import call
 from os import access, W_OK
 from os.path import exists, realpath, join
 import json
-from sys import argv
+from sys import argv, exit
 from datetime import timedelta
 import time
 from threading import Thread
@@ -11,9 +11,16 @@ from functions import *
 
 tasks = []
 
-def generateTasks(metadata, path, type):
+def generateTasks(metadata, path, type, title, overWrite, season = False, episode = False):
     conf = config[type]
-    tsk = {'path': join(path, 'poster.jpg') if type != 'episode' else path.rpartition('.')[0] + '.jpg', 'type': type}
+    tsk = {
+        'out': join(path, 'poster.jpg') if type != 'episode' else path.rpartition('.')[0] + '.jpg',
+        'type': type,
+        'title': title,
+        'season': season,
+        'episode': episode,
+        'overwrite': overWrite,
+        'generateImage': path if type == 'episode' and config['episode']['generateImages'] else False}
     if 'mediainfo' in metadata:
         cfg = []
         if 'HDR' in metadata['mediainfo'] and 'UHD' in metadata['mediainfo'] and conf['mediainfo']['config']['UHD-HDR']:
@@ -32,43 +39,39 @@ def generateTasks(metadata, path, type):
         if len(cfg) > 0:
             tsk['ratings'] = cfg
     
-    if 'cover' in metadata and ('mediainfo' in tsk or 'ratings' in tsk): 
-        tsk['image'] = metadata['cover']
-        tasks.append(tsk)
+    if 'cover' in metadata: tsk['image'] = metadata['cover']
+
+    if ('image' in tsk or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk): tasks.append(tsk)
 
     if type == 'tv' and 'seasons' in metadata:
         for season in metadata['seasons']:
-            generateTasks(metadata['seasons'][season], metadata['seasons'][season]['path'], 'season')
+            generateTasks(metadata['seasons'][season], metadata['seasons'][season]['path'], 'season', title, overWrite, season)
     
     if type == 'season' and 'episodes' in metadata:
         for episode in metadata['episodes']:
-            generateTasks(metadata['episodes'][episode], metadata['episodes'][episode]['path'], 'episode')
+            generateTasks(metadata['episodes'][episode], metadata['episodes'][episode]['path'], 'episode', title, overWrite, season, episode)
 
 def processFolder(folder):
     seasons = getSeasons(folder)
     type = 'tv' if len(seasons) > 0 else 'movie'
     name, year = getMediaName(folder)
-
-    if not overWrite and type == 'movie' and exists(join(folder, 'poster.jpg')):
-        return print('Poster exists')
+    st = time.time()
 
     metadata = getMetadata(name, type, year, config['omdbApi'], config['tmdbApi'])
-    if 'cover' not in metadata:
-        return print('Cover image not found')
 
-    if type == 'tv' and 'tmdbid' in metadata:
-        print('Getting seasons metadata and mediainfo for:', name)
+    if type == 'tv':
         sns = getSeasonsMetadata(
             metadata['imdbid'] if 'imdbid' in metadata else False,
-            metadata['tmdbid'],
+            metadata['tmdbid'] if 'tmdbid' in metadata else False,
             seasons,
             config['omdbApi'],
             config['tmdbApi'],
             getConfigEnabled(config['tv']['mediainfo']['config']) or getConfigEnabled(config['season']['mediainfo']['config']),
-            minVotes)
+            minVotes,
+            name)
         metadata['seasons'] = sns['seasons']
         if 'mediainfo' in sns: metadata['mediainfo'] = sns['mediainfo']
-        else: print('Error getting mediainfo for tv show!')
+        else: print('\033[91mError getting mediainfo for:', name, '\033[0m')
     elif type == 'movie' and getConfigEnabled(config['movie']['mediainfo']['config']):
         mediaFiles = []
         for ex in extensions: 
@@ -76,40 +79,58 @@ def processFolder(folder):
         if len(mediaFiles) > 0:
             minfo = getMediaInfo(mediaFiles[0])
             if minfo: metadata['mediainfo'] = minfo
-            else: print('Error getting media info!')
-        else: print('Error getting media info no video files found on:', folder)
+            else: print('\033[91mError getting mediainfo for:', name, '\033[0m')
+        else: print('\033[91mError getting mediainfo no video files found on:', folder, '\033[0m')
     
-    generateTasks(metadata, folder, type)
+    print('\033[92mMetadata and mediainfo found for:', name, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
+    
+    generateTasks(metadata, folder, type, name, overWrite)
     #print(json.dumps(metadata, indent = 5))
 
-def processTask(tasks, thread):
+def processTasks(tasks, thread):
     for task in tasks:
-        st = time.time()
-        if generateImage(
-            config[task['type']],
+        if task['overwrite'] or not exists(task['out']):
+            st = time.time()
+            img = generateImage(
+                config[task['type']],
                 task['ratings'] if 'ratings' in task else False,
                 task['mediainfo'] if 'mediainfo' in task else False,
-                task['image'],
+                task['image'] if not task['generateImage'] else False,
                 thread,
                 coverHTML,
-                task['path']):
-            print('Succesfully generated image in', timedelta(seconds=round(time.time() - st)))
-            #print(task)
+                task['out'],
+                task['generateImage'])
+            print(
+                '\033[92m[' + str(thread) + ']Succesfully generated image for:' if img else '\033[91m[' + str(thread) + ']Error generating image for:',
+                task['title'],
+                'S' + str(task['season']) if task['season'] else '',
+                'E' + str(task['episode']) if task['episode'] else '',
+                'in',
+                timedelta(seconds=round(time.time() - st)),
+                '\033[0m')
+        else: 
+            print(
+                '\033[93m[' + str(thread) + ']Existing cover found for:',
+                task['title'],
+                'S' + str(task['season']) if task['season'] else '',
+                'E' + str(task['episode']) if task['episode'] else '',
+                '\033[0m')
 
 def downloadAllMetadata(folders):
     for folder in folders:
         processFolder(folder)
 
-print('STARTING')
-
 # region Params
 overWrite = '-o' in argv
 threads = 10 if not '-w' in argv else int(argv[argv.index('-w') + 1])
 config = {}
-path = [pt for pt in argv[1:] if '/' in pt][0]
-files = sorted(glob(path)) if '*' in path else [path]
+pts = [pt for pt in argv[1:] if '/' in pt]
+if len(pts) != 1:
+    print('Missing path')
+    exit()
+files = sorted(glob(pts[0])) if '*' in pts[0] else [pts[0]]
 threadSplit = 5
-metadataDownloaded = False
+gstart = time.time()
 # endregion
 
 # region Files
@@ -122,20 +143,40 @@ if exists('./config.json'):
         out.write(json.dumps(config, indent = 5))
 else: 
     print('Missing config.json')
-    call(['pkill', '-f', 'BetterCovers'])
+    exit()
 
 if exists(resource_path('cover.html')): 
     with open(resource_path('cover.html'), 'r') as fl: coverHTML = fl.read()
 else:
     print('Missing cover.html')
-    call(['pkill', '-f', 'BetterCovers'])
+    exit()
 if not exists(resource_path('cover.css')):
-    print('Missing cover.scss')
-    call(['pkill', '-f', 'BetterCovers'])
+    print('Missing cover.css')
+    exit()
+
+try:
+    pt = sys._MEIPASS
+except Exception: 
+    pt = realpath(__file__).rpartition('/')[0]
 # endregion
 
-print('DOWNLOADING METADATA FOR', len(files), 'FOLDERS')
+# region Check Dependencies
+dependencies = [
+    'mediainfo' if getConfigEnabled(config['tv']['mediainfo']['config']) or getConfigEnabled(config['season']['mediainfo']['config']) or getConfigEnabled(config['episode']['mediainfo']['config']) or getConfigEnabled(config['movie']['mediainfo']['config']) else False,
+    'cutycapt',
+    'ffmpeg' if config['episode']['generateImages'] else False]
 
+for dp in dependencies:
+    if dp:
+        cl = getstatusoutput('apt-cache policy ' + dp)[1]
+        if 'Installed: (none)' in cl:
+            print(dp, 'is not installed')
+            exit()
+# endregion
+
+print('DOWNLOADING METADATA AND GETTING MEDIAINFO FOR', len(files), 'FOLDERS')
+
+# region Download Metadata
 i = 0
 thrs = [False] * threads
 while i < len(files):
@@ -155,37 +196,26 @@ while i < len(files):
 # Wait for threads to end
 for th in thrs: 
     if th: th.join()
+# endregion
 
 print('GENERATING IMAGES FOR', len(tasks), 'ITEMS')
-# Get temp folder or path next to script
-try:
-    pt = sys._MEIPASS
-except Exception: 
-    pt = realpath(__file__).rpartition('/')[0]
 
-# Create temp files for threads
+# region Start Threads
 if not exists(join(pt, 'threads')): call(['mkdir', join(pt, 'threads')])
 for i in range(threads):
     pth = join(pt, 'threads', str(i))
     if not exists(pth): call(['mkdir', pth])
 
-# Split files for threads
-thrsFiles = []
-i = 0
-while i < len(tasks): 
-    thrsFiles.append(tasks[i: i + threadSplit])
-    i += threadSplit
-
-# Generate threads
 thrs = [False] * threads
-for fls in thrsFiles:
+while j < len(tasks):
     i = 0
     while True:
         if not (thrs[i] and thrs[i].is_alive()):
-            thread = Thread(target=processTask, args=(fls, i, ))
+            thread = Thread(target=processTasks, args=(tasks[j: j + threadSplit], i, ))
             thread.start()
             thrs[i] = thread
             i += 1
+            j += threadSplit
             if i == threads: i = 0
             break
         i += 1
@@ -194,7 +224,8 @@ for fls in thrsFiles:
 # Wait for threads to end
 for th in thrs: 
     if th: th.join()
+# endregion
 
 call(['rm', '-r', join(pt, 'threads')])
-print('DONE')
+print('DONE, total time was:', timedelta(seconds=round(time.time() - gstart)))
         

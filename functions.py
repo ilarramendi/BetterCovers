@@ -1,6 +1,6 @@
 from glob import glob
 from re import findall, match
-from subprocess import call, getstatusoutput
+from subprocess import call, getstatusoutput, DEVNULL
 from requests import get
 from time import sleep
 from PIL import Image, ImageFont, ImageDraw
@@ -11,7 +11,7 @@ from datetime import timedelta
 import time
 from urllib.parse import quote
 import json
-extensions = ['mkv', 'mp4']
+extensions = ['mkv', 'mp4', 'avi']
 minVotes = 5
 
 
@@ -65,7 +65,7 @@ def frequent(list):
             num = i
     return num 
 
-def getJSON(url):
+def getJSON(url): # JSON?
     response = get(url)
     if response.status_code == 401: # API hit limit
         print('\033[91mDaily Api Limit Reached!!!!!\033[0m')
@@ -81,7 +81,7 @@ def getJSON(url):
     
     res = response.json()
 
-def getMetadata(name, type, year, omdbApi, tmdbApi):
+def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': str, 'cover'?: str, 'backdrop'?: str, 'tmdbid'?: str}
     metadata = {'ratings': {}, "type": type}
     if tmdbApi != '': 
         res = getJSON('https://api.themoviedb.org/3/search/' + type + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&query=' + quote(name) + ('&year=' + year if year else ''))
@@ -89,7 +89,7 @@ def getMetadata(name, type, year, omdbApi, tmdbApi):
             res = res['results'][0]
             if 'poster_path' in res and res['poster_path']:
                 metadata['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
-            if 'backdrop_path' in res: metadata['backdrop'] = 'https://image.tmdb.org/t/p/original' + res['backdrop_path']
+            if 'backdrop_path' in res and res['backdrop_path']: metadata['backdrop'] = 'https://image.tmdb.org/t/p/original' + res['backdrop_path']
             if 'vote_average' in res: metadata['ratings']['TMDB'] = str(res['vote_average'])
             if 'id' in res:
                 metadata['tmdbid'] = str(res['id'])
@@ -119,7 +119,7 @@ def getMetadata(name, type, year, omdbApi, tmdbApi):
         else: print('No results found on OMDB for:', name, year if year else '')
     return metadata
 
-def getMediaInfo(file):
+def getMediaInfo(file): # [str]?
     out = getstatusoutput('mediainfo "' + file + '" --Inform="Video;%colour_primaries%,%Width%x%Height%,%Format%"')
     if out[0] == 0: 
         rt = out[1].split(',')
@@ -134,16 +134,16 @@ def getMediaInfo(file):
         print('\033[91Error getting media info, Is mediainfo installed?\n', out[1], '\033[0m')
         return False
 
-def getMediaName(folder):
+def getMediaName(folder): # [str?, str?] => [name, year]
     inf = findall("\/([^\/]+)[ \.]\(?(\d{4})\)?", folder)
     if len(inf) == 0: inf = findall("\/([^\/]+)$", folder)
     else: return [inf[0][0].translate({'.': ' ', '_': ' '}), inf[0][1]]
     if len(inf) == 0:
-        print('\033[93mCant parse name from: ' + file + '\033[0m')
-        return (False, False)
+        print('\033[93mCant parse name from: ' + folder + '\033[0m')
+        return [False, False]
     return inf + [False]
 
-def downloadImage(url, retry, src):
+def downloadImage(url, retry, src): # Boolean
     i = 0
     while i < retry:
         try:
@@ -158,7 +158,7 @@ def downloadImage(url, retry, src):
 def avg(lst):
     return "{:.1f}".format(sum(lst) / len(lst)) if len(lst) > 0 else 0
 
-def getEpisodes(folder, season):
+def getEpisodes(folder, season): # {int: str,...} => {enumber: epath,...}
     fls = []
     episodes = {}
     for ex in extensions: fls += glob(join(folder, '*.' + ex))
@@ -168,31 +168,31 @@ def getEpisodes(folder, season):
             episodes[int(nm[0])] = fl
     return episodes
 
-def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediainfo, minvotes):
+def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediainfo, minvotes, title): # {'seasons': {int: {'episodes': {}, 'ratings': {}, 'path': str, 'mediainfo'?: [str]}}, 'mediainfo'?: [str]}
     metadata = {'seasons': {}}
     for path, sn in seasons:
-        episodes = getEpisodes(path, sn)
-        res = getJSON('https://api.themoviedb.org/3/tv/' + tmdbid + '/season/' + str(sn) + '?api_key=' + tmdbApi + '&language=en')
-        if not res:
-            print('Error getting info on TMDB for season:', sn)
-            continue
         season = {'episodes': {}, 'ratings': {}, 'path': path}
-
-        if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
-        if 'episodes' in res:
-            for ep in res['episodes']:
-                if 'episode_number' not in ep or ep['episode_number'] == 'N/A': continue
-                if ep['episode_number'] in episodes:
-                    episode = {'ratings': {}, 'path': episodes[ep['episode_number']]}
-                    if 'still_path' in ep and ep['still_path'] != 'N/A': episode['cover'] = 'https://image.tmdb.org/t/p/original' + ep['still_path']
-                    if 'vote_average' in ep and ep['vote_average'] != 'N/A' and 'vote_count' in ep and ep['vote_count'] > minVotes:
-                        episode['ratings']['TMDB'] = float(ep['vote_average'])
-                    season['episodes'][ep['episode_number']] = episode
-                else: print('episode missing from disk', sn, ep['episode_number'])
+        eps = getEpisodes(path, sn)
+        for ep in eps:
+            season['episodes'][ep] = {'path': eps[ep], 'ratings': {}}
+        
+        if tmdbApi != '' and tmdbid:
+            res = getJSON('https://api.themoviedb.org/3/tv/' + tmdbid + '/season/' + str(sn) + '?api_key=' + tmdbApi + '&language=en')
+            if res:
+                if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
+                if 'episodes' in res:
+                    for ep in res['episodes']:
+                        if 'episode_number' not in ep or ep['episode_number'] == 'N/A': continue
+                        if ep['episode_number'] in season['episodes']:
+                            if 'still_path' in ep and ep['still_path'] != 'N/A' and ep['still_path']:
+                                season['episodes'][ep['episode_number']]['cover'] = 'https://image.tmdb.org/t/p/original' + ep['still_path']
+                            if 'vote_average' in ep and ep['vote_average'] != 'N/A' and 'vote_count' in ep and ep['vote_count'] > minVotes:
+                                season['episodes'][ep['episode_number']]['ratings']['TMDB'] = float(ep['vote_average'])
+                        else: print('\033[93mEpisode missing from disk:', title, 'season', sn, 'episode', ep['episode_number'], '\033[0m')
+            else: print('Error getting info on TMDB for', title, 'season', sn)
         
         if omdbApi != '' and imdbid:
             res = getJSON('http://www.omdbapi.com/?i=' + imdbid + '&Season=' + sn + '&apikey=' + omdbApi)
-            #print('http://www.omdbapi.com/?i=' + imdbid + '&Season=' + sn + '&apikey=' + omdbApi, json.dumps(res, indent = 5))
             if res and 'Episodes' in res:
                 for ep in res['Episodes']:
                     if 'Episode' in ep and ep['Episode'].isdigit() and int(ep['Episode']) in season['episodes']:
@@ -201,7 +201,8 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
                             season['episodes'][episode]['ratings']['IMDB'] = float(ep['imdbRating'])
                         if 'imdbID' in ep and ep['imdbID'] != 'N/A':
                             season['episodes'][episode]['imdbid'] = ep['imdbID']
-            else: print('Error getting episodes for season:', sn)
+            else: print('Error info on OMDB for', title, 'season', sn)
+        
         avr = avg([season['episodes'][ep]['ratings']['IMDB'] for ep in season['episodes'] if 'IMDB' in season['episodes'][ep]['ratings']])
         if avr != 0: season['ratings']['IMDB'] = avr
         avr = avg([season['episodes'][ep]['ratings']['TMDB'] for ep in season['episodes'] if 'TMDB' in season['episodes'][ep]['ratings']])
@@ -246,9 +247,9 @@ def getSeasons(folder):
         if len(res) == 1: seasons.append(res[0])
     return seasons
   
-def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path):
+def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path, mediaFile):
     st = time.time()
-    img = downloadImage(url, 4, join(resource_path('threads/' + str(thread)), 'cover.png'))
+    img = downloadImage(url, 4, join(resource_path('threads/' + str(thread)), 'cover.png')) if not mediaFile else generateMediaImage(mediaFile, thread)
     #print('d', timedelta(seconds=round(time.time() - st)))
     st = time.time()
     if not img: return False
@@ -286,7 +287,7 @@ def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path):
     cm = call(['cutycapt --url="file://' + resource_path(join('threads', str(thread), 'tmp.html')) + '" --delay=1000 --min-width=100 --min-height=100 --out="' + resource_path(join('threads', str(thread))) + '/tmp.jpg"'], shell=True)            
     #print('p', timedelta(seconds=round(time.time() - st)))
     if cm == 0:
-       return call(['mv', resource_path(join('threads', str(thread), 'tmp.jpg')), path]) == 0
+       return call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), path]) == 0
     return False
 
 def generateSeasonsImages(name, seasons, config, thread, coverHTML):
@@ -299,3 +300,7 @@ def generateSeasonsImages(name, seasons, config, thread, coverHTML):
             call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), join(season['path'], 'poster.jpg')])
             print('\033[92m[' + str(thread) + '] Succesfully generated cover for', name, 'season', sn, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
         else: print('error generating image for season:', sn)
+
+def generateMediaImage(path, thread):
+    out = join(resource_path('threads/' + str(thread)), 'cover.png')
+    return call(['ffmpeg', '-y', '-ss', '5:00', '-i', path, '-vframes', '1', '-q:v', '2', out], stdout = DEVNULL, stderr = DEVNULL) == 0
