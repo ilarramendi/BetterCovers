@@ -19,7 +19,7 @@ jobs:
         python-version: 3.9
     - name: Install dependencies
       run: |
-        pip3 install glob re requests pillow urllib pyinstaller
+        pip3 install pillow urllib pyinstaller
     - name: Build with Pyinstaller
       run: |
         pyinstaller BetterCovers.py --add-data "./media/*;./media" --add-data "./cover.*;./" --onefile
