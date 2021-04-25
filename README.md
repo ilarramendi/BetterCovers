@@ -5,12 +5,12 @@ This project was inspired by [RPDB](https://ratingposterdb.com/)
 Better-Covers is a script to automaticaly generate cover images with embeded ratings and mediainfo! 
 
 # Examples
-<img src="https://user-images.githubusercontent.com/30437204/113496415-bd4ccc00-94cf-11eb-8828-10f9c50294d7.jpg" width="400"><img src="https://user-images.githubusercontent.com/30437204/113496407-b02fdd00-94cf-11eb-8c11-8e04087d7935.jpg" width="400">
+<img src="https://user-images.githubusercontent.com/30437204/113496415-bd4ccc00-94cf-11eb-8828-10f9c50294d7.jpg" width="400"> <img src="https://user-images.githubusercontent.com/30437204/113497190-f2f5b300-94d7-11eb-9753-ccfdf1130d53.jpg" width="400">
 <img src="https://user-images.githubusercontent.com/30437204/113496507-b96d7980-94d0-11eb-91c3-2ee5531f91f5.jpg" width="800">
 
 Cover images are saved as poster.jpg inside the folder of the media (or filename.jpg for episodes).  
 It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.    
-Most important things can be customized in the [config](#config) file, and it can be fully customized modifying `cover.html` and `cover.css`  
+Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
 # Dependencies
@@ -41,6 +41,7 @@ The script can work without any api key, but it only will generate covers for ep
 To use the api keys and save it for future use you can execute the script like this:  
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
 This only needs to be run once with the api keys, as they will be stored inside ```config.json```
+
 
 
 # Supported media folder names
@@ -90,7 +91,8 @@ TV Shows:
 - [x] Episodes support, get cover from internet or extract with ffmpeg
 - [ ] Add aditional mediainfo properties (dolby, ATMOS, language?, audio channels)
 - [ ] Add studio/provider
-- [ ] 
+- [ ] Add aditional providers
+- [ ] Add certifications
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
