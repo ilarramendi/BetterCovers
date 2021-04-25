@@ -23,4 +23,4 @@ jobs:
         pip3 install pillow pyinstaller
     - name: Build with Pyinstaller
       run: |
-        pyinstaller BetterCovers.py --add-data "./media/*;./media" --add-data "./cover.*;./" --onefile
+        pyinstaller BetterCovers.py --add-data "/media/*;./media" --add-data "/cover.*;./" --onefile
