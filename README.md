@@ -1,7 +1,7 @@
 # Better Covers
 _**This is still a WIP!**_  
 
-This project was inspired by [RPDB](https://ratingposterdb.com/)  
+This project was inspired by [RPDB](https://ratingposterdb.com/)!  
 Better-Covers is a script to automaticaly generate cover images with embeded ratings and mediainfo! 
 
 # Examples
@@ -13,36 +13,24 @@ It generates an html file with the cover and then makes a png from that file wit
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
-# Dependencies
-The only non optional external dependency is `cutycapt` to generate the images.  
-This can be installed with: `sudo apt install -y cutycapt`.  
-Aditionaly to generate cover images for episodes it uses `ffmpeg` (only needed if image generation is enabled for episodes).  
-And `mediainfo` to get mediainfo from files (only needed if mediainfo is enabled for any type of media).  
-
-This script also needs a X server running to execute, if you are not using a graphical display its posible to use a lighweight server like xvfb:  
-`xvfb-run -a ./BetterCovers '/movies/*'`
-
 # Downloading
-To download the latest executable (LINUX) of the script run:  
-```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.4-linux/BetterCovers; chmod +x CoverRatings```  
+The easiest option for running is using [docker](https://hub.docker.com/r/ilarramendi/better-covers).  
+``` docker run -i --rm -v /path/to/media:/media -v /path/to/config.json:/config.json ilarramendi/better-covers ```
 
-In addition to the executable you need to download the default configuration file `config.json` to do this you can run:  
-```wget https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json```
+To download the latest executable (LINUX) of the script run:  
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/latest-linux/BetterCovers; chmod +x CoverRatings```  
 
 Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
 
-# Api key
-At the moment the scripts needs 2 api keys to work, sorry about that :(  
+# Api keys
+At the moment the scripts works the best with 2 api keys, sorry about that :(  
 To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/), to get a key you have to create an account.
 
 And to get missing metadata and ratings from IMDB, RT and MTS it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
-The script can work without any api key, but it only will generate covers for episodes with embeded mediainfo if generateImages is enabled, in the future this will also be posible with existing cover images.
+<!--The script can work without any api key, but it only will generate covers for episodes with embeded mediainfo if generateImages is enabled, in the future this will also be posible with existing cover images.-->
 
-To use the api keys and save it for future use you can execute the script like this:  
+To save the api keys edit ```config.json``` or execute the script like this to automaticaly save them:  
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
-This only needs to be run once with the api keys, as they will be stored inside ```config.json```
-
-
 
 # Supported media folder names
  ```/media/Media Name (year)```  
@@ -51,6 +39,15 @@ This only needs to be run once with the api keys, as they will be stored inside 
  ```/media/Media_Name year```  
  ```/media/Media Name (year) [tags]```  
  The year is not needed but its recommended to find the correct media
+ 
+ # Dependencies
+The only non optional external dependency is `cutycapt` to generate the images.  
+This can be installed with: `sudo apt install -y cutycapt`.  
+Aditionaly to generate cover images for episodes it uses `ffmpeg` (only needed if image generation is enabled for episodes).  
+And `mediainfo` to get mediainfo from files (only needed if mediainfo is enabled for any type of media).  
+
+This script also needs a X server running to execute, if you are not using a graphical display its posible to use a lighweight server like xvfb:  
+`xvfb-run -a ./BetterCovers '/movies/*'`
  
 # Usage
 If library looks like this:
@@ -93,6 +90,10 @@ TV Shows:
 - [ ] Add studio/provider
 - [ ] Add aditional providers
 - [ ] Add certifications
+- [ ] Add python dependencies file
+- [x] Add docker container
+- [ ] Make docker container fully customizable like script
+- [ ] Custom flag for default language
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
@@ -142,6 +143,8 @@ In addition to this it overwrites the same variables that are on `:root {}` from
 
 # Parameters
 `-o` Ovewrite covers  
+`-c config.json` Change path to config.json    
 `-w number` Number of workers to use, default 10 (ryzen 3800x can handle up to 200 workers)  
 `-omdb apiKey` Store the OMDB api key  
 `-tmdb apiKey` Store TMDB api key
+
