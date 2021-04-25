@@ -24,3 +24,11 @@ jobs:
     - name: Build with Pyinstaller
       run: |
         pyinstaller BetterCovers.py --add-data "./media/*:./media" --add-data "./cover.*:./" --onefile
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Test Build"
+        files: |
+          dist/BetterCovers
