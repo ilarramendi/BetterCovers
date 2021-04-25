@@ -44,7 +44,6 @@ def resource_path(name):
     if exists(pt): 
         return pt
     try:
-        print(join(sys._MEIPASS, name))
         return join(sys._MEIPASS, name)
     except Exception: 
         print('\033[91mMissing file:', name, '\033[0m')

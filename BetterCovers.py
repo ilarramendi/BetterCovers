@@ -124,34 +124,49 @@ def downloadAllMetadata(folders):
 overWrite = '-o' in argv
 threads = 10 if not '-w' in argv else int(argv[argv.index('-w') + 1])
 config = {}
-pts = [pt for pt in argv[1:] if '/' in pt]
-if len(pts) != 1:
-    print('Missing path')
+pt = argv[1]
+
+if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
+    print('Path dosnt exist')
     exit()
-files = sorted(glob(pts[0])) if '*' in pts[0] else [pts[0]]
+cfg = './config.json' if '-c' not in argv else argv[argv.index('-c') + 1]
+
+files = sorted(glob(pt)) if '*' in pt else [pt]
 threadSplit = 5
 gstart = time.time()
 # endregion
 
 # region Files
-if exists('./config.json'):
-    with open('./config.json', 'r') as js: 
+if not exists(cfg):
+    print('Missing config.json, downloading default config.')
+    if call(['wget', 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
+        print('Succesfully downloaded default config.')
+    else: 
+        print('\033[91mError downloading default config\033[0m')
+        exit()
+
+try:
+    with open(cfg, 'r') as js: 
         config = json.load(js)
-    if '-omdb' in argv: config['omdbApi'] = argv[argv.index('-omdb') + 1]
-    if '-tmdb' in argv: config['tmdbApi'] = argv[argv.index('-tmdb') + 1]    
-    with open('./config.json', 'w') as out: 
-        out.write(json.dumps(config, indent = 5))
-else: 
-    print('Missing config.json')
+except:
+    print('\033[91mError loading ./config.json\033[0m')
     exit()
+
+if '-omdb' in argv: config['omdbApi'] = argv[argv.index('-omdb') + 1]
+if '-tmdb' in argv: config['tmdbApi'] = argv[argv.index('-tmdb') + 1] 
+if config['tmdbApi'] == '' and config['omdbApi'] == '':
+    print('\033[91mA single api key is needed to work\033[0m')
+    exit()
+with open(cfg, 'w') as out: 
+    out.write(json.dumps(config, indent = 5))    
 
 if exists(resource_path('cover.html')): 
     with open(resource_path('cover.html'), 'r') as fl: coverHTML = fl.read()
 else:
-    print('Missing cover.html')
+    print('\033[91mMissing cover.html\033[0m')
     exit()
 if not exists(resource_path('cover.css')):
-    print('Missing cover.css')
+    print('\033[91mMissing cover.css\033[0m')
     exit()
 
 try:
@@ -166,18 +181,18 @@ dependencies = [
     'cutycapt',
     'ffmpeg' if config['episode']['generateImages'] else False]
 
-for dp in dependencies:
-    if dp:
-        cl = getstatusoutput('apt-cache policy ' + dp)[1]
-        if 'Installed: (none)' in cl:
-            print(dp, 'is not installed')
-            exit()
+for dp in [d for d in dependencies if d]:
+    cl = getstatusoutput('apt-cache policy ' + dp)[1]
+    if 'Installed: (none)' in cl:
+        print(dp, 'is not installed')
+        exit()
 # endregion
 
 print('DOWNLOADING METADATA AND GETTING MEDIAINFO FOR', len(files), 'FOLDERS')
 
 # region Download Metadata
 i = 0
+j = 0
 thrs = [False] * threads
 while i < len(files):
     j = 0
