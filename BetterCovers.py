@@ -89,7 +89,7 @@ def processFolder(folder):
     generateTasks(metadata, folder, type, name, overWrite)
     print('\033[92mMetadata and mediainfo found for:', name, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
 
-def processTask(task, thread):
+def processTask(task, thread, position, total):
     if task['overwrite'] or not exists(task['out']):
         st = time.time()
         img = generateImage(
@@ -101,8 +101,9 @@ def processTask(task, thread):
             coverHTML,
             task['out'],
             task['generateImage'])
+        header = '[' + str(position + 1) + '/' + str(total) + '][' + str(thread) + ']'
         print(
-            '\033[92m[' + str(thread) + ']Succesfully generated image for:' if img else '\033[91m[' + str(thread) + ']Error generating image for:',
+            '\033[92m' + header + 'Succesfully generated image for:' if img else '\033[91m' + header + 'Error generating image for:',
             task['title'],
             '(' + task['type'] + ')',
             'S' + str(task['season']) if task['season'] else '',
@@ -125,7 +126,6 @@ config = {}
 pt = argv[1]
 cfg = './config.json' if '-c' not in argv else argv[argv.index('-c') + 1]
 files = sorted(glob(pt)) if '*' in pt else [pt]
-threadSplit = 5
 gstart = time.time()
 if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
     print('Path dosnt exist')
@@ -135,7 +135,7 @@ if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
 # region Files
 if not exists(cfg):
     print('Missing config.json, downloading default config.')
-    if call(['wget', 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
+    if call(['wget', '-O', cfg, 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
         print('Succesfully downloaded default config.')
     else: 
         print('\033[91mError downloading default config\033[0m')
@@ -214,13 +214,15 @@ for i in range(threads):
     if not exists(pth): call(['mkdir', pth])
 
 thrs = [False] * threads
+j = 1
 for tsk in tasks:
     i = 0
     while True:
         if not (thrs[i] and thrs[i].is_alive()):
-            thread = Thread(target=processTask, args=(tsk, i, ))
+            thread = Thread(target=processTask, args=(tsk, i, j, len(tasks)))
             thread.start()
             thrs[i] = thread
+            j += 1
             break
         i += 1
         if i == threads: i = 0

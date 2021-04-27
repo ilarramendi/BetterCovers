@@ -5,8 +5,8 @@
           "mediainfo": {
                "position": "top",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "35px",
+               "imgSize": "110px",
+               "padding": "20px",
                "space": "50px",
                "color": "#1004",
                "config": {
@@ -22,15 +22,15 @@
                }
           },
           "ratings": {
-               "position": "left",
+               "position": "right",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "30px",
+               "imgSize": "100px",
+               "padding": "20px",
                "space": "50px",
                "color": "#0005",
                "fontFamily": "Roboto",
-               "fontSize": "150px",
-               "iconSpace": "35px",
+               "fontSize": "75px",
+               "iconSpace": "25px",
                "textColor": "white",
                "config": {
                     "IMDB": true,
@@ -39,7 +39,7 @@
                     "TMDB": true
                }
           },
-          "width": 1200,
+          "width": 1920,
           "generateImages": true
      },
      "movie": {
@@ -126,9 +126,9 @@
           "mediainfo": {
                "position": "top",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "35px",
-               "space": "50px",
+               "imgSize": "115px",
+               "padding": "15px",
+               "space": "30px",
                "color": "#1004",
                "config": {
                     "AVC": true,
@@ -145,13 +145,13 @@
           "ratings": {
                "position": "left",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "30px",
+               "imgSize": "110px",
+               "padding": "15px",
                "space": "50px",
                "color": "#0005",
                "fontFamily": "Roboto",
-               "fontSize": "150px",
-               "iconSpace": "35px",
+               "fontSize": "80px",
+               "iconSpace": "32px",
                "textColor": "white",
                "config": {
                     "IMDB": true,
@@ -166,9 +166,9 @@
           "mediainfo": {
                "position": "top",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "35px",
-               "space": "50px",
+               "imgSize": "115px",
+               "padding": "15px",
+               "space": "30px",
                "color": "#1004",
                "config": {
                     "AVC": true,
@@ -185,13 +185,13 @@
           "ratings": {
                "position": "left",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "30px",
+               "imgSize": "110px",
+               "padding": "15px",
                "space": "50px",
                "color": "#0005",
                "fontFamily": "Roboto",
-               "fontSize": "150px",
-               "iconSpace": "35px",
+               "fontSize": "80px",
+               "iconSpace": "32px",
                "textColor": "white",
                "config": {
                     "IMDB": true,
