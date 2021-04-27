@@ -8,7 +8,7 @@ Better-Covers is a script to automaticaly generate cover images (and backdrops) 
 <img src="https://user-images.githubusercontent.com/30437204/113496415-bd4ccc00-94cf-11eb-8828-10f9c50294d7.jpg" width="400"> <img src="https://user-images.githubusercontent.com/30437204/113497190-f2f5b300-94d7-11eb-9753-ccfdf1130d53.jpg" width="400">
 <img src="https://user-images.githubusercontent.com/30437204/113496507-b96d7980-94d0-11eb-91c3-2ee5531f91f5.jpg" width="800">
 
-Cover images are saved as poster.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg.     
+Cover images are saved as folder.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg.     
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
@@ -152,7 +152,7 @@ For each enabled mediainfo PROPERTY.
 In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and adds a stylesheet import to the default cover.css or a new file located next to the executable.
 
 # Parameters
-`-o` Ovewrite covers  
+`-o true` Ovewrite covers  
 `-c /path/to/config.json` Change path to config.json    
 `-w number` Number of workers to use, default 10 (ryzen 3800x can handle up to 200 workers)  
 `-omdb apiKey` Store the OMDB api key  
