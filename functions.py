@@ -88,7 +88,8 @@ def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': s
             res = res['results'][0]
             if 'poster_path' in res and res['poster_path']:
                 metadata['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
-            if 'backdrop_path' in res and res['backdrop_path']: metadata['backdrop'] = 'https://image.tmdb.org/t/p/original' + res['backdrop_path']
+            if 'backdrop_path' in res and res['backdrop_path']: 
+                metadata['backdrop'] = 'https://image.tmdb.org/t/p/original' + res['backdrop_path']
             if 'vote_average' in res: metadata['ratings']['TMDB'] = str(res['vote_average'])
             if 'id' in res:
                 metadata['tmdbid'] = str(res['id'])
@@ -130,7 +131,7 @@ def getMediaInfo(file): # [str]?
         if rt[2] != 'HEVC' and rt[2] != 'AVC': rt[2] = 'UNDEFINED'
         return rt[:3]
     else: 
-        print('\033[91Error getting media info, Is mediainfo installed?\n', out[1], '\033[0m')
+        print('\033[91Error getting media info, exit code:', out[0], '\n', out[1], '\033[0m')
         return False
 
 def getMediaName(folder): # [str?, str?] => [name, year]
@@ -249,7 +250,6 @@ def getSeasons(folder):
 def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path, mediaFile):
     st = time.time()
     img = downloadImage(url, 4, join(resource_path('threads/' + str(thread)), 'cover.png')) if not mediaFile else generateMediaImage(mediaFile, thread)
-    #print('d', timedelta(seconds=round(time.time() - st)))
     st = time.time()
     if not img: return False
     HTML = coverHTML
@@ -283,20 +283,27 @@ def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path, medi
         out.write(HTML)
     st = time.time()
     
-    cm = call(['cutycapt --url="file://' + resource_path(join('threads', str(thread), 'tmp.html')) + '" --delay=1000 --min-width=100 --min-height=100 --out="' + resource_path(join('threads', str(thread))) + '/tmp.jpg"'], shell=True)            
-    #print('p', timedelta(seconds=round(time.time() - st)))
-    if cm == 0:
-       return call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), path]) == 0
-    return False
+    i = 0
+    command = ['cutycapt --url="file://' + resource_path(join('threads', str(thread), 'tmp.html')) + '" --delay=1000 --min-width=100 --min-height=100 --out="' + resource_path(join('threads', str(thread))) + '/tmp.jpg"']
+    while i < 3 and not call(command, shell=True) == 0: i += 1
+    
+    if i < 3:
+        if not call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), path]) == 0:
+            print('Error moving to:', path)
+            return False
+        return True
+    else: 
+        print('Error generating image with cutycapt')
+        return False
 
 def generateSeasonsImages(name, seasons, config, thread, coverHTML):
     for sn in seasons:
         st = time.time()
         season = seasons[sn]
-        if exists(join(season['path'], 'poster.jpg')) and not access(join(season['path'], 'poster.jpg'), W_OK): 
-            print('\033[91mCant write to:', join(season['path'], 'poster.jpg'), '\033[0m')
+        if exists(join(season['path'], 'folder.jpg')) and not access(join(season['path'], 'folder.jpg'), W_OK): 
+            print('\033[91mCant write to:', join(season['path'], 'folder.jpg'), '\033[0m')
         elif 'cover' in season and generateImage(config, season['ratings'], season['mediainfo'], season['cover'], thread, coverHTML):
-            call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), join(season['path'], 'poster.jpg')])
+            call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), join(season['path'], 'folder.jpg')])
             print('\033[92m[' + str(thread) + '] Succesfully generated cover for', name, 'season', sn, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
         else: print('error generating image for season:', sn)
 

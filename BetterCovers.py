@@ -14,7 +14,7 @@ tasks = []
 def generateTasks(metadata, path, type, title, overWrite, season = False, episode = False):
     conf = config[type]
     tsk = {
-        'out': join(path, 'poster.jpg') if type != 'episode' else path.rpartition('.')[0] + '.jpg',
+        'out': join(path, 'folder.jpg') if type != 'episode' else path.rpartition('.')[0] + '.jpg',
         'type': type,
         'title': title,
         'season': season,
@@ -40,9 +40,13 @@ def generateTasks(metadata, path, type, title, overWrite, season = False, episod
             tsk['ratings'] = cfg
     
     if 'cover' in metadata: tsk['image'] = metadata['cover']
+    if ('cover' in metadata or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk): tasks.append(tsk)
 
-    if ('image' in tsk or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk): tasks.append(tsk)
-
+    tsk2 = tsk.copy()
+    if 'backdrop' in metadata: tsk2['image'] = metadata['backdrop']
+    tsk2['type'] = 'backdrop'
+    tsk2['out'] = tsk2['out'].rpartition('/')[0] + '/backdrop.jpg'
+    if ('backdrop' in metadata or tsk2['generateImage']) and ('mediainfo' in tsk2 or 'ratings' in tsk2): tasks.append(tsk2)
     if type == 'tv' and 'seasons' in metadata:
         for season in metadata['seasons']:
             generateTasks(metadata['seasons'][season], metadata['seasons'][season]['path'], 'season', title, overWrite, season)
@@ -81,59 +85,51 @@ def processFolder(folder):
             if minfo: metadata['mediainfo'] = minfo
             else: print('\033[91mError getting mediainfo for:', name, '\033[0m')
         else: print('\033[91mError getting mediainfo no video files found on:', folder, '\033[0m')
-    
-    print('\033[92mMetadata and mediainfo found for:', name, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
-    
+       
     generateTasks(metadata, folder, type, name, overWrite)
-    #print(json.dumps(metadata, indent = 5))
+    print('\033[92mMetadata and mediainfo found for:', name, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
 
-def processTasks(tasks, thread):
-    for task in tasks:
-        if task['overwrite'] or not exists(task['out']):
-            st = time.time()
-            img = generateImage(
-                config[task['type']],
-                task['ratings'] if 'ratings' in task else False,
-                task['mediainfo'] if 'mediainfo' in task else False,
-                task['image'] if not task['generateImage'] else False,
-                thread,
-                coverHTML,
-                task['out'],
-                task['generateImage'])
-            print(
-                '\033[92m[' + str(thread) + ']Succesfully generated image for:' if img else '\033[91m[' + str(thread) + ']Error generating image for:',
-                task['title'],
-                'S' + str(task['season']) if task['season'] else '',
-                'E' + str(task['episode']) if task['episode'] else '',
-                'in',
-                timedelta(seconds=round(time.time() - st)),
-                '\033[0m')
-        else: 
-            print(
-                '\033[93m[' + str(thread) + ']Existing cover found for:',
-                task['title'],
-                'S' + str(task['season']) if task['season'] else '',
-                'E' + str(task['episode']) if task['episode'] else '',
-                '\033[0m')
-
-def downloadAllMetadata(folders):
-    for folder in folders:
-        processFolder(folder)
+def processTask(task, thread):
+    if task['overwrite'] or not exists(task['out']):
+        st = time.time()
+        img = generateImage(
+            config[task['type']],
+            task['ratings'] if 'ratings' in task else False,
+            task['mediainfo'] if 'mediainfo' in task else False,
+            task['image'] if not task['generateImage'] else False,
+            thread,
+            coverHTML,
+            task['out'],
+            task['generateImage'])
+        print(
+            '\033[92m[' + str(thread) + ']Succesfully generated image for:' if img else '\033[91m[' + str(thread) + ']Error generating image for:',
+            task['title'],
+            '(' + task['type'] + ')',
+            'S' + str(task['season']) if task['season'] else '',
+            'E' + str(task['episode']) if task['episode'] else '',
+            'in',
+            timedelta(seconds=round(time.time() - st)),
+            '\033[0m')
+    else: 
+        print(
+            '\033[93m[' + str(thread) + ']Existing cover found for:',
+            task['title'],
+            'S' + str(task['season']) if task['season'] else '',
+            'E' + str(task['episode']) if task['episode'] else '',
+            '\033[0m')
 
 # region Params
-overWrite = '-o' in argv
-threads = 10 if not '-w' in argv else int(argv[argv.index('-w') + 1])
+overWrite = '-o' in argv and argv[argv.index('-o') + 1] == 'true'
+threads = 20 if not '-w' in argv else int(argv[argv.index('-w') + 1])
 config = {}
 pt = argv[1]
-
-if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
-    print('Path dosnt exist')
-    exit()
 cfg = './config.json' if '-c' not in argv else argv[argv.index('-c') + 1]
-
 files = sorted(glob(pt)) if '*' in pt else [pt]
 threadSplit = 5
 gstart = time.time()
+if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
+    print('Path dosnt exist')
+    exit()
 # endregion
 
 # region Files
@@ -152,8 +148,8 @@ except:
     print('\033[91mError loading ./config.json\033[0m')
     exit()
 
-if '-omdb' in argv: config['omdbApi'] = argv[argv.index('-omdb') + 1]
-if '-tmdb' in argv: config['tmdbApi'] = argv[argv.index('-tmdb') + 1] 
+if '-omdb' in argv and argv[argv.index('-omdb') + 1] != '': config['omdbApi'] = argv[argv.index('-omdb') + 1]
+if '-tmdb' in argv and argv[argv.index('-omdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1] 
 if config['tmdbApi'] == '' and config['omdbApi'] == '':
     print('\033[91mA single api key is needed to work\033[0m')
     exit()
@@ -191,22 +187,17 @@ for dp in [d for d in dependencies if d]:
 print('DOWNLOADING METADATA AND GETTING MEDIAINFO FOR', len(files), 'FOLDERS')
 
 # region Download Metadata
-i = 0
-j = 0
 thrs = [False] * threads
-while i < len(files):
-    j = 0
+for file in files:
+    i = 0
     while True:
-        if not (thrs[j] and thrs[j].is_alive()):
-            thread = Thread(target=downloadAllMetadata, args=(files[i: i + 2], ))
+        if not (thrs[i] and thrs[i].is_alive()):
+            thread = Thread(target=processFolder , args=(file, ))
             thread.start()
-            thrs[j] = thread
-            j += 1
-            if j == threads: j = 0
-            i += 2
+            thrs[i] = thread
             break
-        j += 1
-        if j == threads: j = 0
+        i += 1
+        if i == threads: i = 0
 
 # Wait for threads to end
 for th in thrs: 
@@ -216,22 +207,20 @@ for th in thrs:
 print('GENERATING IMAGES FOR', len(tasks), 'ITEMS')
 
 # region Start Threads
+# Generating nedded files for threads
 if not exists(join(pt, 'threads')): call(['mkdir', join(pt, 'threads')])
 for i in range(threads):
     pth = join(pt, 'threads', str(i))
     if not exists(pth): call(['mkdir', pth])
 
 thrs = [False] * threads
-while j < len(tasks):
+for tsk in tasks:
     i = 0
     while True:
         if not (thrs[i] and thrs[i].is_alive()):
-            thread = Thread(target=processTasks, args=(tasks[j: j + threadSplit], i, ))
+            thread = Thread(target=processTask, args=(tsk, i, ))
             thread.start()
             thrs[i] = thread
-            i += 1
-            j += threadSplit
-            if i == threads: i = 0
             break
         i += 1
         if i == threads: i = 0
