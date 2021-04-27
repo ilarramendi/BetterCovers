@@ -2,23 +2,31 @@
 _**This is still a WIP!**_  
 
 This project was inspired by [RPDB](https://ratingposterdb.com/)!  
-Better-Covers is a script to automaticaly generate cover images with embeded ratings and mediainfo! 
+Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings and mediainfo! 
 
 # Examples
 <img src="https://user-images.githubusercontent.com/30437204/113496415-bd4ccc00-94cf-11eb-8828-10f9c50294d7.jpg" width="400"> <img src="https://user-images.githubusercontent.com/30437204/113497190-f2f5b300-94d7-11eb-9753-ccfdf1130d53.jpg" width="400">
 <img src="https://user-images.githubusercontent.com/30437204/113496507-b96d7980-94d0-11eb-91c3-2ee5531f91f5.jpg" width="800">
 
-Cover images are saved as poster.jpg inside the folder of the media (or filename.jpg for episodes).  
-It generates an html file with the cover and then makes a png from that file with `cutycapt`, in the future the idea would be to fully integrate this with clients to have the reactive html displayed instead of an image.    
+Cover images are saved as poster.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg.     
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
 
 # Downloading
 The easiest option for running is using [docker](https://hub.docker.com/r/ilarramendi/better-covers).  
-``` docker run -i --rm -v /path/to/media:/media -v /path/to/config.json:/config.json ilarramendi/better-covers ```
+``` 
+docker run -i --rm \
+  -v /path/to/media:/media \
+  -v /path/to/config:/config \
+  -e o=false \
+  -e w=20 \
+  -e tmdb=xxxxxx \
+  -e omdb=xxxxxx \
+  ilarramendi/better-covers 
+```
 
 To download the latest executable (LINUX) of the script run:  
-```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/latest-linux/BetterCovers; chmod +x CoverRatings```  
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.6-linux/BetterCovers; chmod +x CoverRatings```  
 
 Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
 
@@ -92,14 +100,16 @@ TV Shows:
 - [ ] Add certifications
 - [ ] Add python dependencies file
 - [x] Add docker container
-- [ ] Make docker container fully customizable like script
-- [ ] Custom flag for default language
+- [x] Make docker container fully customizable like script
+- [ ] Flags for audio language
+- [x] Add backdrop support
+- [ ] Add connection with Sonarr and Radarr api
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
 
 # Config.json
-The config file is divided in 4 sections: `tv`, `season`, `episode` and `movie`. Each section can be customized individually.  
+The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` and `movie`. Each section can be customized individually.  
 | Name           | Description                                        | Values                     |
 | -------------- | -------------------------------------------------- | -------------------------- | 
 | config         | Sets which ratings/mediainfo item is enabled       |                            |
@@ -143,7 +153,7 @@ In addition to this it overwrites the same variables that are on `:root {}` from
 
 # Parameters
 `-o` Ovewrite covers  
-`-c config.json` Change path to config.json    
+`-c /path/to/config.json` Change path to config.json    
 `-w number` Number of workers to use, default 10 (ryzen 3800x can handle up to 200 workers)  
 `-omdb apiKey` Store the OMDB api key  
 `-tmdb apiKey` Store TMDB api key
