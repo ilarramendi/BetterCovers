@@ -5,7 +5,7 @@ This project was inspired by [RPDB](https://ratingposterdb.com/)!
 Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings, mediainfo, language and age certifications! 
 
 # Examples
-<img src="https://user-images.githubusercontent.com/30437204/116767700-17c24500-aa08-11eb-855c-954b6623a863.jpg" width="50%"> <img src="https://user-images.githubusercontent.com/30437204/116767716-43452f80-aa08-11eb-985e-d38f6be31da1.jpg" width="49%">
+<img src="https://user-images.githubusercontent.com/30437204/116767700-17c24500-aa08-11eb-855c-954b6623a863.jpg" width="49.5%"> <img src="https://user-images.githubusercontent.com/30437204/116767716-43452f80-aa08-11eb-985e-d38f6be31da1.jpg" width="49.5%">
 <img src="https://user-images.githubusercontent.com/30437204/116767708-24df3400-aa08-11eb-8f3d-5929a16048b3.jpg" width="100%">
 
 Cover images are saved as folder.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg (customizable).     
