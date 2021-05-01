@@ -15,7 +15,7 @@
                "imgSize": "110px",
                "padding": "20px",
                "space": "50px",
-               "color": "#1004",
+               "color": "#0005",
                "config": {
                     "AVC": true,
                     "HD": true,
@@ -27,7 +27,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD"
           },
           "ratings": {
                "position": "right",
@@ -68,7 +68,7 @@
                "imgSize": "210px",
                "padding": "35px 15px",
                "space": "30px",
-               "color": "#1004",
+               "color": "#0005",
                "config": {
                     "AVC": true,
                     "HD": true,
@@ -80,7 +80,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD"
           },
           "ratings": {
                "position": "left",
@@ -121,7 +121,7 @@
                "imgSize": "100px",
                "padding": "15px",
                "space": "30px",
-               "color": "#1004",
+               "color": "#0005",
                "config": {
                     "AVC": true,
                     "HD": true,
@@ -133,7 +133,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD"
           },
           "ratings": {
                "position": "right",
@@ -175,7 +175,7 @@
                "imgSize": "210px",
                "padding": "35px 15px",
                "space": "30px",
-               "color": "#1004",
+               "color": "#0005",
                "config": {
                     "AVC": true,
                     "HD": true,
@@ -187,7 +187,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,USA"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD,USA"
           },
           "ratings": {
                "position": "left",
@@ -228,7 +228,7 @@
                "imgSize": "210px",
                "padding": "35px 15px",
                "space": "30px",
-               "color": "#1004",
+               "color": "#0005",
                "config": {
                     "AVC": true,
                     "HD": true,
@@ -240,7 +240,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,USA"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD,USA"
           },
           "ratings": {
                "position": "left",

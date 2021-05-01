@@ -1,7 +1,7 @@
 from glob import glob
 from subprocess import call, getstatusoutput
 from os import access, W_OK
-from os.path import exists, realpath, join
+from os.path import exists, realpath, join, abspath
 import json
 from sys import argv, exit
 from datetime import timedelta
@@ -215,7 +215,7 @@ def loadConfig(cfg):
             global config 
             config = json.load(js)
             if '-omdb' in argv and argv[argv.index('-omdb') + 1] != '': config['omdbApi'] = argv[argv.index('-omdb') + 1]
-            if '-tmdb' in argv and argv[argv.index('-omdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1]
+            if '-tmdb' in argv and argv[argv.index('-tmdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1]
         with open(cfg, 'w') as out: 
             out.write(json.dumps(config, indent = 5))
     except:
@@ -245,11 +245,7 @@ def processTasks():
     thrs = [False] * threads
     thrsLength = len(str(threads))
 
-    if not exists(join(pt, 'threads')): call(['mkdir', join(pt, 'threads')])
-    for i in range(threads):
-        pth = join(pt, 'threads', str(i).zfill(thrsLength))
-        if not exists(pth): call(['mkdir', pth])
-
+    if not exists(join(workDirectory, 'threads')): call(['mkdir', join(workDirectory, 'threads')])
     while running and (processing or len(tasks) > 0):
         if len(tasks) > 0:
             i = 0
@@ -272,7 +268,8 @@ overWrite = '-o' in argv and argv[argv.index('-o') + 1] == 'true'
 threads = 20 if not '-w' in argv else int(argv[argv.index('-w') + 1])
 config = {}
 pt = argv[1]
-cfg = './config.json' if '-c' not in argv else argv[argv.index('-c') + 1]
+workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 1])
+functions.workDirectory = workDirectory
 folders = sorted(glob(pt)) if '*' in pt else [pt]
 gstart = time.time()
 if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
@@ -282,32 +279,35 @@ if '-v' in argv: functions.logLevel = int(argv[argv.index('-v') + 1])
 # endregion
 
 # region Files
-if not exists(cfg):
+if not exists(join(workDirectory, 'config.json')):
     log('Missing config.json, downloading default config.', 0, 3)
-    if call(['wget', '-O', cfg, 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
+    if call(['wget', '-O', join(workDirectory, 'config.json'), 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
         log('Succesfully downloaded default config file', 2, 0)
-        loadConfig(cfg)
+        loadConfig(join(workDirectory, 'config.json'))
     else: log('Error downloading default config file', 1, 0)
     exit()
     
-loadConfig(cfg)
+loadConfig(join(workDirectory, 'config.json'))
 if config['tmdbApi'] == '' and config['omdbApi'] == '':
     log('A single api key is needed to work', 1, 0)
     exit() 
 
-if exists(functions.resource_path('cover.html')): 
-    with open(functions.resource_path('cover.html'), 'r') as fl: coverHTML = fl.read()
+try: # Move files from executable to workdir
+    pt = sys._MEIPASS
+    for fl in glob(join(pt, 'files', '**'),  recursive=True):
+        out = join(workDirectory, fl.partition('files/')[2])
+        if not exists(out): call(['mv', fl, out])
+except Exception:
+    pt = realpath(__file__).rpartition('/')[0]
+
+if exists(join(workDirectory, 'cover.html')):
+    with open(join(workDirectory, 'cover.html'), 'r') as fl: coverHTML = fl.read()
 else:
     log('Missing cover.html', 1, 0)
     exit()
-if not exists(functions.resource_path('cover.css')):
+if not exists(join(workDirectory, 'cover.css')):
     log('Missing cover.css', 1, 0)
     exit()
-
-try:
-    pt = sys._MEIPASS
-except Exception: 
-    pt = realpath(__file__).rpartition('/')[0]
 # endregion
 
 # region Check Dependencies
@@ -322,7 +322,6 @@ for dp in [d for d in dependencies if d]:
         log(dp + ' is not installed', 1, 0)
         exit()
 # endregion
-
 
 try:
     log('PROCESSING ' + str(len(folders)) + ' FOLDERS')
@@ -345,14 +344,17 @@ except KeyboardInterrupt:
     GENERATING.join()
     PROCESSING.join()
     
+call(['rm', '-r', join(workDirectory, 'threads')])
 
-call(['rm', '-r', join(pt, 'threads')])
-if running: # Update agent library
+# region Update agent library
+if running: 
     if config['agent']['apiKey'] != '':
         url = config['agent']['url'] + ('/Library/refresh?api_key=' + config['agent']['apiKey'] if config['agent']['type'] == 'emby' else '/ScheduledTasks/Running/6330ee8fb4a957f33981f89aa78b030f')
         if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
             log('Succesfully updated ' + config['agent']['type'] + ' libraries (' + config['agent']['url'] + ')', 2, 2)
         else: log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'])
     else: log('Not updating ' + config['agent']['type'] + ' library, Are api and url set?', 3, 3)
+# endregion
+
 log('DONE! Finished generating ' + str(tasksLength) + ' images in: ' + str(timedelta(seconds=round(time.time() - gstart))), 0, 0)
 

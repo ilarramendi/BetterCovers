@@ -28,7 +28,7 @@ docker run -i --rm \
 ```
 
 To download the latest executable (LINUX) of the script run:  
-```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.7-linux/BetterCovers; chmod +x BetterCovers```  
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.7.1-linux/BetterCovers; chmod +x BetterCovers```  
 
 Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
 
@@ -101,7 +101,7 @@ TV Shows:
 - [ ] Add certifications
 - [ ] Add python dependencies file
 - [x] Add docker container
-- [x] Make docker container fully customizable like script
+- [ ] Make docker container fully customizable like script
 - [x] Flags for audio language
 - [x] Add backdrop support
 - [ ] Add connection with Sonarr and Radarr api
@@ -109,6 +109,7 @@ TV Shows:
 - [ ] Add connection to plex api
 - [x] Add age certifications
 - [ ] Add source (blueray, web, dvd...)
+- [ ] Add custom overlays
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
@@ -151,34 +152,32 @@ The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` 
 
 
 ## Replacing Assets
-Assets can be placed inside a folder called `media` next to the executable/script, paths have to be the same as [here](https://github.com/ilarramendi/Cover-Ratings/tree/main/media).  
-
-If a file is not found it uses the one stored inside the executable
+Assets can be placed inside a folder called `media` in the work directory (can be changed with -wd, default wd is next to script), paths have to be the same as [here](https://github.com/ilarramendi/Cover-Ratings/tree/main/media).  
 
 ## Custom html/css  
 This way you can fully customize covers how you like.  
-Its recommended editing the scss file and compiling it to css!  
-Files need to be stored next to the executable/script.  
+Files need to be stored in the work directory.  
 The html file is customized from the script to add the images/ratings (this will probably change in the future),  
 it replaces the tag `<!--RATINGS-->` with:
 ```
 <div class = 'ratingContainer'>
-   <img src= './PROVIDER.png' class='ratingIcon'> 
+   <img src= '../media/providers/PROVIDER.png' class='ratingIcon'> 
    <label class='ratingText'>VALUE</label>
 </div>
 ```  
 For each enabled PROVIDER, and `<!--MEDIAINFO-->` with:
 ```
 <div class='mediainfoImgContainer'>
-   <img src= './PROPERTY.png' class='mediainfoIcon'> 
+   <img src= '../media/mediainfo/PROPERTY.png' class='mediainfoIcon'> 
 </div>
 ```  
+
 For each enabled mediainfo PROPERTY.  
 In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and adds a stylesheet import to the default cover.css or a new file located next to the executable.
 
 # Parameters
 `-o true` Ovewrite covers  
-`-c /path/to/config.json` Change path to config.json    
+`-wd /path/to/wd` Change the default working directory (where config and icons are stored)    
 `-w number` Number of workers to use, default 10 (ryzen 3800x can handle up to 200 workers)  
 `-omdb apiKey` Store the OMDB api key  
 `-tmdb apiKey` Store TMDB api key

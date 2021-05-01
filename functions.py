@@ -13,6 +13,7 @@ from urllib.parse import quote
 import json
 from exif import Image as imgTag
 
+workDirectory = "./"
 extensions = ['mkv', 'mp4', 'avi']
 minVotes = 5
 logLevel = 2
@@ -32,7 +33,7 @@ def log(text, type = 0, level = 2): # 0 = Normal, 1 = Error, 2 = Success, 3 = Wa
         msg += text
         msg += '\033[0m' if type != 0 else ''
         print((datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") if logLevel >= 3 else '') + msg)
-        with open('./BetterCovers.log', 'a') as log:
+        with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
             log.write(datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") + msg + '\n')
 
 def generateCSS(config):
@@ -58,16 +59,6 @@ def generateCSS(config):
     body += '}'
 
     return body
-
-def resource_path(name):
-    pt = join(realpath(__file__).rpartition('/')[0], name)
-    if exists(pt): 
-        return pt
-    try:
-        return join(sys._MEIPASS, name)
-    except Exception: 
-        log('Missing file: ' + name, 1, 0)
-        exit()
 
 def getConfigEnabled(conf):
     for cf in conf:
@@ -293,7 +284,7 @@ def tagImage(path):
 
 def generateImage(config, ratings, certification, language, mediainfo, url, thread, coverHTML, path, mediaFile):
     st = time.time()
-    imageGenerated = mediaFile and generateMediaImage(mediaFile, thread)
+    imageGenerated = mediaFile and generateMediaImage(mediaFile, join(workDirectory, 'threads', thread + '-sc.png'))
     if mediaFile and not imageGenerated:
         if url:
             log('Error generating screenshot with ffmpeg, using downloaded image instead', 3, 3)
@@ -313,35 +304,33 @@ def generateImage(config, ratings, certification, language, mediainfo, url, thre
     align += dictionary[config['mediainfo']['position']].replace('$', 'm')
     align += ' ma' + config['mediainfo']['alignment']
     HTML = HTML.replace('containerClass', align)
-    HTML = HTML.replace('$IMGSRC', './cover.png' if imageGenerated else url)
+    HTML = HTML.replace('$IMGSRC', thread + '-sc.png' if imageGenerated else url)
 
-    HTML +='<link rel="stylesheet" href="' + resource_path('cover.css') + '">'
     HTML += '\n<style>\n' + generateCSS(config) + '.container {width:' + str(config['width']) + 'px; height:' + str(config['height']) + 'px}\n</style>'
     
     rts = ''
     minfo = ''
 
     if ratings:
-        for rt in ratings: rts += "<div class = 'ratingContainer'><img src='" + resource_path('media/ratings/' + rt + '.png') + "' class='ratingIcon'><label class='ratingText'>" + str(ratings[rt]) + "</label></div>\n"
+        for rt in ratings: rts += "<div class = 'ratingContainer'><img src='" + join('..', 'media', 'ratings', rt + '.png') + "' class='ratingIcon'><label class='ratingText'>" + str(ratings[rt]) + "</label></div>\n"
     if mediainfo:
-        for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src='" + resource_path('media/mediainfo/' + mi + '.png') + "' class='mediainfoIcon'></div>\n"  
+        for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src='" + join('..', 'media', 'mediainfo', mi + '.png') + "' class='mediainfoIcon'></div>\n"  
     if language:
-        minfo += "<div class='mediainfoImgContainer'><img src='" + resource_path('media/languages/' + language + '.png') + "' class='mediainfoIcon'></div>\n"
+        minfo += "<div class='mediainfoImgContainer'><img src='" + join('..', 'media', 'languages', language + '.png') + "' class='mediainfoIcon'></div>\n"
     if certification:
-        with open(resource_path('media/certifications/' + certification + '.svg'), 'r') as svg:
+        with open(join('..', 'media', 'certifications', certification + '.svg'), 'r') as svg:
             HTML = HTML.replace('<!--CERTIFICATION-->', svg.read())
     HTML = HTML.replace('<!--RATINGS-->', rts)
     HTML = HTML.replace('<!--MEDIAINFO-->', minfo)
-    with open(resource_path('threads/' + thread) + '/tmp.html', 'w') as out:
+    with open(join(workDirectory, 'threads', thread + '.html'), 'w') as out:
         out.write(HTML)
-    st = time.time()
-    
+
     i = 0
-    command = 'cutycapt --url="file://' + resource_path(join('threads', thread, 'tmp.html')) + '" --delay=1500 --min-width=100 --min-height=100 --out="' + resource_path(join('threads', thread)) + '/tmp.jpg"'
+    command = 'cutycapt --url="file://' + join(workDirectory, 'threads', thread + '.html') + '" --delay=1000 --min-width=' + str(config['width']) + ' --min-height=' + str(config['height']) + ' --out="' + join(workDirectory, 'threads', thread + '.jpg') + '"'
     while i < 3 and not call(command, shell=True, stdout=DEVNULL, stderr=DEVNULL) == 0: i += 1
     if i < 3:
-        tagImage(resource_path(join('threads', thread, 'tmp.jpg')))
-        if not call(['mv', '-f', resource_path(join('threads', thread, 'tmp.jpg')), path]) == 0:
+        tagImage(join(workDirectory, 'threads', thread + '.jpg'))
+        if not call(['mv', '-f', join(workDirectory, 'threads', thread + '.jpg'), path]) == 0:
             log('Error moving to: ' + path, 3, 3)
             return False
         return True
@@ -349,6 +338,11 @@ def generateImage(config, ratings, certification, language, mediainfo, url, thre
         log('Error generating image with cutycapt', 3, 3)
         return False
 
-def generateMediaImage(path, thread):
-    out = join(resource_path('threads/' + thread), 'cover.png')
-    return call(['ffmpeg', '-y', '-ss', '5:00', '-i', path, '-vframes', '1', '-q:v', '2', out], stdout = DEVNULL, stderr = DEVNULL) == 0
+def generateMediaImage(path, out):
+    cm = call(['ffmpeg', '-y', '-ss', '5:00', '-i', path, '-vframes', '1', '-q:v', '2', out], stdout = DEVNULL, stderr = DEVNULL)
+    if cm == 0:
+        log('Successfully generated screenshot from minute 5:00 with ffmpeg', 3, 3)
+        return True
+    else:
+        log('Error generating screenshot with ffmpeg for: ' + path, 3, 3)
+        return False
