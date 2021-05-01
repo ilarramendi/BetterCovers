@@ -6,10 +6,13 @@ RUN chmod +x ./BetterCovers
 RUN mkdir /tmp/runtime
 RUN chmod 0700 /tmp/runtime
 ENV XDG_RUNTIME_DIR /tmp/runtime
+ENV w 20
+ENV v 2
 ENTRYPOINT xvfb-run -a ./BetterCovers \
         "/media/*" \
         -c "/config/config.json" \
         -tmdb "$tmdb" \
         -omdb "$omdb" \
         -w "$w" \
-        -o "$o"
+        -o "$o" \
+        -v "$v"
