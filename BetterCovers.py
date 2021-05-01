@@ -52,7 +52,8 @@ def generateTasks(metadata, path, type, title, overWrite, season = False, episod
     if 'ratings' in metadata:
         cfg = {}
         for rt in metadata['ratings']:
-            if conf['ratings']['config'][rt]: cfg[rt] = metadata['ratings'][rt]
+            if conf['ratings']['config'][rt]:
+                cfg['RT-SP' if rt == 'RT' and float(metadata['ratings']['RT']) < 6 else rt] = metadata['ratings'][rt]
         if len(cfg) > 0:
             tsk['ratings'] = cfg
 
