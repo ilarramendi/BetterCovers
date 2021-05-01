@@ -1,5 +1,5 @@
 from glob import glob
-from subprocess import call
+from subprocess import call, getstatusoutput
 from os import access, W_OK
 from os.path import exists, realpath, join
 import json
@@ -7,20 +7,30 @@ from sys import argv, exit
 from datetime import timedelta
 import time
 from threading import Thread
-from functions import *
+import functions
+from functions import log
+from requests import post
+from re import findall
 
+config = {}
 tasks = []
+running = True
+processing = True
+tasksLength = 0
 
+# region Functions
 def generateTasks(metadata, path, type, title, overWrite, season = False, episode = False):
+    tasks = []
     conf = config[type]
     tsk = {
-        'out': join(path, 'folder.jpg') if type != 'episode' else path.rpartition('.')[0] + '.jpg',
+        'out': join(path, conf['output']) if type != 'episode' else path.rpartition('.')[0] + '.jpg',
         'type': type,
         'title': title,
         'season': season,
         'episode': episode,
         'overwrite': overWrite,
         'generateImage': path if type == 'episode' and config['episode']['generateImages'] else False}
+
     if 'mediainfo' in metadata:
         cfg = []
         if 'HDR' in metadata['mediainfo'] and 'UHD' in metadata['mediainfo'] and conf['mediainfo']['config']['UHD-HDR']:
@@ -28,96 +38,234 @@ def generateTasks(metadata, path, type, title, overWrite, season = False, episod
             metadata['mediainfo'].remove('UHD')
             cfg.append('UHD-HDR')
         for mi in metadata['mediainfo']:
-            if conf['mediainfo']['config'][mi]: cfg.append(mi)
+            if mi in conf['mediainfo']['config'] and conf['mediainfo']['config'][mi]: cfg.append(mi)
         if len(cfg) > 0:
             tsk['mediainfo'] = cfg
-    
+
+    if 'language' in metadata:
+        lng = functions.getLanguage(conf['mediainfo']['audio'], metadata['language'], config['englishUSA'])
+        if lng: tsk['language'] = lng
+    elif config['defaultAudio'] != "":
+        log('Using default language for: ' + title, 3, 3)
+        tsk['language'] = config['defaultAudio']
+
     if 'ratings' in metadata:
         cfg = {}
         for rt in metadata['ratings']:
             if conf['ratings']['config'][rt]: cfg[rt] = metadata['ratings'][rt]
         if len(cfg) > 0:
             tsk['ratings'] = cfg
-    
-    if 'cover' in metadata: tsk['image'] = metadata['cover']
-    if ('cover' in metadata or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk): tasks.append(tsk)
 
-    tsk2 = tsk.copy()
-    if 'backdrop' in metadata: tsk2['image'] = metadata['backdrop']
-    tsk2['type'] = 'backdrop'
-    tsk2['out'] = tsk2['out'].rpartition('/')[0] + '/backdrop.jpg'
-    if ('backdrop' in metadata or tsk2['generateImage']) and ('mediainfo' in tsk2 or 'ratings' in tsk2): tasks.append(tsk2)
+    if 'certification' in metadata and conf['certifications']['config'][metadata['certification']]: 
+        tsk['certification'] = metadata['certification']
+
+    if type == 'backdrop':
+        if 'backdrop' in metadata:
+            tsk['image'] = metadata['backdrop']
+    elif 'cover' in metadata: tsk['image'] = metadata['cover']
+
+    if overWrite or not exists(tsk['out']):
+        if ('image' in tsk or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk):
+            tasks += [tsk]
+    else: log('Existing poster image found for: ' + title + (' S' + str(season) if season else '') + ('E' + str(episode) if episode else ''), 3, 3)
+
+    # Generate sesons tasks
     if type == 'tv' and 'seasons' in metadata:
-        for season in metadata['seasons']:
-            generateTasks(metadata['seasons'][season], metadata['seasons'][season]['path'], 'season', title, overWrite, season)
-    
+        for sn in metadata['seasons']:
+            tasks += generateTasks(metadata['seasons'][sn], metadata['seasons'][sn]['path'], 'season', title, overWrite, sn)
+
+    # Generate episodes tasks
     if type == 'season' and 'episodes' in metadata:
-        for episode in metadata['episodes']:
-            generateTasks(metadata['episodes'][episode], metadata['episodes'][episode]['path'], 'episode', title, overWrite, season, episode)
+        for ep in metadata['episodes']:
+            tasks += generateTasks(metadata['episodes'][ep], metadata['episodes'][ep]['path'], 'episode', title, overWrite, season, ep)
+
+    # Generate backdrop task
+    if type in ['movie', 'tv', 'season']: 
+        tasks += generateTasks(metadata, path, 'backdrop', title, overWrite, season, episode)
+    
+    return tasks
 
 def processFolder(folder):
-    seasons = getSeasons(folder)
-    type = 'tv' if len(seasons) > 0 else 'movie'
-    name, year = getMediaName(folder)
     st = time.time()
+    seasons = functions.getSeasons(folder)
+    type = 'tv' if len(seasons) > 0 else 'movie'
+    
+    # Get name and year
+    inf = findall("\/([^\/]+)[ \.]\(?(\d{4})\)?", folder)
+    if len(inf) == 0: 
+        inf = findall("\/([^\/]+)$", folder)
+        if len(inf) == 0:
+            log('Cant parse name from: ' + folder, 3, 1)
+            return
+        else:
+            name = inf[0]
+            year = False
+    else:
+        name = inf[0][0].translate({'.': ' ', '_': ' '})
+        year =  inf[0][1]
 
-    metadata = getMetadata(name, type, year, config['omdbApi'], config['tmdbApi'])
+    if type == 'movie' and not overWrite and exists(folder + '/' + config['movie']['output']) and exists(folder + '/' + config['backdrop']['output']):
+        return log('Existing cover image found for: ' + name, 3, 3)
+    
+    metadata = functions.getMetadata(name, type, year, config['omdbApi'], config['tmdbApi'])
 
     if type == 'tv':
-        sns = getSeasonsMetadata(
+        sns = functions.getSeasonsMetadata(
             metadata['imdbid'] if 'imdbid' in metadata else False,
             metadata['tmdbid'] if 'tmdbid' in metadata else False,
             seasons,
             config['omdbApi'],
             config['tmdbApi'],
-            getConfigEnabled(config['tv']['mediainfo']['config']) or getConfigEnabled(config['season']['mediainfo']['config']),
-            minVotes,
-            name)
-        metadata['seasons'] = sns['seasons']
-        if 'mediainfo' in sns: metadata['mediainfo'] = sns['mediainfo']
-        else: print('\033[91mError getting mediainfo for:', name, '\033[0m')
-    elif type == 'movie' and getConfigEnabled(config['movie']['mediainfo']['config']):
-        mediaFiles = []
-        for ex in extensions: 
-            mediaFiles += glob(join(folder.translate({91: '[[]', 93: '[]]'}), '*.' + ex))
-        if len(mediaFiles) > 0:
-            minfo = getMediaInfo(mediaFiles[0])
-            if minfo: metadata['mediainfo'] = minfo
-            else: print('\033[91mError getting mediainfo for:', name, '\033[0m')
-        else: print('\033[91mError getting mediainfo no video files found on:', folder, '\033[0m')
-       
-    generateTasks(metadata, folder, type, name, overWrite)
-    print('\033[92mMetadata and mediainfo found for:', name, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
+            functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']),
+            name,
+            not exists(folder + '/' + config['tv']['output']) or not exists(folder + '/' + config['backdrop']['output']),
+            overWrite)
+        
+        tvColor = []
+        tvResolution = []
+        tvCodec = []
+        tvLanguage = []
+        for sn in sns:
+            color = []
+            resolution = []
+            codec = []
+            language = []
+            for ep in sns[sn]['episodes']:
+                epi = sns[sn]['episodes'][ep]
+                if 'mediainfo' in epi:
+                    cl, rs, cd = epi['mediainfo']
+                    color.append(cl)
+                    resolution.append(rs)
+                    codec.append(cd)
+                if 'language' in epi:
+                    lng = functions.getLanguage(config['episode']['mediainfo']['audio'], epi['language'], config['englishUSA'])
+                    if lng: language.append(lng)
+            sns[sn]['mediainfo'] = []
+            if len(color) > 0: 
+                cl = functions.frequent(color)
+                tvColor.append(cl)
+                sns[sn]['mediainfo'].append(cl)
+            if len(resolution) > 0: 
+                rs = functions.frequent(resolution)
+                tvResolution.append(rs)
+                sns[sn]['mediainfo'].append(rs)
+            if len(codec) > 0: 
+                co = functions.frequent(codec)
+                tvCodec.append(co)
+                sns[sn]['mediainfo'].append(co)
+            if len(language) > 0: 
+                lg = functions.frequent(language)
+                tvLanguage.append(lg)
+                sns[sn]['language'] = [lg]
 
-def processTask(task, thread, position, total):
-    if task['overwrite'] or not exists(task['out']):
-        st = time.time()
-        img = generateImage(
-            config[task['type']],
-            task['ratings'] if 'ratings' in task else False,
-            task['mediainfo'] if 'mediainfo' in task else False,
-            task['image'] if not task['generateImage'] else False,
-            thread,
-            coverHTML,
-            task['out'],
-            task['generateImage'])
-        header = '[' + str(position + 1) + '/' + str(total) + '][' + str(thread) + ']'
-        print(
-            '\033[92m' + header + 'Succesfully generated image for:' if img else '\033[91m' + header + 'Error generating image for:',
-            task['title'],
-            '(' + task['type'] + ')',
-            'S' + str(task['season']) if task['season'] else '',
-            'E' + str(task['episode']) if task['episode'] else '',
-            'in',
-            timedelta(seconds=round(time.time() - st)),
-            '\033[0m')
-    else: 
-        print(
-            '\033[93m[' + str(thread) + ']Existing cover found for:',
-            task['title'],
-            'S' + str(task['season']) if task['season'] else '',
-            'E' + str(task['episode']) if task['episode'] else '',
-            '\033[0m')
+        metadata['mediainfo'] = []
+        if len(tvColor) > 0: metadata['mediainfo'].append(functions.frequent(tvColor))
+        if len(tvResolution) > 0: metadata['mediainfo'].append(functions.frequent(tvResolution))
+        if len(tvCodec) > 0: metadata['mediainfo'].append(functions.frequent(tvCodec))
+        if len(tvLanguage) > 0: metadata['language'] = [functions.frequent(tvLanguage)]
+        
+        metadata['seasons'] = sns
+    elif type == 'movie' and functions.getConfigEnabled(config['movie']['mediainfo']['config']):
+        mediaFiles = []
+        for ex in functions.extensions: 
+            mediaFiles += glob(join(folder.translate({91: '[[]', 93: '[]]'}), '*.' + ex))
+        
+        mediaFiles = [fl for fl in mediaFiles if 'trailer' not in fl]
+        if len(mediaFiles) > 0:
+            minfo = functions.getMediaInfo(mediaFiles[0])
+            if minfo: 
+                metadata['mediainfo'] = minfo['metadata']
+                metadata['language'] = minfo['language']
+            else: log('Error getting mediainfo for: ' + name, 1, 1)
+        else: log('Error getting mediainfo no video files found on: ' + folder, 3, 1)
+
+    global tasks, tasksLength
+    generatedTasks = generateTasks(metadata, folder, type, name, overWrite)
+    tasks += generatedTasks
+    tasksLength += len(generatedTasks)
+    log('Metadata and mediainfo found for: ' + name + ' in ' + str(timedelta(seconds=round(time.time() - st))), 2)
+
+def processTask(task, thread, taskPos):
+    st = time.time()
+    img = functions.generateImage(
+        config[task['type']],
+        task['ratings'] if 'ratings' in task else False,
+        task['certification'] if 'certification' in task else False,
+        task['language'] if 'language' in task else False,
+        task['mediainfo'] if 'mediainfo' in task else False,
+        task['image'] if not task['generateImage'] else False,
+        thread,
+        coverHTML,
+        task['out'],
+        task['generateImage'])
+    
+    log(('[' + taskPos + '/' + str(tasksLength) + '][' + thread + '] ' if functions.logLevel > 2 else '') +
+        ('Succesfully generated ' if img else 'Error generating ') + ('backdrop' if task['type'] == 'backdrop' else 'cover') +
+        ' image for ' +
+        task['title'] +
+        (' S' + str(task['season']) if task['season'] else '') +
+        ('E' + str(task['episode']) if task['episode'] else '') +
+        ' in ' +
+        str(round(time.time() - st)) + 's',
+        2 if img else 1)
+
+def loadConfig(cfg):
+    try:
+        with open(cfg, 'r') as js:
+            global config 
+            config = json.load(js)
+            if '-omdb' in argv and argv[argv.index('-omdb') + 1] != '': config['omdbApi'] = argv[argv.index('-omdb') + 1]
+            if '-tmdb' in argv and argv[argv.index('-omdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1]
+        with open(cfg, 'w') as out: 
+            out.write(json.dumps(config, indent = 5))
+    except:
+        log('Error loading config file from: ' + cfg, 1, 0)
+        exit()
+
+def processFolders(folders):
+    thrs = [False] * threads
+    for folder in folders:
+        i = 0
+        while True:
+            if not (thrs[i] and thrs[i].is_alive()):
+                thread = Thread(target=processFolder , args=(folder, ))
+                thread.start()
+                thrs[i] = thread
+                break
+            i += 1
+            if i == threads: i = 0
+        if not running: break
+
+    # Wait for threads to end
+    for th in thrs: 
+        if th and running: th.join()
+
+def processTasks():
+    j = 1
+    thrs = [False] * threads
+    thrsLength = len(str(threads))
+
+    if not exists(join(pt, 'threads')): call(['mkdir', join(pt, 'threads')])
+    for i in range(threads):
+        pth = join(pt, 'threads', str(i).zfill(thrsLength))
+        if not exists(pth): call(['mkdir', pth])
+
+    while running and (processing or len(tasks) > 0):
+        if len(tasks) > 0:
+            i = 0
+            while True:
+                if not (thrs[i] and thrs[i].is_alive()):
+                    thread = Thread(target=processTask, args=(tasks.pop(), str(i).zfill(thrsLength), str(j)))
+                    thread.start()
+                    thrs[i] = thread
+                    j += 1
+                    break
+                i += 1
+                if i == threads: i = 0
+
+    for th in thrs: 
+        if th and running: th.join()    
+# endregion
 
 # region Params
 overWrite = '-o' in argv and argv[argv.index('-o') + 1] == 'true'
@@ -125,44 +273,35 @@ threads = 20 if not '-w' in argv else int(argv[argv.index('-w') + 1])
 config = {}
 pt = argv[1]
 cfg = './config.json' if '-c' not in argv else argv[argv.index('-c') + 1]
-files = sorted(glob(pt)) if '*' in pt else [pt]
+folders = sorted(glob(pt)) if '*' in pt else [pt]
 gstart = time.time()
 if not exists(pt) and '*' in pt and len(glob(pt)) == 0:
-    print('Path dosnt exist')
+    log('Media path doesnt exist', 1, 0)
     exit()
+if '-v' in argv: functions.logLevel = int(argv[argv.index('-v') + 1])
 # endregion
 
 # region Files
 if not exists(cfg):
-    print('Missing config.json, downloading default config.')
+    log('Missing config.json, downloading default config.', 0, 3)
     if call(['wget', '-O', cfg, 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
-        print('Succesfully downloaded default config.')
-    else: 
-        print('\033[91mError downloading default config\033[0m')
-        exit()
-
-try:
-    with open(cfg, 'r') as js: 
-        config = json.load(js)
-except:
-    print('\033[91mError loading ./config.json\033[0m')
+        log('Succesfully downloaded default config file', 2, 0)
+        loadConfig(cfg)
+    else: log('Error downloading default config file', 1, 0)
     exit()
-
-if '-omdb' in argv and argv[argv.index('-omdb') + 1] != '': config['omdbApi'] = argv[argv.index('-omdb') + 1]
-if '-tmdb' in argv and argv[argv.index('-omdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1] 
+    
+loadConfig(cfg)
 if config['tmdbApi'] == '' and config['omdbApi'] == '':
-    print('\033[91mA single api key is needed to work\033[0m')
-    exit()
-with open(cfg, 'w') as out: 
-    out.write(json.dumps(config, indent = 5))    
+    log('A single api key is needed to work', 1, 0)
+    exit() 
 
-if exists(resource_path('cover.html')): 
-    with open(resource_path('cover.html'), 'r') as fl: coverHTML = fl.read()
+if exists(functions.resource_path('cover.html')): 
+    with open(functions.resource_path('cover.html'), 'r') as fl: coverHTML = fl.read()
 else:
-    print('\033[91mMissing cover.html\033[0m')
+    log('Missing cover.html', 1, 0)
     exit()
-if not exists(resource_path('cover.css')):
-    print('\033[91mMissing cover.css\033[0m')
+if not exists(functions.resource_path('cover.css')):
+    log('Missing cover.css', 1, 0)
     exit()
 
 try:
@@ -173,65 +312,47 @@ except Exception:
 
 # region Check Dependencies
 dependencies = [
-    'mediainfo' if getConfigEnabled(config['tv']['mediainfo']['config']) or getConfigEnabled(config['season']['mediainfo']['config']) or getConfigEnabled(config['episode']['mediainfo']['config']) or getConfigEnabled(config['movie']['mediainfo']['config']) else False,
+    'mediainfo' if functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']) or functions.getConfigEnabled(config['episode']['mediainfo']['config']) or functions.getConfigEnabled(config['movie']['mediainfo']['config']) else False,
     'cutycapt',
     'ffmpeg' if config['episode']['generateImages'] else False]
 
 for dp in [d for d in dependencies if d]:
     cl = getstatusoutput('apt-cache policy ' + dp)[1]
     if 'Installed: (none)' in cl:
-        print(dp, 'is not installed')
+        log(dp + ' is not installed', 1, 0)
         exit()
 # endregion
 
-print('DOWNLOADING METADATA AND GETTING MEDIAINFO FOR', len(files), 'FOLDERS')
 
-# region Download Metadata
-thrs = [False] * threads
-for file in files:
-    i = 0
-    while True:
-        if not (thrs[i] and thrs[i].is_alive()):
-            thread = Thread(target=processFolder , args=(file, ))
-            thread.start()
-            thrs[i] = thread
-            break
-        i += 1
-        if i == threads: i = 0
+try:
+    log('PROCESSING ' + str(len(folders)) + ' FOLDERS')
 
-# Wait for threads to end
-for th in thrs: 
-    if th: th.join()
-# endregion
+    # Generate tasks for each folder
+    PROCESSING = Thread(target=processFolders , args=(folders, ))
+    PROCESSING.start()
+    # Process generated tasks
+    GENERATING = Thread(target=processTasks, args=())
+    GENERATING.start()
 
-print('GENERATING IMAGES FOR', len(tasks), 'ITEMS')
-
-# region Start Threads
-# Generating nedded files for threads
-if not exists(join(pt, 'threads')): call(['mkdir', join(pt, 'threads')])
-for i in range(threads):
-    pth = join(pt, 'threads', str(i))
-    if not exists(pth): call(['mkdir', pth])
-
-thrs = [False] * threads
-j = 1
-for tsk in tasks:
-    i = 0
-    while True:
-        if not (thrs[i] and thrs[i].is_alive()):
-            thread = Thread(target=processTask, args=(tsk, i, j, len(tasks)))
-            thread.start()
-            thrs[i] = thread
-            j += 1
-            break
-        i += 1
-        if i == threads: i = 0
-
-# Wait for threads to end
-for th in thrs: 
-    if th: th.join()
-# endregion
+    PROCESSING.join()
+    processing = False
+    log('Finished generating tasks', 0, 2)
+    GENERATING.join()
+except KeyboardInterrupt:
+    log('Closing BetterCovers!', 3, 0)
+    running = False
+    functions.logLevel = 0
+    GENERATING.join()
+    PROCESSING.join()
+    
 
 call(['rm', '-r', join(pt, 'threads')])
-print('DONE, total time was:', timedelta(seconds=round(time.time() - gstart)))
-        
+if running: # Update agent library
+    if config['agent']['apiKey'] != '':
+        url = config['agent']['url'] + ('/Library/refresh?api_key=' + config['agent']['apiKey'] if config['agent']['type'] == 'emby' else '/ScheduledTasks/Running/6330ee8fb4a957f33981f89aa78b030f')
+        if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
+            log('Succesfully updated ' + config['agent']['type'] + ' libraries (' + config['agent']['url'] + ')', 2, 2)
+        else: log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'])
+    else: log('Not updating ' + config['agent']['type'] + ' library, Are api and url set?', 3, 3)
+log('DONE! Finished generating ' + str(tasksLength) + ' images in: ' + str(timedelta(seconds=round(time.time() - gstart))), 0, 0)
+

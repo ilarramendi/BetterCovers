@@ -6,14 +6,34 @@ from time import sleep
 from PIL import Image, ImageFont, ImageDraw
 from os import access, W_OK
 from os.path import exists, realpath, join
-import sys 
-from datetime import timedelta
+import sys
+from datetime import timedelta, datetime
 import time
 from urllib.parse import quote
 import json
+from exif import Image as imgTag
+
 extensions = ['mkv', 'mp4', 'avi']
 minVotes = 5
+logLevel = 2
 
+def getLanguage(conf, languages, englishUSA):
+    for lg in conf.split(','):
+        if lg in languages: return 'USA' if lg == 'ENG' and englishUSA else lg
+    return False
+
+def setLogLevel(level):
+    global logLevel
+    logLevel = level
+
+def log(text, type = 0, level = 2): # 0 = Normal, 1 = Error, 2 = Success, 3 = Warning
+    if level <= logLevel:
+        msg = '\033[9' + str(type) + 'm' if type != 0 else ''
+        msg += text
+        msg += '\033[0m' if type != 0 else ''
+        print((datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") if logLevel >= 3 else '') + msg)
+        with open('./BetterCovers.log', 'a') as log:
+            log.write(datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") + msg + '\n')
 
 def generateCSS(config):
     minfo = config['mediainfo']
@@ -46,8 +66,8 @@ def resource_path(name):
     try:
         return join(sys._MEIPASS, name)
     except Exception: 
-        print('\033[91mMissing file:', name, '\033[0m')
-        call(['pkill', '-f', 'BetterCovers'])
+        log('Missing file: ' + name, 1, 0)
+        exit()
 
 def getConfigEnabled(conf):
     for cf in conf:
@@ -67,37 +87,49 @@ def frequent(list):
 def getJSON(url): # JSON?
     response = get(url)
     if response.status_code == 401: # API hit limit
-        print('\033[91mDaily Api Limit Reached!!!!!\033[0m')
-        call(['pkill', '-f', 'BetterCovers'])
+        log('Problem with api key!\n' +
+            'Server Response:\n' +
+            response.text,
+            1, 0)
+        exit()
     if response.status_code != 200 or 'application/json' not in response.headers.get('content-type'): # Wrong response from server
-        print('\033[91mError connecting, code:', response.status_code, url, '\033[0m')
+        log('Error connecting to: ' + url + '\nResponse Code: ' + response.status_code, 1, 1)
+        log(response.text, 1, 3)
         return False
     try:
         return response.json()
     except Exception as ex:
-        print(ex)
+        log('Error parsing JSON from response:\n' + response.text, 1, 1)
         return False
     
     res = response.json()
 
 def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': str, 'cover'?: str, 'backdrop'?: str, 'tmdbid'?: str}
-    metadata = {'ratings': {}, "type": type}
+    metadata = {'ratings': {}, "type": type, "certification": "NR"}
     if tmdbApi != '': 
-        res = getJSON('https://api.themoviedb.org/3/search/' + type + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&query=' + quote(name) + ('&year=' + year if year else ''))
+        res = getJSON('https://api.themoviedb.org/3/search/' + type + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&append_to_response=releases&query=' + quote(name) + ('&year=' + year if year else ''))
         if res and 'results' in res and len(res['results']) > 0:
             res = res['results'][0]
             if 'poster_path' in res and res['poster_path']:
                 metadata['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
             if 'backdrop_path' in res and res['backdrop_path']: 
                 metadata['backdrop'] = 'https://image.tmdb.org/t/p/original' + res['backdrop_path']
-            if 'vote_average' in res: metadata['ratings']['TMDB'] = str(res['vote_average'])
+            if 'vote_average' in res and res['vote_average'] != 0: metadata['ratings']['TMDB'] = str(res['vote_average'])
             if 'id' in res:
                 metadata['tmdbid'] = str(res['id'])
-                ids = getJSON('https://api.themoviedb.org/3/' + type + '/' + metadata['tmdbid'] + '/external_ids?api_key=' + tmdbApi)
-                if ids and 'imdb_id' in ids and ids['imdb_id']: metadata['imdbid'] = ids['imdb_id']
+                info = getJSON('https://api.themoviedb.org/3/' + type + '/' + metadata['tmdbid'] + '?append_to_response=releases,external_ids&api_key=' + tmdbApi)
+                if info:
+                    if 'imdb_id' in info['external_ids'] and info['external_ids']['imdb_id']:
+                        metadata['imdbid'] = info['external_ids']['imdb_id']
+                    
+                    if 'releases' in info and 'countries' in info['releases']:
+                        for rl in info['releases']['countries']:
+                            if rl['iso_3166_1'] == 'US':
+                                if rl['certification'] != '': metadata['certification'] = rl['certification']
+                                break
             if 'title' in res: metadata['title'] = res['title']
             elif 'name' in res: metadata['title'] = res['name'] 
-        else: print('No results found on TMDB for:', name, year if year else '')
+        else: log('No results found on TMDB for: ' + name + ('(' + year + ')' if year else ''), 3, 1)
           
     if omdbApi != '':
         url = 'http://www.omdbapi.com/?apikey=' + omdbApi + '&tomatoes=true'
@@ -107,41 +139,59 @@ def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': s
             if 'cover' not in metadata and 'Poster' in res and res['Poster'] != 'N/A':
                 metadata['cover'] = res['Poster']
             if 'Metascore' in res and res['Metascore'] != 'N/A': 
-                metadata['ratings']['MTS'] = str(int(res['Metascore']) / 10)
-            if 'imdbRating' in res and res['imdbRating'] != 'N/A': metadata['ratings']['IMDB'] = res['imdbRating']
+                metadata['ratings']['MTS'] = str(int(res['Metascore']) / 10).rstrip('0').rstrip('.')
+            if 'imdbRating' in res and res['imdbRating'] != 'N/A': metadata['ratings']['IMDB'] = res['imdbRating'].rstrip('0').rstrip('.')
             if 'Ratings' in res:
                 for rt in res['Ratings']:
                     if rt['Source'] == 'Rotten Tomatoes' and rt['Value'] != 'N/A':
-                        metadata['ratings']['RT'] = str(int(rt['Value'][:-1]) / 10)
+                        metadata['ratings']['RT'] = str(int(rt['Value'][:-1]) / 10).rstrip('0').rstrip('.')
                         break
-            #print(json.dumps(res, indent = 5))
             if 'Title' in res: metadata['title'] = res['Title']
-        else: print('No results found on OMDB for:', name, year if year else '')
+        else: log('No results found on OMDB for: ' + name + ('(' + year + ')' if year else ''), 3, 1)
+    
     return metadata
 
-def getMediaInfo(file): # [str]?
-    out = getstatusoutput('mediainfo "' + file + '" --Inform="Video;%colour_primaries%,%Width%x%Height%,%Format%"')
-    if out[0] == 0: 
-        rt = out[1].split(',')
-        if len(rt) < 3: return False
-        rt[0] = 'HDR' if rt[0] == 'BT.2020' else 'SDR'
-        res = rt[1].split('x')
-        if len(res) != 2: return False
-        rt[1] = 'UHD' if (res[0] == '3840' or res[1] == '2160') else 'HD' if (res[0] == '1920' or res[1] == '1080') else 'SD'
-        if rt[2] != 'HEVC' and rt[2] != 'AVC': rt[2] = 'UNDEFINED'
-        return rt[:3]
-    else: 
-        print('\033[91Error getting media info, exit code:', out[0], '\n', out[1], '\033[0m')
-        return False
+def getMediaInfo(file): # {"metadata": [str], "language": [str]}?
+    out = getstatusoutput('ffprobe "' + file + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet')
+    out2 = getstatusoutput('ffprobe "' + file + '" -show_streams -v quiet')
+    if out[0] == 0 and out2[0] == 0:
+        out = json.loads(out[1])['streams']
+        video = False
+        for s in out:
+            if s['codec_type'] == 'video':
+                video = s
+                break
+        if video:
+            info = []
+            info.append('HDR' if 'bt2020' in out2[1] else 'SDR')
+            info.append('UHD' if video['width'] >= 3840 else 'HD' if video['width'] >= 1920 else 'SD')
 
-def getMediaName(folder): # [str?, str?] => [name, year]
-    inf = findall("\/([^\/]+)[ \.]\(?(\d{4})\)?", folder)
-    if len(inf) == 0: inf = findall("\/([^\/]+)$", folder)
-    else: return [inf[0][0].translate({'.': ' ', '_': ' '}), inf[0][1]]
-    if len(inf) == 0:
-        print('\033[93mCant parse name from: ' + folder + '\033[0m')
-        return [False, False]
-    return inf + [False]
+            if 'codec_name' in video:
+                if video['codec_name'] == 'h264': 
+                    info.append('AVC')
+                elif video['codec_name'] in ['hevc', 'avc']:
+                    info.append(video['codec_name'].upper())
+                else:
+                    log('Unsupported video codec: ' + video['codec_name'].upper(), 3, 3)
+                    info.append('UNKNOWN')
+            else:
+                log('Video codec not found for: ' + file, 3, 3)
+                info.append('UNKNOWN')
+            
+            lang = []
+            for s in out:
+                if s['codec_type'] == 'audio' and 'tags' in s and 'language' in s['tags']:
+                    lang.append(s['tags']['language'].upper())
+
+            return {"metadata": info, "language": lang}
+        else:
+            log('No video tracks found for: ' + file, 1, 1)
+            return False
+    else: 
+        log('Error getting media info, exit code: ' + str(out[0]) + ' ' + str(out2[0]), 1, 1)
+        log('Mediainfo output:\n' + out[1] +
+            '\nOutput 2:\n' + out2[1], 3, 3)
+        return False
 
 def downloadImage(url, retry, src): # Boolean
     i = 0
@@ -150,29 +200,33 @@ def downloadImage(url, retry, src): # Boolean
             Image.open(get(url, stream=True).raw).save(src)
             return True
         except Exception as e:
+            log('Failed to download image from: ' + url + ' trying again', 3, 3)
             sleep(0.5)
         i += 1
-    print('\033[91mFailed to download:', url, '\033[0m')
+    log('Failed to download image from: ' + url, 1, 1)
     return False
 
 def avg(lst):
     return "{:.1f}".format(sum(lst) / len(lst)) if len(lst) > 0 else 0
 
-def getEpisodes(folder, season): # {int: str,...} => {enumber: epath,...}
+def getEpisodes(folder, season, getAll): # {int: str,...} => {enumber: epath,...}
     fls = []
     episodes = {}
     for ex in extensions: fls += glob(join(folder, '*.' + ex))
     for fl in fls:
         nm = findall('S0*' + season + 'E0*(\d+)', fl)
-        if len(nm) > 0:
+        if len(nm) > 0 and (getAll or not exists(fl.rpartition('.')[0] + '.jpg')):
             episodes[int(nm[0])] = fl
     return episodes
 
-def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediainfo, minvotes, title): # {'seasons': {int: {'episodes': {}, 'ratings': {}, 'path': str, 'mediainfo'?: [str]}}, 'mediainfo'?: [str]}
-    metadata = {'seasons': {}}
+def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediainfo, title, missingCover, overWrite): # {'seasons': {int: {'episodes': {}, 'ratings': {}, 'path': str, 'mediainfo'?: [str]}}, 'mediainfo'?: [str]}
+    metadata = {}
     for path, sn in seasons:
         season = {'episodes': {}, 'ratings': {}, 'path': path}
-        eps = getEpisodes(path, sn)
+        eps = getEpisodes(path, sn, missingCover or overWrite or not exists(path + '/folder.jpg'))
+        if len(eps) == 0 and exists(path + '/folder.jpg') and exists(path + '/backdrop.jpg') and not overWrite:
+            log('All image exist for: ' + title + ' S' + sn, 3, 3)
+            continue
         for ep in eps:
             season['episodes'][ep] = {'path': eps[ep], 'ratings': {}}
         
@@ -180,7 +234,7 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
             res = getJSON('https://api.themoviedb.org/3/tv/' + tmdbid + '/season/' + str(sn) + '?api_key=' + tmdbApi + '&language=en')
             if res:
                 if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
-                if 'episodes' in res:
+                if 'episodes' in res and len(res['episodes']) > 0:
                     for ep in res['episodes']:
                         if 'episode_number' not in ep or ep['episode_number'] == 'N/A': continue
                         if ep['episode_number'] in season['episodes']:
@@ -188,12 +242,11 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
                                 season['episodes'][ep['episode_number']]['cover'] = 'https://image.tmdb.org/t/p/original' + ep['still_path']
                             if 'vote_average' in ep and ep['vote_average'] != 'N/A' and 'vote_count' in ep and ep['vote_count'] > minVotes:
                                 season['episodes'][ep['episode_number']]['ratings']['TMDB'] = float(ep['vote_average'])
-                        else: print('\033[93mEpisode missing from disk:', title, 'season', sn, 'episode', ep['episode_number'], '\033[0m')
-            else: print('Error getting info on TMDB for', title, 'season', sn)
+            else: log('Error getting info on TMDB for: ' + title + ' S' + sn, 3, 1)
         
         if omdbApi != '' and imdbid:
             res = getJSON('http://www.omdbapi.com/?i=' + imdbid + '&Season=' + sn + '&apikey=' + omdbApi)
-            if res and 'Episodes' in res:
+            if res and 'Episodes' in res and len(res['Episodes']) > 0:
                 for ep in res['Episodes']:
                     if 'Episode' in ep and ep['Episode'].isdigit() and int(ep['Episode']) in season['episodes']:
                         episode = int(ep['Episode'])
@@ -201,42 +254,25 @@ def getSeasonsMetadata(imdbid, tmdbid, seasons, omdbApi, tmdbApi, episodeMediain
                             season['episodes'][episode]['ratings']['IMDB'] = float(ep['imdbRating'])
                         if 'imdbID' in ep and ep['imdbID'] != 'N/A':
                             season['episodes'][episode]['imdbid'] = ep['imdbID']
-            else: print('Error info on OMDB for', title, 'season', sn)
+            else: log('Error getting info on OMDB for: ' + title + ' S' + sn, 3, 1)
         
         avr = avg([season['episodes'][ep]['ratings']['IMDB'] for ep in season['episodes'] if 'IMDB' in season['episodes'][ep]['ratings']])
         if avr != 0: season['ratings']['IMDB'] = avr
         avr = avg([season['episodes'][ep]['ratings']['TMDB'] for ep in season['episodes'] if 'TMDB' in season['episodes'][ep]['ratings']])
         if avr != 0: season['ratings']['TMDB'] = avr
-        if episodeMediainfo:
+        if episodeMediainfo: # TODO move this to a function
             mediaFiles = []
-            res = []
-            codec = []
-            hdr = []
-            for ex in extensions: mediaFiles += glob(join(path, '*.' + ex))
+            for ex in extensions: mediaFiles += glob(join(path, '*.' + ex)) # TODO call getEpisodes instead of this
             for fl in mediaFiles:
-                ep = findall('[Ss]\d{1,3}[Ee](\d{1,4})', fl)
+                ep = findall('[Ss]\d{1,3}[Ee](\d{1,4})', fl) 
                 if len(ep) > 0 and int(ep[0]) in season['episodes']:
                     ep = int(ep[0])
                     minfo = getMediaInfo(fl)   
                     if minfo:
-                        hdr.append(minfo[0])
-                        res.append(minfo[1])
-                        codec.append(minfo[2])
-                        season['episodes'][ep]['mediainfo'] = minfo
-            if len(hdr) > 0 and len(res) > 0 and len(codec) > 0:
-                season['mediainfo'] = [frequent(hdr), frequent(codec), frequent(res)]
-        if season != {'episodes': {}, 'ratings': {}, 'path': path}: metadata['seasons'][sn] = season
+                        season['episodes'][ep]['mediainfo'] = minfo['metadata']
+                        season['episodes'][ep]['language'] = minfo['language']
+        if season != {'episodes': {}, 'ratings': {}, 'path': path}: metadata[sn] = season
 
-    res = []
-    codec = []
-    hdr = []
-    for mt in metadata['seasons']:
-        if 'mediainfo' in metadata['seasons'][mt]:
-            minfo = metadata['seasons'][mt]['mediainfo']
-            hdr.append(minfo[0])
-            res.append(minfo[1])
-            codec.append(minfo[2])
-    if len(hdr) > 0 and len(res) > 0 and len(codec) > 0: metadata['mediainfo'] = [frequent(hdr), frequent(codec), frequent(res)]
     return metadata
 
 def getSeasons(folder):
@@ -247,11 +283,23 @@ def getSeasons(folder):
         if len(res) == 1: seasons.append(res[0])
     return seasons
   
-def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path, mediaFile):
+def tagImage(path):
+    with open(path, 'rb') as image:
+        img = imgTag(image)
+    img["software"] = "BetterCovers"
+    img['datetime_original'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+    with open(path, 'wb') as image:
+        image.write(img.get_file())
+
+def generateImage(config, ratings, certification, language, mediainfo, url, thread, coverHTML, path, mediaFile):
     st = time.time()
-    img = downloadImage(url, 4, join(resource_path('threads/' + str(thread)), 'cover.png')) if not mediaFile else generateMediaImage(mediaFile, thread)
-    st = time.time()
-    if not img: return False
+    imageGenerated = mediaFile and generateMediaImage(mediaFile, thread)
+    if mediaFile and not imageGenerated:
+        if url:
+            log('Error generating screenshot with ffmpeg, using downloaded image instead', 3, 3)
+        else:
+            log('Error generating screenshot with ffmpeg', 1, 1)
+            return False
     HTML = coverHTML
     dictionary = {
         'top': '$horizontal $start',
@@ -265,48 +313,42 @@ def generateImage(config, ratings, mediainfo, url, thread, coverHTML, path, medi
     align += dictionary[config['mediainfo']['position']].replace('$', 'm')
     align += ' ma' + config['mediainfo']['alignment']
     HTML = HTML.replace('containerClass', align)
-    
+    HTML = HTML.replace('$IMGSRC', './cover.png' if imageGenerated else url)
+
     HTML +='<link rel="stylesheet" href="' + resource_path('cover.css') + '">'
-    HTML += '\n<style>\n' + generateCSS(config) + '.container {width:' + str(config['width']) + 'px}\n</style>'
+    HTML += '\n<style>\n' + generateCSS(config) + '.container {width:' + str(config['width']) + 'px; height:' + str(config['height']) + 'px}\n</style>'
     
     rts = ''
     minfo = ''
 
     if ratings:
-        for rt in ratings: rts += "<div class = 'ratingContainer'><img src='" + resource_path('media/' + rt + '.png') + "' class='ratingIcon'><label class='ratingText'>" + str(ratings[rt]) + "</label></div>\n"
+        for rt in ratings: rts += "<div class = 'ratingContainer'><img src='" + resource_path('media/ratings/' + rt + '.png') + "' class='ratingIcon'><label class='ratingText'>" + str(ratings[rt]) + "</label></div>\n"
     if mediainfo:
-        for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src='" + resource_path('media/' + mi + '.png') + "' class='mediainfoIcon'></div>\n"  
-    
+        for mi in mediainfo: minfo += "<div class='mediainfoImgContainer'><img src='" + resource_path('media/mediainfo/' + mi + '.png') + "' class='mediainfoIcon'></div>\n"  
+    if language:
+        minfo += "<div class='mediainfoImgContainer'><img src='" + resource_path('media/languages/' + language + '.png') + "' class='mediainfoIcon'></div>\n"
+    if certification:
+        with open(resource_path('media/certifications/' + certification + '.svg'), 'r') as svg:
+            HTML = HTML.replace('<!--CERTIFICATION-->', svg.read())
     HTML = HTML.replace('<!--RATINGS-->', rts)
     HTML = HTML.replace('<!--MEDIAINFO-->', minfo)
-    with open(resource_path('threads/' + str(thread)) + '/tmp.html', 'w') as out:
+    with open(resource_path('threads/' + thread) + '/tmp.html', 'w') as out:
         out.write(HTML)
     st = time.time()
     
     i = 0
-    command = ['cutycapt --url="file://' + resource_path(join('threads', str(thread), 'tmp.html')) + '" --delay=1000 --min-width=100 --min-height=100 --out="' + resource_path(join('threads', str(thread))) + '/tmp.jpg"']
-    while i < 3 and not call(command, shell=True) == 0: i += 1
-    
+    command = 'cutycapt --url="file://' + resource_path(join('threads', thread, 'tmp.html')) + '" --delay=1500 --min-width=100 --min-height=100 --out="' + resource_path(join('threads', thread)) + '/tmp.jpg"'
+    while i < 3 and not call(command, shell=True, stdout=DEVNULL, stderr=DEVNULL) == 0: i += 1
     if i < 3:
-        if not call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), path]) == 0:
-            print('Error moving to:', path)
+        tagImage(resource_path(join('threads', thread, 'tmp.jpg')))
+        if not call(['mv', '-f', resource_path(join('threads', thread, 'tmp.jpg')), path]) == 0:
+            log('Error moving to: ' + path, 3, 3)
             return False
         return True
     else: 
-        print('Error generating image with cutycapt')
+        log('Error generating image with cutycapt', 3, 3)
         return False
 
-def generateSeasonsImages(name, seasons, config, thread, coverHTML):
-    for sn in seasons:
-        st = time.time()
-        season = seasons[sn]
-        if exists(join(season['path'], 'folder.jpg')) and not access(join(season['path'], 'folder.jpg'), W_OK): 
-            print('\033[91mCant write to:', join(season['path'], 'folder.jpg'), '\033[0m')
-        elif 'cover' in season and generateImage(config, season['ratings'], season['mediainfo'], season['cover'], thread, coverHTML):
-            call(['mv', '-f', resource_path(join('threads', str(thread), 'tmp.jpg')), join(season['path'], 'folder.jpg')])
-            print('\033[92m[' + str(thread) + '] Succesfully generated cover for', name, 'season', sn, 'in', timedelta(seconds=round(time.time() - st)), '\033[0m')
-        else: print('error generating image for season:', sn)
-
 def generateMediaImage(path, thread):
-    out = join(resource_path('threads/' + str(thread)), 'cover.png')
+    out = join(resource_path('threads/' + thread), 'cover.png')
     return call(['ffmpeg', '-y', '-ss', '5:00', '-i', path, '-vframes', '1', '-q:v', '2', out], stdout = DEVNULL, stderr = DEVNULL) == 0

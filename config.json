@@ -1,6 +1,13 @@
 {
      "tmdbApi": "",
      "omdbApi": "",
+     "agent": {
+          "type": "emby",
+          "url": "https://192.168.1.7:8989",
+          "apiKey": ""
+     },
+     "defaultAudio": "",
+     "englishUSA": true,
      "episode": {
           "mediainfo": {
                "position": "top",
@@ -19,7 +26,8 @@
                     "UHD-HDR": true,
                     "SDR": true,
                     "UNDEFINED": false
-               }
+               },
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN"
           },
           "ratings": {
                "position": "right",
@@ -39,16 +47,27 @@
                     "TMDB": true
                }
           },
+          "certifications": {
+               "config": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               }
+          },
           "width": 1920,
-          "generateImages": true
+          "height": 1080,
+          "generateImages": false
      },
      "movie": {
           "mediainfo": {
                "position": "top",
                "alignment": "center",
-               "imgSize": "230px",
-               "padding": "35px",
-               "space": "50px",
+               "imgSize": "210px",
+               "padding": "35px 15px",
+               "space": "30px",
                "color": "#1004",
                "config": {
                     "AVC": true,
@@ -60,7 +79,8 @@
                     "UHD-HDR": true,
                     "SDR": true,
                     "UNDEFINED": false
-               }
+               },
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN"
           },
           "ratings": {
                "position": "left",
@@ -80,7 +100,19 @@
                     "TMDB": true
                }
           },
-          "width": 2000
+          "certifications": {
+               "config": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               }
+          },
+          "output": "folder.jpg",
+          "width": 2000,
+          "height": 3000
      },
      "backdrop": {
           "mediainfo": {
@@ -100,7 +132,8 @@
                     "UHD-HDR": true,
                     "SDR": true,
                     "UNDEFINED": false
-               }
+               },
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN"
           },
           "ratings": {
                "position": "right",
@@ -120,14 +153,27 @@
                     "TMDB": true
                }
           },
-          "width": 1920
+          "certifications": {
+               "config": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               }
+          },
+          "output": "thumb.jpg",
+          "width": 1920,
+          "height": 1080,
+          "generateImages": false
      },
      "season": {
           "mediainfo": {
                "position": "top",
                "alignment": "center",
-               "imgSize": "115px",
-               "padding": "15px",
+               "imgSize": "210px",
+               "padding": "35px 15px",
                "space": "30px",
                "color": "#1004",
                "config": {
@@ -140,18 +186,19 @@
                     "UHD-HDR": true,
                     "SDR": true,
                     "UNDEFINED": false
-               }
+               },
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,USA"
           },
           "ratings": {
                "position": "left",
                "alignment": "center",
-               "imgSize": "110px",
-               "padding": "15px",
+               "imgSize": "230px",
+               "padding": "30px",
                "space": "50px",
                "color": "#0005",
                "fontFamily": "Roboto",
-               "fontSize": "80px",
-               "iconSpace": "32px",
+               "fontSize": "150px",
+               "iconSpace": "35px",
                "textColor": "white",
                "config": {
                     "IMDB": true,
@@ -160,14 +207,26 @@
                     "TMDB": true
                }
           },
-          "width": 1200
+          "certifications": {
+               "config": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               }
+          },
+          "output": "folder.jpg",
+          "width": 2000,
+          "height": 3000
      },
      "tv": {
           "mediainfo": {
                "position": "top",
                "alignment": "center",
-               "imgSize": "115px",
-               "padding": "15px",
+               "imgSize": "210px",
+               "padding": "35px 15px",
                "space": "30px",
                "color": "#1004",
                "config": {
@@ -180,18 +239,19 @@
                     "UHD-HDR": true,
                     "SDR": true,
                     "UNDEFINED": false
-               }
+               },
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,USA"
           },
           "ratings": {
                "position": "left",
                "alignment": "center",
-               "imgSize": "110px",
-               "padding": "15px",
+               "imgSize": "230px",
+               "padding": "30px",
                "space": "50px",
                "color": "#0005",
                "fontFamily": "Roboto",
-               "fontSize": "80px",
-               "iconSpace": "32px",
+               "fontSize": "150px",
+               "iconSpace": "35px",
                "textColor": "white",
                "config": {
                     "IMDB": true,
@@ -200,6 +260,18 @@
                     "TMDB": true
                }
           },
-          "width": 1200
+          "certifications": {
+               "config": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               }
+          },
+          "output": "folder.jpg",
+          "width": 2000,
+          "height": 3000
      }
 }

@@ -30,7 +30,10 @@
 
 body, html {width: min-content;height: min-content;margin: 0}
 
-.cover {width: 100%;}
+.cover {
+    width: 100%;
+    height: 100%;
+}
 
 .infoContainer {
     width: 100%;
@@ -91,8 +94,6 @@ body, html {width: min-content;height: min-content;margin: 0}
     height: min-content;
 }
 
-
-
 .mediainfoImgContainer, .ratingContainer {
     display: flex;
     justify-content: center;
@@ -107,7 +108,7 @@ body, html {width: min-content;height: min-content;margin: 0}
     background-color: var(--ratingsContainerBColor);
     height: min-content;
     width: min-content;
-    overflow: hidden;
+    overflow: hidden; 
 }
 
 .ratingText { 
@@ -120,6 +121,33 @@ body, html {width: min-content;height: min-content;margin: 0}
 
 
 .tester {flex: 1;display: flex;}
+
+
+.certificationContainer {
+    height: 400px;
+    position: absolute;
+    top: 325px;
+    left: 400px;
+    display: flex;
+    box-sizing: border-box;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 600px; 
+
+    svg {
+        height: 100%;
+        flex-grow: 1;
+        margin-right: auto; 
+        
+        box-sizing: border-box;
+        path { 
+            fill: red; 
+        }
+        rect {
+            stroke: red; 
+        }
+    }
+}
 
 
  
