@@ -78,7 +78,7 @@ TV Shows:
 ```  
 ***Use:*** ```./BetterCovers '/media/*'```
 
-# Supported media folder names
+## Supported media folder names
  ```/media/Media Name (year)```  
  ```/media/Media Name year```  
  ```/media/Media.Name.year```  
@@ -113,7 +113,7 @@ TV Shows:
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
 
-# Config.json
+## Config.json
 ### Sections
 The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` and `movie`. Each section can be customized individually.  
 | Name           | Description                                        | Values                     |
@@ -150,13 +150,12 @@ The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` 
 | apiKey         | Media agent api key                                | 123456456                  |
 
 
-
-# Replacing Assets
+## Replacing Assets
 Assets can be placed inside a folder called `media` next to the executable/script, paths have to be the same as [here](https://github.com/ilarramendi/Cover-Ratings/tree/main/media).  
 
 If a file is not found it uses the one stored inside the executable
 
-# Custom html/css  
+## Custom html/css  
 This way you can fully customize covers how you like.  
 Its recommended editing the scss file and compiling it to css!  
 Files need to be stored next to the executable/script.  
