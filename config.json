@@ -6,6 +6,11 @@
           "url": "https://192.168.1.7:8989",
           "apiKey": ""
      },
+     "scraping": {
+          "RT": true,
+          "IMDB": true,
+          "textlessPosters": false
+     },
      "defaultAudio": "",
      "englishUSA": true,
      "episode": {
@@ -42,9 +47,12 @@
                "textColor": "white",
                "config": {
                     "IMDB": true,
-                    "MTS": true,
+                    "MTC": true,
+                    "MTC-MS": true,
+                    "TMDB": true,
                     "RT": true,
-                    "TMDB": true
+                    "RTCF": true,
+                    "RTA": true
                }
           },
           "certifications": {
@@ -95,9 +103,12 @@
                "textColor": "white",
                "config": {
                     "IMDB": true,
-                    "MTS": true,
+                    "MTC": true,
+                    "MTC-MS": true,
+                    "TMDB": true,
                     "RT": true,
-                    "TMDB": true
+                    "RTCF": true,
+                    "RTA": true
                }
           },
           "certifications": {
@@ -148,9 +159,12 @@
                "textColor": "white",
                "config": {
                     "IMDB": true,
-                    "MTS": true,
+                    "MTC": true,
+                    "MTC-MS": true,
+                    "TMDB": true,
                     "RT": true,
-                    "TMDB": true
+                    "RTCF": true,
+                    "RTA": true
                }
           },
           "certifications": {
@@ -202,9 +216,12 @@
                "textColor": "white",
                "config": {
                     "IMDB": true,
-                    "MTS": true,
+                    "MTC": true,
+                    "MTC-MS": true,
+                    "TMDB": true,
                     "RT": true,
-                    "TMDB": true
+                    "RTCF": true,
+                    "RTA": true
                }
           },
           "certifications": {
@@ -255,9 +272,12 @@
                "textColor": "white",
                "config": {
                     "IMDB": true,
-                    "MTS": true,
+                    "MTC": true,
+                    "MTC-MS": true,
+                    "TMDB": true,
                     "RT": true,
-                    "TMDB": true
+                    "RTCF": true,
+                    "RTA": true
                }
           },
           "certifications": {

@@ -1,7 +1,7 @@
 from glob import glob
 from subprocess import call, getstatusoutput
 from os import access, W_OK
-from os.path import exists, realpath, join, abspath
+from os.path import exists, join, abspath
 import json
 from sys import argv, exit
 from datetime import timedelta
@@ -53,7 +53,11 @@ def generateTasks(metadata, path, type, title, overWrite, season = False, episod
         cfg = {}
         for rt in metadata['ratings']:
             if conf['ratings']['config'][rt]:
-                cfg['RT-SP' if rt == 'RT' and float(metadata['ratings']['RT']) < 6 else rt] = metadata['ratings'][rt]
+                lowScore = float(metadata['ratings'][rt]) < 6
+                if rt == 'RT' and lowScore: cfg['RT-LS'] = metadata['ratings'][rt]
+                elif rt == 'RTA' and lowScore: cfg['RTA-LS'] = metadata['ratings'][rt]
+                else: cfg[rt] = metadata['ratings'][rt] 
+                
         if len(cfg) > 0:
             tsk['ratings'] = cfg
 
@@ -108,7 +112,7 @@ def processFolder(folder):
     if type == 'movie' and not overWrite and exists(folder + '/' + config['movie']['output']) and exists(folder + '/' + config['backdrop']['output']):
         return log('Existing cover image found for: ' + name, 3, 3)
     
-    metadata = functions.getMetadata(name, type, year, config['omdbApi'], config['tmdbApi'])
+    metadata = functions.getMetadata(name, type, year, config['omdbApi'], config['tmdbApi'], config['scraping'])
 
     if type == 'tv':
         sns = functions.getSeasonsMetadata(
@@ -280,6 +284,14 @@ if '-v' in argv: functions.logLevel = int(argv[argv.index('-v') + 1])
 # endregion
 
 # region Files
+try: # Move files from executable to workdir
+    pt = sys._MEIPASS
+    for fl in glob(join(pt, 'files', '**'),  recursive=True):
+        out = join(workDirectory, fl.partition('files/')[2])
+        if not exists(out): call(['cp', fl, out])
+except:
+    pass
+
 if not exists(join(workDirectory, 'config.json')):
     log('Missing config.json, downloading default config.', 0, 3)
     if call(['wget', '-O', join(workDirectory, 'config.json'), 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
@@ -292,14 +304,6 @@ loadConfig(join(workDirectory, 'config.json'))
 if config['tmdbApi'] == '' and config['omdbApi'] == '':
     log('A single api key is needed to work', 1, 0)
     exit() 
-
-try: # Move files from executable to workdir
-    pt = sys._MEIPASS
-    for fl in glob(join(pt, 'files', '**'),  recursive=True):
-        out = join(workDirectory, fl.partition('files/')[2])
-        if not exists(out): call(['mv', fl, out])
-except Exception:
-    pt = realpath(__file__).rpartition('/')[0]
 
 if exists(join(workDirectory, 'cover.html')):
     with open(join(workDirectory, 'cover.html'), 'r') as fl: coverHTML = fl.read()

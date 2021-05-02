@@ -12,6 +12,9 @@ import time
 from urllib.parse import quote
 import json
 from exif import Image as imgTag
+from scrapers.RottenTomatoes import searchMovie as searchMovieRT
+from scrapers.IMDB import getRating as getRatingIMDB
+from scrapers.Moviemania import getTextlessPosters, getTextlessPostersByName
 
 workDirectory = "./"
 extensions = ['mkv', 'mp4', 'avi']
@@ -95,8 +98,9 @@ def getJSON(url): # JSON?
     
     res = response.json()
 
-def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': str, 'cover'?: str, 'backdrop'?: str, 'tmdbid'?: str}
+def getMetadata(name, type, year, omdbApi, tmdbApi, scraping): # {'ratings': {}, 'type': str, 'cover'?: str, 'backdrop'?: str, 'tmdbid'?: str}
     metadata = {'ratings': {}, "type": type, "certification": "NR"}
+    
     if tmdbApi != '': 
         res = getJSON('https://api.themoviedb.org/3/search/' + type + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&append_to_response=releases&query=' + quote(name) + ('&year=' + year if year else ''))
         if res and 'results' in res and len(res['results']) > 0:
@@ -130,7 +134,7 @@ def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': s
             if 'cover' not in metadata and 'Poster' in res and res['Poster'] != 'N/A':
                 metadata['cover'] = res['Poster']
             if 'Metascore' in res and res['Metascore'] != 'N/A': 
-                metadata['ratings']['MTS'] = str(int(res['Metascore']) / 10).rstrip('0').rstrip('.')
+                metadata['ratings']['MTC'] = str(int(res['Metascore']) / 10).rstrip('0').rstrip('.')
             if 'imdbRating' in res and res['imdbRating'] != 'N/A': metadata['ratings']['IMDB'] = res['imdbRating'].rstrip('0').rstrip('.')
             if 'Ratings' in res:
                 for rt in res['Ratings']:
@@ -140,6 +144,28 @@ def getMetadata(name, type, year, omdbApi, tmdbApi): # {'ratings': {}, 'type': s
             if 'Title' in res: metadata['title'] = res['Title']
         else: log('No results found on OMDB for: ' + name + ('(' + year + ')' if year else ''), 3, 1)
     
+    if scraping['textlessPosters']:
+        posters = getTextlessPosters('https://www.moviemania.io/phone/movie/' + metadata['tmdbid']) if 'tmdbid' in metadata else getTextlessPosters('Movies', name, year) 
+        if posters and len(posters) > 0: metadata['cover'] = posters[0]
+        else: log('No textless poster found for: ' + name, 3, 3)
+    
+    rt = scraping['RT'] and searchMovieRT(name, year)
+    if rt:
+        for sc in ['RT', 'RTA']:
+            if sc in rt:
+                metadata['ratings'][sc] = str(int(rt[sc]) / 10).replace('.0', '')
+        if rt['CF'] and 'RT' in metadata['ratings']:
+            metadata['ratings']['RTCF'] = metadata['ratings']['RT']
+            del metadata['ratings']['RT']
+
+    IMDB = scraping['IMDB'] and 'imdbid' in metadata and getRatingIMDB(metadata['imdbid'])
+    if IMDB:
+        if 'IMDB' in IMDB: metadata['ratings']['IMDB'] = IMDB['IMDB']
+        if 'MTC' in IMDB: metadata['ratings']['MTC'] = IMDB['MTC']
+        if IMDB['MTC-MS'] and 'MTC' in metadata['ratings']:
+            metadata['ratings']['MTC-MS'] = metadata['ratings']['MTC']
+            del metadata['ratings']['MTC']
+        
     return metadata
 
 def getMediaInfo(file): # {"metadata": [str], "language": [str]}?
