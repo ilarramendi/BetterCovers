@@ -32,7 +32,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT"
           },
           "ratings": {
                "position": "right",
@@ -88,7 +88,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT"
           },
           "ratings": {
                "position": "left",
@@ -144,7 +144,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT"
           },
           "ratings": {
                "position": "right",
@@ -201,7 +201,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD,USA"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,USA"
           },
           "ratings": {
                "position": "left",
@@ -257,7 +257,7 @@
                     "SDR": true,
                     "UNDEFINED": false
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,NLD,USA"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,USA"
           },
           "ratings": {
                "position": "left",
