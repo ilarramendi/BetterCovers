@@ -5,12 +5,12 @@ This project was inspired by [RPDB](https://ratingposterdb.com/)!
 Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings, mediainfo, language and age certifications! 
 
 # Examples
-<img src="https://user-images.githubusercontent.com/30437204/116767700-17c24500-aa08-11eb-855c-954b6623a863.jpg" width="49.5%"> <img src="https://user-images.githubusercontent.com/30437204/116767716-43452f80-aa08-11eb-985e-d38f6be31da1.jpg" width="49.5%">
-<img src="https://user-images.githubusercontent.com/30437204/116767708-24df3400-aa08-11eb-8f3d-5929a16048b3.jpg" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/116820480-c622d300-ab4b-11eb-9068-5b5cd24855e7.jpg" width="49.5%"> <img src="https://user-images.githubusercontent.com/30437204/116767716-43452f80-aa08-11eb-985e-d38f6be31da1.jpg" width="49.5%">
+<img src="https://user-images.githubusercontent.com/30437204/116820509-f5394480-ab4b-11eb-8e6b-641406f47ce1.jpg" width="100%">
 
 Cover images are saved as folder.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg (customizable).     
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
-After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect!
+After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Now you can also configure the agent in config file to automaticaly update agent!)
 
 # Downloading
 The easiest option for running is using [docker](https://hub.docker.com/r/ilarramendi/better-covers).  
@@ -143,12 +143,21 @@ The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` 
 | englishUSA     | Use USA flag for english language instead of UK    | boolean                    |
 
 
-### Agent
+### Agent (To update library)
 | Name           | Description                                        | Values                     |
 | -------------- | -------------------------------------------------- | -------------------------- | 
 | type           | Media agent to update                              | jellyfin or emby           |
 | url            | Full path to media agent                           | http://192.168.1.7:8989    |
 | apiKey         | Media agent api key                                | 123456456                  |
+
+### Scraping
+| Name           | Description                                        | Values                     |
+| -------------- | -------------------------------------------------- | -------------------------- | 
+| RT             | Get certifications and audience ratings            | true or false              |
+| IMDB           | Get up to date ratings from IMDB and MTC (MustSee) | true or false              |
+| textlessPosters| Use textless poster if found in MovieMania (SLOW)  | true or false              |
+
+
 
 
 ## Replacing Assets
