@@ -8,7 +8,7 @@ Better-Covers is a script to automaticaly generate cover images (and backdrops) 
 <img src="https://user-images.githubusercontent.com/30437204/116820480-c622d300-ab4b-11eb-9068-5b5cd24855e7.jpg" width="49.5%"> <img src="https://user-images.githubusercontent.com/30437204/116767716-43452f80-aa08-11eb-985e-d38f6be31da1.jpg" width="49.5%">
 <img src="https://user-images.githubusercontent.com/30437204/116820509-f5394480-ab4b-11eb-8e6b-641406f47ce1.jpg" width="100%">
 
-Cover images are saved as folder.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg (customizable).     
+Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png (customizable).     
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Now you can also configure the agent in config file to automaticaly update agent!)
 
@@ -28,12 +28,12 @@ docker run -i --rm \
 ```
 
 To download the latest executable (LINUX) of the script run:  
-```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.7.1-linux/BetterCovers; chmod +x BetterCovers```  
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.8-linux/BetterCovers; chmod +x BetterCovers```  
 
 Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
 
 # Api keys
-At the moment the scripts works the best with 2 api keys, sorry about that :(  
+At the moment the scripts works the best with 2 api keys, but only 1 is needed (TMDB recommended). 
 To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/), to get a key you have to create an account.
 
 And to get missing metadata and ratings from IMDB, RT and MTS it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
@@ -43,12 +43,9 @@ To save the api keys edit ```config.json``` or execute the script like this to a
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
  
  # Dependencies
-The only non optional external dependency is `cutycapt` to generate the images.  
-This can be installed with: `sudo apt install -y cutycapt`.  
+The only non optional external dependency is `wkhtmltopdf` to generate the images.  
+This can be installed with: `sudo apt install -y wkhtmltopdf`.  
 Aditionaly to get screenshots and get mediainfo it uses `ffmpeg` 
-
-This script also needs a X server running to execute, if you are not using a graphical display its posible to use a lighweight server like xvfb:  
-`xvfb-run -a ./BetterCovers '/movies/*'`
  
 # Usage
 If library looks like this:
@@ -97,19 +94,19 @@ TV Shows:
 - [x] Episodes support, get cover from internet or extract with ffmpeg
 - [ ] Add aditional mediainfo properties (dolby, ATMOS, language?, audio channels)
 - [ ] Add studio/provider
-- [ ] Add aditional providers
+- [ ] Add aditional providers (suggestions?)
 - [ ] Add certifications
 - [ ] Add python dependencies file
 - [x] Add docker container
-- [ ] Make docker container fully customizable like script
+- [x] Make docker container fully customizable like script
 - [x] Flags for audio language
 - [x] Add backdrop support
 - [ ] Add connection with Sonarr and Radarr api
 - [x] Add connection to emby and jellyfin api
 - [ ] Add connection to plex api
 - [x] Add age certifications
-- [ ] Add source (blueray, web, dvd...)
-- [ ] Add custom overlays
+- [x] Add source (blueray, web, dvd...)
+- [x] Add custom overlays
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
@@ -137,10 +134,11 @@ The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` 
 | heigh          | Image Height                                       | int, ex: 3000              |
 
 ### Global
-| Name           | Description                                        | Values                     |
-| -------------- | -------------------------------------------------- | -------------------------- | 
-| defaultAudio   | Default language to use if no language found       | str, ex: ENG, empty for off|
-| englishUSA     | Use USA flag for english language instead of UK    | boolean                    |
+| Name                  | Description                                        | Values                     |
+| --------------------- | -------------------------------------------------- | -------------------------- | 
+| defaultAudio          | Default language to use if no language found       | str, ex: ENG, empty for off|
+| englishUSA            | Use USA flag for english language instead of UK    | boolean                    |
+| metadataUpdateInterval| Time to update metadata and mediainfo (days)       | number                     |
 
 
 ### Agent (To update library)
@@ -155,7 +153,17 @@ The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` 
 | -------------- | -------------------------------------------------- | -------------------------- | 
 | RT             | Get certifications and audience ratings            | true or false              |
 | IMDB           | Get up to date ratings from IMDB and MTC (MustSee) | true or false              |
-| textlessPosters| Use textless poster if found in MovieMania (SLOW)  | true or false              |
+| textlessPosters| Use textless poster if found in MovieMania (SLOW!) | true or false              |
+
+### Overlays
+Custom overlays can be placed on `media/overlays`, an example is available on: `media/overlays/kids.html`
+| Name           | Description                                               | Values                          |
+| -------------- | --------------------------------------------------------- | ------------------------------- | 
+| type           | Type of media separated by ',' or * for any               | movie,tv,backdrop,season,episode|
+| name           | Name of the html file to use (without .html)              | kids                            |
+| path           | Text that needs to be on path to be applied (or * for any)| /media/kidsMovies               |
+
+
 
 
 
@@ -187,7 +195,7 @@ In addition to this it overwrites the same variables that are on `:root {}` from
 # Parameters
 `-o true` Ovewrite covers  
 `-wd /path/to/wd` Change the default working directory (where config and icons are stored)    
-`-w number` Number of workers to use, default 10 (ryzen 3800x can handle up to 200 workers)  
+`-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly)  
 `-omdb apiKey` Store the OMDB api key  
 `-tmdb apiKey` Store TMDB api key
-`-v number` Verbose level, from 0 to 3
+`-v number` Verbose level from 0 to 3, default 2.
