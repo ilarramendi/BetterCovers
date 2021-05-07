@@ -1,14 +1,11 @@
 FROM debian
 RUN apt-get -y update
-RUN apt-get install -y cutycapt xvfb mediainfo ffmpeg wget
-RUN wget -O BetterCovers 'https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.7.1-linux/BetterCovers' -q
+RUN apt-get install -y wkhtmltopdf ffmpeg wget
+RUN wget -O BetterCovers 'https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.8-linux/BetterCovers' -q
 RUN chmod +x ./BetterCovers
-RUN mkdir /tmp/runtime
-RUN chmod 0700 /tmp/runtime
-ENV XDG_RUNTIME_DIR /tmp/runtime
 ENV w 20
 ENV v 2
-ENTRYPOINT xvfb-run -a ./BetterCovers \
+ENTRYPOINT ./BetterCovers \
         "/media/*" \
         -wd "/config" \
         -tmdb "$tmdb" \

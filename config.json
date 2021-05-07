@@ -11,8 +11,9 @@
           "IMDB": true,
           "textlessPosters": false
      },
-     "defaultAudio": "",
+     "defaultAudio": "ENG",
      "englishUSA": true,
+     "metadataUpdateInterval": 14,
      "episode": {
           "mediainfo": {
                "position": "top",
@@ -22,20 +23,31 @@
                "space": "50px",
                "color": "#0005",
                "config": {
-                    "AVC": true,
-                    "HD": true,
-                    "HDR": true,
-                    "HEVC": true,
-                    "SD": true,
-                    "UHD": true,
-                    "UHD-HDR": true,
-                    "SDR": true,
-                    "UNDEFINED": false
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": true,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": true
+                    }
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
           },
           "ratings": {
-               "position": "right",
+               "position": "left",
                "alignment": "center",
                "imgSize": "100px",
                "padding": "20px",
@@ -48,14 +60,12 @@
                "config": {
                     "IMDB": true,
                     "MTC": true,
-                    "MTC-MS": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTCF": true,
                     "RTA": true
                }
           },
-          "certifications": {
+          "ageRatings": {
                "config": {
                     "NC-17": false,
                     "R": false,
@@ -78,17 +88,28 @@
                "space": "30px",
                "color": "#0005",
                "config": {
-                    "AVC": true,
-                    "HD": true,
-                    "HDR": true,
-                    "HEVC": true,
-                    "SD": true,
-                    "UHD": true,
-                    "UHD-HDR": true,
-                    "SDR": true,
-                    "UNDEFINED": false
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": true,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": true
+                    }
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
           },
           "ratings": {
                "position": "left",
@@ -104,14 +125,12 @@
                "config": {
                     "IMDB": true,
                     "MTC": true,
-                    "MTC-MS": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTCF": true,
                     "RTA": true
                }
           },
-          "certifications": {
+          "ageRatings": {
                "config": {
                     "NC-17": false,
                     "R": false,
@@ -121,7 +140,7 @@
                     "NR": false
                }
           },
-          "output": "folder.jpg",
+          "output": "folder.png",
           "width": 2000,
           "height": 3000
      },
@@ -134,17 +153,28 @@
                "space": "30px",
                "color": "#0005",
                "config": {
-                    "AVC": true,
-                    "HD": true,
-                    "HDR": true,
-                    "HEVC": true,
-                    "SD": true,
-                    "UHD": true,
-                    "UHD-HDR": true,
-                    "SDR": true,
-                    "UNDEFINED": false
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": true,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": true
+                    }
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
           },
           "ratings": {
                "position": "right",
@@ -160,14 +190,12 @@
                "config": {
                     "IMDB": true,
                     "MTC": true,
-                    "MTC-MS": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTCF": true,
                     "RTA": true
                }
           },
-          "certifications": {
+          "ageRatings": {
                "config": {
                     "NC-17": false,
                     "R": false,
@@ -177,7 +205,7 @@
                     "NR": false
                }
           },
-          "output": "thumb.jpg",
+          "output": "thumb.png",
           "width": 1920,
           "height": 1080,
           "generateImages": false
@@ -191,17 +219,28 @@
                "space": "30px",
                "color": "#0005",
                "config": {
-                    "AVC": true,
-                    "HD": true,
-                    "HDR": true,
-                    "HEVC": true,
-                    "SD": true,
-                    "UHD": true,
-                    "UHD-HDR": true,
-                    "SDR": true,
-                    "UNDEFINED": false
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": true,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": true
+                    }
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,USA"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
           },
           "ratings": {
                "position": "left",
@@ -217,14 +256,12 @@
                "config": {
                     "IMDB": true,
                     "MTC": true,
-                    "MTC-MS": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTCF": true,
                     "RTA": true
                }
           },
-          "certifications": {
+          "ageRatings": {
                "config": {
                     "NC-17": false,
                     "R": false,
@@ -234,7 +271,7 @@
                     "NR": false
                }
           },
-          "output": "folder.jpg",
+          "output": "folder.png",
           "width": 2000,
           "height": 3000
      },
@@ -247,17 +284,28 @@
                "space": "30px",
                "color": "#0005",
                "config": {
-                    "AVC": true,
-                    "HD": true,
-                    "HDR": true,
-                    "HEVC": true,
-                    "SD": true,
-                    "UHD": true,
-                    "UHD-HDR": true,
-                    "SDR": true,
-                    "UNDEFINED": false
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": true,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": true
+                    }
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,USA"
+               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
           },
           "ratings": {
                "position": "left",
@@ -273,14 +321,12 @@
                "config": {
                     "IMDB": true,
                     "MTC": true,
-                    "MTC-MS": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTCF": true,
                     "RTA": true
                }
           },
-          "certifications": {
+          "ageRatings": {
                "config": {
                     "NC-17": false,
                     "R": false,
@@ -290,8 +336,16 @@
                     "NR": false
                }
           },
-          "output": "folder.jpg",
+          "output": "folder.png",
           "width": 2000,
           "height": 3000
-     }
+     },
+     "overlays": [
+          {
+               "type": "tv,movie",
+               "name": "kids",
+               "path": "/kids/"
+          }
+     ],
+     "version": 1
 }

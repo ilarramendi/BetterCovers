@@ -4,198 +4,144 @@ from os import access, W_OK
 from os.path import exists, join, abspath
 import json
 from sys import argv, exit
-from datetime import timedelta
+from datetime import timedelta, datetime
 import time
 from threading import Thread
 import functions
 from functions import log
 from requests import post
 from re import findall
+from copy import deepcopy
 
 config = {}
 tasks = []
 running = True
 processing = True
 tasksLength = 0
+dbVersion = 1
+db = {'version': dbVersion}
 
 # region Functions
-def generateTasks(metadata, path, type, title, overWrite, season = False, episode = False):
-    tasks = []
-    conf = config[type]
+def generateTasks(metadata, overWrite):
+    conf = config[metadata['type']]
+    tsks = []
     tsk = {
-        'out': join(path, conf['output']) if type != 'episode' else path.rpartition('.')[0] + '.jpg',
-        'type': type,
-        'title': title,
-        'season': season,
-        'episode': episode,
+        'out': join(metadata['path'], conf['output']) if metadata['type'] != 'episode' else metadata['path'].rpartition('.')[0] + '.jpg',
+        'type': metadata['type'],
+        'title': metadata['title'],
         'overwrite': overWrite,
-        'generateImage': path if type == 'episode' and config['episode']['generateImages'] else False}
+        'generateImage': path if metadata['type'] in ['episode', 'backdrop'] and config[metadata['type']]['generateImages'] else False,
+        'mediainfo': deepcopy(metadata['mediainfo']),
+        'ratings': {},
+        'ageRating': '',
+        'overlay': ''}
+    tsk['mediainfo']['languages'] = ''
+    
+    for ol in config['overlays']:
+        if (metadata['type'] in ol['type'].split(',') or ol['type'] == '*') and (ol['path'] in metadata['path'] or ol['path'] == '*'):
+            tsk['overlay'] = ol['name']
+    if tsk['mediainfo']['color'] == 'HDR' and tsk['mediainfo']['resolution'] == 'UHD' and conf['mediainfo']['config']['color']['UHD-HDR']:
+        tsk['mediainfo']['color'] = 'UHD-HDR'
+        tsk['mediainfo']['resolution'] = ''
 
-    if 'mediainfo' in metadata:
-        cfg = []
-        if 'HDR' in metadata['mediainfo'] and 'UHD' in metadata['mediainfo'] and conf['mediainfo']['config']['UHD-HDR']:
-            metadata['mediainfo'].remove('HDR')
-            metadata['mediainfo'].remove('UHD')
-            cfg.append('UHD-HDR')
-        for mi in metadata['mediainfo']:
-            if mi in conf['mediainfo']['config'] and conf['mediainfo']['config'][mi]: cfg.append(mi)
-        if len(cfg) > 0:
-            tsk['mediainfo'] = cfg
-
-    if 'language' in metadata:
-        lng = functions.getLanguage(conf['mediainfo']['audio'], metadata['language'], config['englishUSA'])
-        if lng: tsk['language'] = lng
-    elif config['defaultAudio'] != "":
-        log('Using default language for: ' + title, 3, 3)
-        tsk['language'] = config['defaultAudio']
+    for pr in tsk['mediainfo']:
+        if pr != 'languages':
+            vl = tsk['mediainfo'][pr]
+            tsk['mediainfo'][pr] = '' if  vl == '' or not conf['mediainfo']['config'][pr][vl] else vl
+        else:
+            for lg in conf['mediainfo']['audio'].split(','):
+                if lg in metadata['mediainfo']['languages']:
+                    tsk['mediainfo'][pr] = lg
+                    break
 
     if 'ratings' in metadata:
-        cfg = {}
         for rt in metadata['ratings']:
-            if conf['ratings']['config'][rt]:
-                lowScore = float(metadata['ratings'][rt]) < 6
-                if rt == 'RT' and lowScore: cfg['RT-LS'] = metadata['ratings'][rt]
-                elif rt == 'RTA' and lowScore: cfg['RTA-LS'] = metadata['ratings'][rt]
-                else: cfg[rt] = metadata['ratings'][rt] 
-                
-        if len(cfg) > 0:
-            tsk['ratings'] = cfg
+            if conf['ratings']['config'][rt]: tsk['ratings'][rt] = metadata['ratings'][rt] 
 
-    if 'certification' in metadata and conf['certifications']['config'][metadata['certification']]: 
-        tsk['certification'] = metadata['certification']
+    if 'ageRating' in metadata and conf['ageRatings']['config'][metadata['ageRating']]:  tsk['ageRating'] = metadata['ageRating']
 
-    if type == 'backdrop':
-        if 'backdrop' in metadata:
-            tsk['image'] = metadata['backdrop']
-    elif 'cover' in metadata: tsk['image'] = metadata['cover']
+    imgNm = 'backdrop' if metadata['type'] == 'backdrop' else 'cover'
+    if imgNm in metadata: tsk['image'] = metadata[imgNm]
 
     if overWrite or not exists(tsk['out']):
-        if ('image' in tsk or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk):
-            tasks += [tsk]
-    else: log('Existing poster image found for: ' + title + (' S' + str(season) if season else '') + ('E' + str(episode) if episode else ''), 3, 3)
+        if ('image' in tsk or tsk['generateImage']) and ('mediainfo' in tsk or 'ratings' in tsk): tsks.append(tsk)
+    else: log('Existing cover image found for: ' + title + (' S' + str(season) if season else '') + ('E' + str(episode) if episode else ''), 3, 3)
 
-    # Generate sesons tasks
-    if type == 'tv' and 'seasons' in metadata:
+    if metadata['type'] == 'tv':
         for sn in metadata['seasons']:
-            tasks += generateTasks(metadata['seasons'][sn], metadata['seasons'][sn]['path'], 'season', title, overWrite, sn)
+            tsks += generateTasks(metadata['seasons'][sn], overWrite)
+            for ep in metadata['seasons'][sn]['episodes']:
+                tsks += generateTasks(metadata['seasons'][sn]['episodes'][ep], overWrite)
 
-    # Generate episodes tasks
-    if type == 'season' and 'episodes' in metadata:
-        for ep in metadata['episodes']:
-            tasks += generateTasks(metadata['episodes'][ep], metadata['episodes'][ep]['path'], 'episode', title, overWrite, season, ep)
+    if metadata['type'] in ['movie', 'tv', 'season']:
+        metadata['type'] = 'backdrop'
+        tsks += generateTasks(metadata, overWrite)
 
-    # Generate backdrop task
-    if type in ['movie', 'tv', 'season']: 
-        tasks += generateTasks(metadata, path, 'backdrop', title, overWrite, season, episode)
-    
-    return tasks
+    return tsks
 
-def processFolder(folder):
-    st = time.time()
-    seasons = functions.getSeasons(folder)
-    type = 'tv' if len(seasons) > 0 else 'movie'
-    
-    # Get name and year
+def getName(folder):
     inf = findall("\/([^\/]+)[ \.]\(?(\d{4})\)?", folder)
     if len(inf) == 0: 
         inf = findall("\/([^\/]+)$", folder)
         if len(inf) == 0:
             log('Cant parse name from: ' + folder, 3, 1)
-            return
-        else:
-            name = inf[0]
-            year = False
+            return [False, False]
+        else: return [inf[0], False]
+    else: return [inf[0][0].translate({'.': ' ', '_': ' '}), inf[0][1]]
+
+def processFolder(folder):
+    st = time.time()
+    if folder in db:
+        functions.updateMetadata(db[folder], config['metadataUpdateInterval'], config['omdbApi'], config['tmdbApi'], config['scraping'])
+        metadata = deepcopy(db[folder])
     else:
-        name = inf[0][0].translate({'.': ' ', '_': ' '})
-        year =  inf[0][1]
+        metadata = {'ids': {}, 'path': folder}
+        mediaFiles = functions.getMediaFiles(folder)
+        metadata['title'], metadata['year'] = getName(folder)
+        metadata['seasons'] = functions.getSeasons(folder, config['season']['output'], config['backdrop']['output'], metadata['title'])
+        metadata['type'] ='tv' if len(metadata['seasons']) > 0 else 'movie'
 
-    if type == 'movie' and not overWrite and exists(folder + '/' + config['movie']['output']) and exists(folder + '/' + config['backdrop']['output']):
-        return log('Existing cover image found for: ' + name, 3, 3)
-    
-    metadata = functions.getMetadata(name, type, year, config['omdbApi'], config['tmdbApi'], config['scraping'])
+        if metadata['type'] == 'tv': # Get IDS from NFO
+            nfo = join(folder, 'tvshow.nfo')
+            if exists(nfo): metadata['ids'] = functions.readNFO(nfo)
+        elif len(mediaFiles) == 1:
+            nfo = mediaFiles[0].rpartition('.')[0] + '.nfo'
+            if exists(nfo): metadata['ids'] = functions.readNFO(nfo)
 
-    if type == 'tv':
-        sns = functions.getSeasonsMetadata(
-            metadata['imdbid'] if 'imdbid' in metadata else False,
-            metadata['tmdbid'] if 'tmdbid' in metadata else False,
-            seasons,
-            config['omdbApi'],
-            config['tmdbApi'],
-            functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']),
-            name,
-            not exists(folder + '/' + config['tv']['output']) or not exists(folder + '/' + config['backdrop']['output']),
-            overWrite)
-        
-        tvColor = []
-        tvResolution = []
-        tvCodec = []
-        tvLanguage = []
-        for sn in sns:
-            color = []
-            resolution = []
-            codec = []
-            language = []
-            for ep in sns[sn]['episodes']:
-                epi = sns[sn]['episodes'][ep]
-                if 'mediainfo' in epi:
-                    cl, rs, cd = epi['mediainfo']
-                    color.append(cl)
-                    resolution.append(rs)
-                    codec.append(cd)
-                if 'language' in epi:
-                    lng = functions.getLanguage(config['episode']['mediainfo']['audio'], epi['language'], config['englishUSA'])
-                    if lng: language.append(lng)
-            sns[sn]['mediainfo'] = []
-            if len(color) > 0: 
-                cl = functions.frequent(color)
-                tvColor.append(cl)
-                sns[sn]['mediainfo'].append(cl)
-            if len(resolution) > 0: 
-                rs = functions.frequent(resolution)
-                tvResolution.append(rs)
-                sns[sn]['mediainfo'].append(rs)
-            if len(codec) > 0: 
-                co = functions.frequent(codec)
-                tvCodec.append(co)
-                sns[sn]['mediainfo'].append(co)
-            if len(language) > 0: 
-                lg = functions.frequent(language)
-                tvLanguage.append(lg)
-                sns[sn]['language'] = [lg]
+        if metadata['type'] == 'movie': # Get mediainfo
+            if len(mediaFiles) == 1:
+                if functions.getConfigEnabled(config['movie']['mediainfo']['config']):
+                    metadata['mediainfoDate'] = datetime.now().strftime("%d/%m/%Y")
+                    metadata['mediainfo'] = functions.getMediaInfo(mediaFiles[0], config['defaultAudio'])
+        else: log('Error finding media file on: ' + folder, 3, 3)
 
-        metadata['mediainfo'] = []
-        if len(tvColor) > 0: metadata['mediainfo'].append(functions.frequent(tvColor))
-        if len(tvResolution) > 0: metadata['mediainfo'].append(functions.frequent(tvResolution))
-        if len(tvCodec) > 0: metadata['mediainfo'].append(functions.frequent(tvCodec))
-        if len(tvLanguage) > 0: metadata['language'] = [functions.frequent(tvLanguage)]
-        
-        metadata['seasons'] = sns
-    elif type == 'movie' and functions.getConfigEnabled(config['movie']['mediainfo']['config']):
-        mediaFiles = []
-        for ex in functions.extensions: 
-            mediaFiles += glob(join(folder.translate({91: '[[]', 93: '[]]'}), '*.' + ex))
-        
-        mediaFiles = [fl for fl in mediaFiles if 'trailer' not in fl]
-        if len(mediaFiles) > 0:
-            minfo = functions.getMediaInfo(mediaFiles[0])
-            if minfo: 
-                metadata['mediainfo'] = minfo['metadata']
-                metadata['language'] = minfo['language']
-            else: log('Error getting mediainfo for: ' + name, 1, 1)
-        else: log('Error getting mediainfo no video files found on: ' + folder, 3, 1)
+        functions.getMetadata(metadata, config['omdbApi'], config['tmdbApi'], config['scraping'])
+        if len(metadata['ids']) == 0 and not metadata['title']: return log('No id or name can be found for: ' + folder, 1, 1)  
 
+        if metadata['type'] == 'tv':
+            metadata = functions.getSeasonsMetadata(metadata,
+                config['omdbApi'],
+                config['tmdbApi'],
+                #functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']),
+                not exists(folder + '/' + config['tv']['output']) or not exists(folder + '/' + config['backdrop']['output']),
+                overWrite,
+                config['defaultAudio'])
+        db[folder] = deepcopy(metadata)
+
+    #if not overWrite and metadata['type'] == 'movie' and exists(folder + '/' + config['movie']['output']) and exists(folder + '/' + config['backdrop']['output']):
+    #    return log('Existing cover image found for: ' + metadata['title'], 3, 3) 
     global tasks, tasksLength
-    generatedTasks = generateTasks(metadata, folder, type, name, overWrite)
+    generatedTasks = generateTasks(metadata, overWrite)
     tasks += generatedTasks
     tasksLength += len(generatedTasks)
-    log('Metadata and mediainfo found for: ' + name + ' in ' + str(timedelta(seconds=round(time.time() - st))), 2)
+    log('Succesfully generated ' + str(len(generatedTasks)) + ' tasks for: ' + metadata['title'] + ' in ' + str(timedelta(seconds=round(time.time() - st))), 2)
 
 def processTask(task, thread, taskPos):
     st = time.time()
     img = functions.generateImage(
         config[task['type']],
-        task['ratings'] if 'ratings' in task else False,
-        task['certification'] if 'certification' in task else False,
+        task['ratings'],
+        task['ageRating'] if 'ageRating' in task else False,
         task['language'] if 'language' in task else False,
         task['mediainfo'] if 'mediainfo' in task else False,
         task['image'] if not task['generateImage'] else False,
@@ -219,6 +165,9 @@ def loadConfig(cfg):
         with open(cfg, 'r') as js:
             global config 
             config = json.load(js)
+            if 'version' not in config or config['version'] != 1:
+                log('Wrong version of config file, please update!', 1, 0)
+                exit()
             if '-omdb' in argv and argv[argv.index('-omdb') + 1] != '': config['omdbApi'] = argv[argv.index('-omdb') + 1]
             if '-tmdb' in argv and argv[argv.index('-tmdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1]
         with open(cfg, 'w') as out: 
@@ -256,7 +205,8 @@ def processTasks():
             i = 0
             while True:
                 if not (thrs[i] and thrs[i].is_alive()):
-                    thread = Thread(target=processTask, args=(tasks.pop(), str(i).zfill(thrsLength), str(j)))
+                    tsk = tasks.pop()
+                    thread = Thread(target=functions.generateIMage2, args=(tsk, config[tsk['type']], str(i).zfill(thrsLength)))
                     thread.start()
                     thrs[i] = thread
                     j += 1
@@ -288,25 +238,28 @@ try: # Move files from executable to workdir
     pt = sys._MEIPASS
     for fl in glob(join(pt, 'files', '**'),  recursive=True):
         out = join(workDirectory, fl.partition('files/')[2])
-        if not exists(out): call(['cp', fl, out])
+        if not exists(out): call(['cp', '-r', fl, out])
 except:
     pass
 
+if exists(join(workDirectory, 'db.json')):
+    with open(join(workDirectory, 'db.json')) as js:
+        db = json.load(js)
+        if db['version'] != dbVersion:
+            log('Removing db file because this is a new version of the script', 3, 3)
+            db = {'version': dbVersion}
+
 if not exists(join(workDirectory, 'config.json')):
-    log('Missing config.json, downloading default config.', 0, 3)
-    if call(['wget', '-O', join(workDirectory, 'config.json'), 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/config.json', '-q']) == 0:
-        log('Succesfully downloaded default config file', 2, 0)
-        loadConfig(join(workDirectory, 'config.json'))
-    else: log('Error downloading default config file', 1, 0)
+    log('Missing config file', 1, 0)
     exit()
-    
+
 loadConfig(join(workDirectory, 'config.json'))
 if config['tmdbApi'] == '' and config['omdbApi'] == '':
     log('A single api key is needed to work', 1, 0)
     exit() 
 
 if exists(join(workDirectory, 'cover.html')):
-    with open(join(workDirectory, 'cover.html'), 'r') as fl: coverHTML = fl.read()
+    with open(join(workDirectory, 'cover.html'), 'r') as fl: functions.coverHTML = fl.read()
 else:
     log('Missing cover.html', 1, 0)
     exit()
@@ -318,7 +271,7 @@ if not exists(join(workDirectory, 'cover.css')):
 # region Check Dependencies
 dependencies = [
     'mediainfo' if functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']) or functions.getConfigEnabled(config['episode']['mediainfo']['config']) or functions.getConfigEnabled(config['movie']['mediainfo']['config']) else False,
-    'cutycapt',
+    'wkhtmltopdf',
     'ffmpeg' if config['episode']['generateImages'] else False]
 
 for dp in [d for d in dependencies if d]:
@@ -340,6 +293,8 @@ try:
 
     PROCESSING.join()
     processing = False
+    with open(join(workDirectory, 'db.json'), 'w') as js:
+        js.write(json.dumps(db, indent=7))
     log('Finished generating tasks', 0, 2)
     GENERATING.join()
 except KeyboardInterrupt:
@@ -362,4 +317,3 @@ if running:
 # endregion
 
 log('DONE! Finished generating ' + str(tasksLength) + ' images in: ' + str(timedelta(seconds=round(time.time() - gstart))), 0, 0)
-

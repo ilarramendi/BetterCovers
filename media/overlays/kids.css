@@ -1,0 +1,35 @@
+.container {
+    background-color: rebeccapurple;
+    margin: 0px 50px 20px 0px;
+    border-radius: 0 25px 20px 0;
+    border: 5px solid blue;
+    border-left-width: 0;
+}
+
+.overlayContainer {
+    background-color: rgb(22, 130, 219);
+    border: 15px solid blue;
+    position: relative;
+    width: min-content;
+    height: min-content;
+    border-radius: 20px;
+}
+
+.label {
+    font-size: 130px;
+    color: yellow;
+    font-weight: 800;
+    margin: 30px;
+    font-family: cursive;
+}
+
+.labelContainer {
+    display: flex;
+    justify-content: center;
+    align-content: center;
+}
+
+body {
+    margin: 0;
+    background-color: #0000;
+}

@@ -2,8 +2,6 @@ from requests import get
 from re import findall
 import json
 
-
-
 def getRating(id):
     rq = get('https://www.imdb.com/title/' + id)
     res = {'MTC-MS': False}
