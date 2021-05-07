@@ -123,7 +123,7 @@ def processFolder(folder):
                 config['omdbApi'],
                 config['tmdbApi'],
                 #functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']),
-                not exists(folder + '/' + config['tv']['output']) or not exists(folder + '/' + config['backdrop']['output']),
+                not (exists(folder + '/' + config['tv']['output']) or exists(folder + '/' + config['backdrop']['output'])),
                 overWrite,
                 config['defaultAudio'])
         db[folder] = deepcopy(metadata)

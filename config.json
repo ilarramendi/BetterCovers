@@ -9,7 +9,8 @@
      "scraping": {
           "RT": true,
           "IMDB": true,
-          "textlessPosters": false
+          "textlessPosters": false,
+          "LB": true
      },
      "defaultAudio": "ENG",
      "englishUSA": true,
@@ -63,7 +64,8 @@
                     "MTC": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTA": true
+                    "RTA": true,
+                    "LB": false
                }
           },
           "ageRatings": {
@@ -129,7 +131,8 @@
                     "MTC": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTA": true
+                    "RTA": true,
+                    "LB": true
                }
           },
           "ageRatings": {
@@ -195,7 +198,8 @@
                     "MTC": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTA": true
+                    "RTA": true,
+                    "LB": true
                }
           },
           "ageRatings": {
@@ -262,7 +266,8 @@
                     "MTC": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTA": true
+                    "RTA": true,
+                    "LB": false
                }
           },
           "ageRatings": {
@@ -328,7 +333,8 @@
                     "MTC": true,
                     "TMDB": true,
                     "RT": true,
-                    "RTA": true
+                    "RTA": true,
+                    "LB": false
                }
           },
           "ageRatings": {

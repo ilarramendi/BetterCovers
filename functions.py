@@ -15,6 +15,7 @@ from exif import Image as imgTag
 from scrapers.RottenTomatoes import getRTTvRatings, getRTSeasonRatings, getRTEpisodeRatings, getRTMovieRatings, searchRT
 from scrapers.IMDB import getRating as getRatingIMDB
 from scrapers.Moviemania import getTextlessPosters, getTextlessPostersByName
+from scrapers.letterboxd import searchLB, getRatingsLB
 import xmltodict
 
 
@@ -212,6 +213,12 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping):
         if 'MTC' in IMDB: 
             mt['ratings']['IMDB'] = {'icon': 'MTC-MS' if IMDB['MTC-MS'] else 'MTC', 'value': IMDB['MTC']}        
         if IMDB['MTC-MS']: certifications.append('MTC-MS')
+
+    LB = mt['type'] == 'movie' and scraping['LB'] and searchLB(mt['ids']['IMDBID'] if 'IMDB' in mt['ids'] else False, mt['title'], mt['year'])
+    if LB:
+        mt['LBURL'] = LB
+        rt = getRatingsLB(LB)
+        if rt: mt['ratings']['LB'] = rt
 
 def getMediaInfo(file, defaultLanguage):
     out = getstatusoutput('ffprobe "' + file + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet')
