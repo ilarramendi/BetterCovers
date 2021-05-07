@@ -5,8 +5,8 @@ This project was inspired by [RPDB](https://ratingposterdb.com/)!
 Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings, mediainfo, language and age certifications! 
 
 # Examples
-<img src="https://user-images.githubusercontent.com/30437204/117385926-5d758680-aebc-11eb-96e6-968a2fb2dfdb.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117385191-f7d4ca80-aeba-11eb-9fd4-a131dd1f5464.png" width="49.7%">
-<img src="https://user-images.githubusercontent.com/30437204/116820509-f5394480-ab4b-11eb-8e6b-641406f47ce1.jpg" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/117388955-f78bfd80-aec1-11eb-946d-98f9db120ee6.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
+<img src="https://user-images.githubusercontent.com/30437204/117389444-c3fda300-aec2-11eb-82c5-44ffd9b040c3.png" width="100%">
 
 Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png (customizable).     
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
@@ -41,6 +41,7 @@ And to get missing metadata and ratings from IMDB, RT and MTS it uses [OMDBApi](
 
 To save the api keys edit ```config.json``` or execute the script like this to automaticaly save them:  
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
+
  
  # Dependencies
 The only non optional external dependency is `wkhtmltopdf` to generate the images.  
