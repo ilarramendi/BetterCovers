@@ -86,16 +86,16 @@ TV Shows:
 
 # Planned features
 - [ ] Executable for windows
-- [ ] Option to save images on Emby metadata folder to improve menu loading time (if metadata is on faster drive)
+- [ ] Option to save images on Agent metadata folder to improve menu loading time (if metadata is on faster drive)
 - [ ] Different themes (suggestions are apreciate)
 - [ ] Improve to run as a service and make script to create service on linux
 - [ ] Add to PyPi?
 - [ ] Plugin for most common media servers
 - [ ] Use existing cover
 - [x] Episodes support, get cover from internet or extract with ffmpeg
-- [ ] Add aditional mediainfo properties (dolby, ATMOS, language?, audio channels)
+- [ ] Add aditional mediainfo properties (dolby, ATMOS, audio channels)
 - [ ] Add studio/provider
-- [ ] Add aditional providers (suggestions?)
+- [ ] Add aditional ratings providers (suggestions?)
 - [ ] Add certifications
 - [ ] Add python dependencies file
 - [x] Add docker container
@@ -165,10 +165,6 @@ Custom overlays can be placed on `media/overlays`, an example is available on: `
 | path           | Text that needs to be on path to be applied (or * for any)| /media/kidsMovies               |
 
 
-
-
-
-
 ## Replacing Assets
 Assets can be placed inside a folder called `media` in the work directory (can be changed with -wd, default wd is next to script), paths have to be the same as [here](https://github.com/ilarramendi/Cover-Ratings/tree/main/media).  
 
@@ -176,22 +172,27 @@ Assets can be placed inside a folder called `media` in the work directory (can b
 This way you can fully customize covers how you like.  
 Files need to be stored in the work directory.  
 The html file is customized from the script to add the images/ratings (this will probably change in the future),  
-it replaces the tag `<!--RATINGS-->` with:
+`<!--RATINGS-->` its replaced for:
 ```
 <div class = 'ratingContainer'>
-   <img src= '../media/providers/PROVIDER.png' class='ratingIcon'> 
+   <img src= '../media/ratings/PROVIDER.png' class='ratingIcon'> 
    <label class='ratingText'>VALUE</label>
 </div>
 ```  
-For each enabled PROVIDER, and `<!--MEDIAINFO-->` with:
+For each enabled retings PROVIDER.  
+
+`<!--MEDIAINFO-->` is replaced with:
 ```
 <div class='mediainfoImgContainer'>
    <img src= '../media/mediainfo/PROPERTY.png' class='mediainfoIcon'> 
 </div>
 ```  
 
-For each enabled mediainfo PROPERTY.  
-In addition to this it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and adds a stylesheet import to the default cover.css or a new file located next to the executable.
+For each enabled mediainfo PROPERTY. 
+And `<!--CERTIFICATION-->` is replaced with the svg of the age rating if enabled.
+
+Also it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and adds a stylesheet import to the default cover.css or a new file located next to the executable.  
+To see an example of the generated html file stop the script while running and look at the threads folder.
 
 # Parameters
 `-o true` Ovewrite covers  
