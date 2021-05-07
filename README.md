@@ -5,8 +5,8 @@ This project was inspired by [RPDB](https://ratingposterdb.com/)!
 Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings, mediainfo, language and age certifications! 
 
 # Examples
-<img src="https://user-images.githubusercontent.com/30437204/117388955-f78bfd80-aec1-11eb-946d-98f9db120ee6.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
-<img src="https://user-images.githubusercontent.com/30437204/117389444-c3fda300-aec2-11eb-82c5-44ffd9b040c3.png" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/117456553-b83fca00-af1e-11eb-9f24-21cf36a4ec08.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
+<img src="https://user-images.githubusercontent.com/30437204/117456549-b70e9d00-af1e-11eb-94f3-b8c1f5db96e5.png" width="100%">
 
 Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png (customizable).     
 Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
