@@ -236,7 +236,7 @@ def getMediaInfo(file, defaultLanguage):
         return info
     
     info['color'] = 'HDR' if out2[0] == 0 and 'bt2020' in out2[1] else 'SDR'
-    info['resolution'] = 'UHD' if video['width'] >= 3840 else 'HD' if video['width'] >= 1920 else 'SD'
+    info['resolution'] = 'UHD' if video['width'] >= 3840 else 'QHD' if video['width'] >= 2560 else 'HD' if video['width'] >= 1920 else 'SD'
 
     if 'codec_name' in video:
         if video['codec_name'] in ['h264', 'avc']: info['codec'] = 'AVC'

@@ -20,7 +20,7 @@
                "alignment": "center",
                "imgSize": "110px",
                "padding": "20px",
-               "space": "50px",
+               "space": "0",
                "color": "#0005",
                "config": {
                     "color": {
@@ -30,6 +30,7 @@
                     },
                     "resolution": {
                          "UHD": true,
+                         "QHD": true,
                          "HD": true,
                          "SD": true
                     },
@@ -51,7 +52,7 @@
                "alignment": "center",
                "imgSize": "100px",
                "padding": "20px",
-               "space": "50px",
+               "space": "0",
                "color": "#0005",
                "fontFamily": "Roboto",
                "fontSize": "75px",
@@ -85,7 +86,7 @@
                "alignment": "center",
                "imgSize": "210px",
                "padding": "35px 15px",
-               "space": "30px",
+               "space": "0",
                "color": "#0005",
                "config": {
                     "color": {
@@ -95,6 +96,7 @@
                     },
                     "resolution": {
                          "UHD": true,
+                         "QHD": true,
                          "HD": true,
                          "SD": true
                     },
@@ -116,7 +118,7 @@
                "alignment": "center",
                "imgSize": "230px",
                "padding": "30px",
-               "space": "50px",
+               "space": "0",
                "color": "#0005",
                "fontFamily": "Roboto",
                "fontSize": "150px",
@@ -150,7 +152,7 @@
                "alignment": "center",
                "imgSize": "100px",
                "padding": "15px",
-               "space": "30px",
+               "space": "0",
                "color": "#0005",
                "config": {
                     "color": {
@@ -160,6 +162,7 @@
                     },
                     "resolution": {
                          "UHD": true,
+                         "QHD": true,
                          "HD": true,
                          "SD": true
                     },
@@ -181,7 +184,7 @@
                "alignment": "center",
                "imgSize": "80px",
                "padding": "15px",
-               "space": "30px",
+               "space": "0",
                "color": "#0005",
                "fontFamily": "Roboto",
                "fontSize": "65px",
@@ -216,7 +219,7 @@
                "alignment": "center",
                "imgSize": "210px",
                "padding": "35px 15px",
-               "space": "30px",
+               "space": "0",
                "color": "#0005",
                "config": {
                     "color": {
@@ -226,6 +229,7 @@
                     },
                     "resolution": {
                          "UHD": true,
+                         "QHD": true,
                          "HD": true,
                          "SD": true
                     },
@@ -247,7 +251,7 @@
                "alignment": "center",
                "imgSize": "230px",
                "padding": "30px",
-               "space": "50px",
+               "space": "0",
                "color": "#0005",
                "fontFamily": "Roboto",
                "fontSize": "150px",
@@ -281,7 +285,7 @@
                "alignment": "center",
                "imgSize": "210px",
                "padding": "35px 15px",
-               "space": "30px",
+               "space": "0",
                "color": "#0005",
                "config": {
                     "color": {
@@ -291,6 +295,7 @@
                     },
                     "resolution": {
                          "UHD": true,
+                         "QHD": true,
                          "HD": true,
                          "SD": true
                     },
@@ -312,7 +317,7 @@
                "alignment": "center",
                "imgSize": "230px",
                "padding": "30px",
-               "space": "50px",
+               "space": "0",
                "color": "#0005",
                "fontFamily": "Roboto",
                "fontSize": "150px",

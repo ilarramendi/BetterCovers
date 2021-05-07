@@ -134,32 +134,7 @@ def processFolder(folder):
     generatedTasks = generateTasks(metadata, overWrite)
     tasks += generatedTasks
     tasksLength += len(generatedTasks)
-    log('Succesfully generated ' + str(len(generatedTasks)) + ' tasks for: ' + metadata['title'] + ' in ' + str(timedelta(seconds=round(time.time() - st))), 2)
-
-def processTask(task, thread, taskPos):
-    st = time.time()
-    img = functions.generateImage(
-        config[task['type']],
-        task['ratings'],
-        task['ageRating'] if 'ageRating' in task else False,
-        task['language'] if 'language' in task else False,
-        task['mediainfo'] if 'mediainfo' in task else False,
-        task['image'] if not task['generateImage'] else False,
-        thread,
-        coverHTML,
-        task['out'],
-        task['generateImage'])
-    
-    log(('[' + taskPos + '/' + str(tasksLength) + '][' + thread + '] ' if functions.logLevel > 2 else '') +
-        ('Succesfully generated ' if img else 'Error generating ') + ('backdrop' if task['type'] == 'backdrop' else 'cover') +
-        ' image for ' +
-        task['title'] +
-        (' S' + str(task['season']) if task['season'] else '') +
-        ('E' + str(task['episode']) if task['episode'] else '') +
-        ' in ' +
-        str(round(time.time() - st)) + 's',
-        2 if img else 1)
-
+    log(str(len(generatedTasks)) + ' tasks generated for: ' + metadata['title'] + ' in ' + str(timedelta(seconds=round(time.time() - st))), 2)
 def loadConfig(cfg):
     try:
         with open(cfg, 'r') as js:

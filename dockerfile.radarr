@@ -1,9 +1,0 @@
-FROM linuxserver/radarr
-RUN apt-get -y update
-RUN apt-get install -y cutycapt xvfb mediainfo ffmpeg wget
-RUN cd /config
-RUN wget 'https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.6-linux/BetterCovers' 'https://raw.githubusercontent.com/ilarramendi/Cover-Ratings/main/radarr-run.sh' -q
-RUN chmod +x BetterCovers radarr-run.sh 
-RUN mkdir /tmp/runtime
-RUN chmod 0700 /tmp/runtime
-ENV XDG_RUNTIME_DIR /tmp/runtime
