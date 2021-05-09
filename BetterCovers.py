@@ -245,7 +245,6 @@ if not exists(join(workDirectory, 'cover.css')):
 
 # region Check Dependencies
 dependencies = [
-    'mediainfo' if functions.getConfigEnabled(config['tv']['mediainfo']['config']) or functions.getConfigEnabled(config['season']['mediainfo']['config']) or functions.getConfigEnabled(config['episode']['mediainfo']['config']) or functions.getConfigEnabled(config['movie']['mediainfo']['config']) else False,
     'wkhtmltopdf',
     'ffmpeg' if config['episode']['generateImages'] else False]
 
