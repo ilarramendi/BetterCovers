@@ -23,7 +23,7 @@ jobs:
         pip3 install pillow pyinstaller
     - name: Build with Pyinstaller
       run: |
-        pyinstaller BetterCovers.py --add-data "./media/*:./media" --add-data "./cover.*:./" --onefile
+        ./build.sh
     - uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
