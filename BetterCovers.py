@@ -69,7 +69,7 @@ def generateTasks(metadata, overWrite):
     imgNm = 'backdrop' if metadata['type'] == 'backdrop' else 'cover'
     if imgNm in metadata: tsk['image'] = metadata[imgNm]
 
-    if overWrite or not exists(tsk['out']):
+    if overWrite or not all(exists(out) for out in tsk['out']):
         if 'image' in tsk or tsk['generateImage']: tsks.append(tsk)
         else: log('No ' + ('backdrop' if tsk['type'] == 'backdrop' else 'cover') + ' image found for: ' + tsk['title'], 3, 3)
     else: log('Existing cover image found for: ' + title, 3, 3)
