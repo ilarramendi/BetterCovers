@@ -9,7 +9,7 @@ Better-Covers is a script to automaticaly generate cover images (and backdrops) 
 <img src="https://user-images.githubusercontent.com/30437204/118219636-44d31680-b450-11eb-89f4-65b3074518da.png" width="100%">
 
 Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png and thumb.jpg (customizable).     
-Most important things can be customized in the [config](#configjson) file, and and visual changes can be done adjusting html/css [cover](##covers) files.    
+Most important things can be customized in the [config](#configjson) file, and and visual changes can be done adjusting html/css [cover](#covers-1) files.    
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Or configure the agent in the config file to automaticaly update the library!)
 
 # Downloading
@@ -152,8 +152,8 @@ This is how you can customize covers however you like, after selecting wich cove
 | `$IMGSRC`                   | Path to cover/backdrop                                                                                                                   |
 | `<!--RATINGS-->`            | `<div class='ratingContainer ratings-NAME'><img src='...' class='ratingIcon'/>VALUE<label class='ratingText'></div>` <br>For each rating |
 | `<!--MEDIAINFO-->`          | `<div class='mediainfoImgContainer mediainfo-PROPERY'><img src= '...' class='mediainfoIcon'></div>` <br>For each mediainfo property      |
-| `<!--PRODUCTIONCOMPANIES-->`| `<div class='pcWrapper producionCompany-ID'><img src='...' class='producionCompany'/></div>` <br>For mediainfo property                  |
-| `<!--CERTIFICATIONS-->`     | `<img src= "..." class="certification"/>`                                                                                                |
+| `<!--PRODUCTIONCOMPANIES-->`| `<div class='pcWrapper producionCompany-ID'><img src='...' class='producionCompany'/></div>` <br>For production company                  |
+| `<!--CERTIFICATIONS-->`     | `<img src= "..." class="certification"/>`<br>For each certification                                                                      |
 
 # Parameters
 `-o true` Ovewrite covers  
