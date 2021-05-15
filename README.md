@@ -8,7 +8,8 @@ Better-Covers is a script to automaticaly generate cover images (and backdrops) 
 <img src="https://user-images.githubusercontent.com/30437204/118219642-48ff3400-b450-11eb-8aa4-ca602c28fe08.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
 <img src="https://user-images.githubusercontent.com/30437204/118219636-44d31680-b450-11eb-89f4-65b3074518da.png" width="100%">
 
-Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png and thumb.jpg (customizable).     
+Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png and thumb.png (customizable).     
+The script is made to be fully customizable, all properties can be disabled and custom covers can be selected based on a large number of filters!   
 Most important things can be customized in the [config](#configjson) file, and and visual changes can be done adjusting html/css [cover](#covers-1) files.    
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Or configure the agent in the config file to automaticaly update the library!)
 
@@ -145,7 +146,8 @@ The only required property is: `cover`
 Assets can be placed inside a folder called `media` in the work directory (can be changed with -wd, default wd is next to script), paths have to be the same as [here](https://github.com/ilarramendi/Cover-Ratings/tree/main/media).  
 
 ## Covers 
-This is how you can customize covers however you like, after selecting wich cover file to used based on the filters of [config](#configjson), the script replaces certain tags on the html file:
+This is how you can customize covers however you like, after selecting wich cover file to used based on the filters of [config](#configjson), the script replaces certain tags on the html file.
+Examples cover templates can be found on [media/covers](https://github.com/ilarramendi/Cover-Ratings/tree/main/media/covers)
 | TAG                         | Raplace Value                                                                                                                            |
 | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `<!--TITLE-->`              | Title of media                                                                                                                           |
