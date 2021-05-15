@@ -18,7 +18,7 @@ tasks = []
 running = True
 processing = True
 tasksLength = 0
-dbVersion = 2
+dbVersion = 3
 db = {'version': dbVersion}
 
 # region Functions
@@ -72,7 +72,7 @@ def generateTasks(metadata, overWrite):
     if overWrite or not all(exists(out) for out in tsk['out']):
         if 'image' in tsk or tsk['generateImage']: tsks.append(tsk)
         else: log('No ' + ('backdrop' if tsk['type'] == 'backdrop' else 'cover') + ' image found for: ' + tsk['title'], 3, 3)
-    else: log('Existing cover image found for: ' + title, 3, 3)
+    else: log('Existing cover image found for: ' + tsk['title'], 3, 3)
 
     if metadata['type'] == 'tv':
         for sn in metadata['seasons']:
@@ -166,6 +166,12 @@ def processTasks():
 
     for th in thrs: 
         if th and running: th.join()    
+
+def saveDB():
+    while processing:
+        with open(join(workDirectory, 'db.json'), 'w') as dbf:
+            dbf.write(json.dumps(db, indent=7))
+        time.sleep(5)
 # endregion
 
 # region Params
@@ -231,6 +237,9 @@ try:
     GENERATING = Thread(target=processTasks, args=())
     GENERATING.start()
 
+    # Periodicaly save db file
+    Thread(target=saveDB, args=()).start()
+
     PROCESSING.join()
     processing = False
     with open(join(workDirectory, 'db.json'), 'w') as js:
@@ -243,9 +252,6 @@ except KeyboardInterrupt:
     functions.logLevel = 0
     GENERATING.join()
     PROCESSING.join()
-
-with open(join(workDirectory, 'db.json'), 'w') as js:
-    js.write(json.dumps(db, indent=7))    
 call(['rm', '-r', join(workDirectory, 'threads')])
 
 # region Update agent library

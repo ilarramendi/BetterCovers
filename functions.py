@@ -38,7 +38,7 @@ def getName(folder):
     else: return [inf[0][0].translate({'.': ' ', '_': ' '}), inf[0][1]]
 
 def getUpdateInterval(releaseDate):
-    return sqrt(((datetime.now() - datetime.strptime(releaseDate, '%d/%m/%Y')).days * 4) + 1)
+    return min(120, sqrt(max((datetime.now() - datetime.strptime(releaseDate, '%d/%m/%Y')).days, 0) * 4 + 1))
 
 def readNFO(file):
     try:
@@ -166,6 +166,8 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
                     mt['ids']['IMDBID'] = result['external_ids']['imdb_id']
                 if 'last_air_date' in result and result['last_air_date']:
                     mt['releaseDate'] = datetime.strptime(result['last_air_date'], '%Y-%m-%d').strftime("%d/%m/%Y") # TODO change this on new episodes
+                elif 'release_date' in result and result['release_date']:
+                    mt['releaseDate'] = datetime.strptime(result['release_date'], '%Y-%m-%d').strftime("%d/%m/%Y")
                 if 'releases' in result and 'countries' in result['releases']:
                     for rl in result['releases']['countries']:
                         if rl['iso_3166_1'] == 'US':
@@ -180,7 +182,7 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
                         if pc['logo_path']: mt['productionCompanies'].append({'id': pc['id'], 'name': pc['name'], 'logo': 'https://image.tmdb.org/t/p/original' + pc['logo_path']})
             else: log('No results found on TMDB for: ', 3, 1)
             
-        if len(omdbApi) > 0 and ('IMDBID' in mt['ids'] or 'title' in mt):
+        if len(omdbApi) > 0 and ('IMDBID' in mt['ids'] or 'title' in mt): # TODO add release date from omdb
             url = 'http://www.omdbapi.com/?apikey=' + omdbApi + '&tomatoes=true'
             url += '&i=' + mt['ids']['IMDBID'] if 'IMDBID' in mt['ids'] else '&t=' + quote(mt['title'].replace(' ', '+')) + ('&y=' + mt['year'] if mt['year'] else '')
             res = getJSON(url)
