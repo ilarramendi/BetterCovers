@@ -6,8 +6,8 @@ from urllib.parse import quote
 SEARCH_URL = 'https://www.rottentomatoes.com/api/private/v2.0/search?q='
 BASE_URL = 'https://www.rottentomatoes.com'
 
-def searchRT(type, title, year = False):
-    rq = get(SEARCH_URL + title.lower().replace(' ', '+'))
+def searchRT(mt):
+    rq = get(SEARCH_URL + mt['title'].lower().replace(' ', '+'))
     if rq.status_code != 200: return False
     try:
         rs = rq.json()
@@ -17,12 +17,22 @@ def searchRT(type, title, year = False):
     dictTitle = {'movie': 'name', 'tv': 'title'}
     dictYear = {'movie': 'year', 'tv': 'startYear'}
     dictUrl = {'movie': 'm', 'tv': 'tv'}
-    if dictType[type] in rs:
-        for mv in rs[dictType[type]]:
-            if title.lower() == mv[dictTitle[type]].lower() and (not year or not mv[dictYear[type]] or abs(int(year) - mv[dictYear[type]]) <= 1):
-                mt = findall('\/' + dictUrl[type] + '\/[^/]+', mv['url'])
-                return mt[0] if len(mt) == 1 else False
+    if dictType[mt['type']] in rs:
+        for mv in rs[dictType[mt['type']]]:
+            if mt['title'].lower() == mv[dictTitle[mt['type']]].lower() and (not mt['year'] or not mv[dictYear[mt['type']]] or abs(int(mt['year']) - mv[dictYear[mt['type']]]) <= 1):
+                rt = findall('\/' + dictUrl[mt['type']] + '\/[^/]+', mv['url'])
+                if len(rt) == 1: mt['RTURL'] = rt[0]
+                return len(rt) == 1
     return False
+
+
+def getRTRatings(mt):
+    RT = getRTMovieRatings(mt['RTURL']) if mt['type'] == 'movie' else getRTTvRatings(mt['RTURL'])
+    for rt in RT['ratings']: mt['ratings'][rt] = RT['ratings'][rt]
+    mt['certifications'] = RT['certifications']
+    if mt['type'] == 'tv':
+        for sn in RT['seasons']:
+            if sn in mt['seasons']: mt['seasons'][sn]['RTURL'] = RT['seasons'][sn]
 
 def _getTvRatings(text):
     res = {'ratings': {}, }

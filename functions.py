@@ -12,10 +12,10 @@ import time
 from urllib.parse import quote
 import json
 from exif import Image as imgTag
-from scrapers.RottenTomatoes import getRTTvRatings, getRTSeasonRatings, getRTEpisodeRatings, getRTMovieRatings, searchRT
-from scrapers.IMDB import getRating as getRatingIMDB
+from scrapers.RottenTomatoes import getRTRatings, getRTSeasonRatings, getRTEpisodeRatings, searchRT
+from scrapers.IMDB import getIMDBRating
 from scrapers.Moviemania import getTextlessPosters, getTextlessPostersByName
-from scrapers.letterboxd import searchLB, getRatingsLB
+from scrapers.letterboxd import searchLB, getLBRatings
 import xmltodict
 from math import sqrt
 
@@ -128,6 +128,7 @@ def getMediaFiles(folder):
     return[fl for fl in mediaFiles if 'trailer' not in fl]
 
 def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
+    print('0', time.time())
     sc = False
     if 'metadataDate' not in mt: mt['metadataDate'] = '1/1/1999'
     if 'mediainfoDate' not in mt: mt['mediainfoDate'] = '1/1/1999'
@@ -139,6 +140,7 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
 
     # Get general show metadata
     if (datetime.now() - datetime.strptime(mt['metadataDate'], '%d/%m/%Y')) >= timedelta(days=getUpdateInterval(mt['releaseDate'])):
+        tsks = []
         if tmdbApi != '': 
             result = False  
             if 'TMDBID' not in mt['ids']:
@@ -201,36 +203,22 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
                             break
                 if 'Title' in res and 'title' not in mt and not mt['title']: mt['title'] = res['Title']
             else: log('No results found on OMDB for: ' + name + ('(' + year + ')' if year else ''), 3, 1)
+        print('2', time.time())
         
         if scraping['textlessPosters'] and 'TMDBID' in mt['ids']:
             posters = getTextlessPosters('https://www.moviemania.io/phone/movie/' + mt['ids']['TMDBID'])
             if posters and len(posters) > 0: mt['cover'] = posters[0]
             else: log('No textless poster found for: ' + name, 3, 3)
         
-        RTURL = scraping['RT'] and searchRT(mt['type'], mt['title'], mt['year'])
-        if RTURL:
-            RT = getRTMovieRatings(RTURL) if mt['type'] == 'movie' else getRTTvRatings(RTURL)
-            if RT:
-                for rt in RT['ratings']: mt['ratings'][rt] = RT['ratings'][rt]
-                mt['certifications'] = RT['certifications']
-                mt['RTURL'] = RTURL
-                if mt['type'] == 'tv':
-                    for sn in RT['seasons']:
-                        if sn in mt['seasons']: mt['seasons'][sn]['RTURL'] = RT['seasons'][sn]
+        if scraping['RT'] and searchRT(mt): getRTRatings(mt)
+        print('3', time.time())
         
-        IMDB = scraping['IMDB'] and 'imdbid' in mt and getRatingIMDB(mt['imdbid'])
-        if IMDB:
-            if 'IMDB' in IMDB:
-                mt['ratings']['IMDB'] = {'icon': 'IMDB', 'value': IMDB['IMDB']}
-            if 'MTC' in IMDB:
-                mt['ratings']['IMDB'] = {'icon': 'MTC-MS' if IMDB['MTC-MS'] else 'MTC', 'value': IMDB['MTC']} # TODO fix this?   
-            if IMDB['MTC-MS']: certifications.append('MTC-MS')
+        if scraping['IMDB'] and 'IMDBID' in mt['ids']: getIMDBRating(mt)
+        print('4', time.time())
 
-        LB = mt['type'] == 'movie' and scraping['LB'] and searchLB(mt['ids']['IMDBID'] if 'IMDB' in mt['ids'] else False, mt['title'], mt['year'])
-        if LB:
-            mt['LBURL'] = LB
-            rt = getRatingsLB(LB)
-            if rt: mt['ratings']['LB'] = rt
+        LB = mt['type'] == 'movie' and scraping['LB'] and searchLB(mt)
+        if LB: getLBRatings(mt)
+        print('5', time.time())
 
         if sc: mt['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
     else: log('No need to update metadata for: ' + mt['title'], 3, 3)
