@@ -12,7 +12,7 @@ def searchLB(IMDBID, name, year):
             mvn = mv.find('a')
             if IMDBID: return 'https://letterboxd.com/csi' + mvn['href'] + 'rating-histogram/'
             else:
-                if mvn.contents[0].strip().lower() == name.lower() and str(year) == mv.find_all('a')[1].contents[0]: return 'https://letterboxd.com/csi' + mvn['href'] + 'rating-histogram/'
+                if mvn.contents[0].strip().lower() == name.lower() and abs(year - int(mv.find_all('a')[1].contents[0])) <= 1: return 'https://letterboxd.com/csi' + mvn['href'] + 'rating-histogram/'
     except:
         pass
     return False

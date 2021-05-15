@@ -2,19 +2,18 @@
 _**This is still a WIP!**_  
 
 This project was inspired by [RPDB](https://ratingposterdb.com/)!  
-Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings, mediainfo, language and age certifications! 
+Better-Covers is a script to automaticaly generate cover images (and backdrops) with embeded ratings, mediainfo, language, certifications, age ratings and production companies! 
 
 # Examples
-<img src="https://user-images.githubusercontent.com/30437204/117456553-b83fca00-af1e-11eb-9f24-21cf36a4ec08.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
-<img src="https://user-images.githubusercontent.com/30437204/117456549-b70e9d00-af1e-11eb-94f3-b8c1f5db96e5.png" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/118219642-48ff3400-b450-11eb-8aa4-ca602c28fe08.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
+<img src="https://user-images.githubusercontent.com/30437204/118219636-44d31680-b450-11eb-89f4-65b3074518da.png" width="100%">
 
-Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png (customizable).     
-Most important things can be customized in the [config](#configjson) file, and it can be fully customized modifying `cover.html` and `cover.css`  
-After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Now you can also configure the agent in config file to automaticaly update agent!)
+Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png and thumb.jpg (customizable).     
+Most important things can be customized in the [config](#configjson) file, and and visual changes can be done adjusting html/css [cover](##covers) files.    
+After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Or configure the agent in the config file to automaticaly update the library!)
 
 # Downloading
 The easiest option for running is using [docker](https://hub.docker.com/r/ilarramendi/better-covers).  
-
 ``` 
 docker run -i --rm \
   -v /path/to/media:/media \
@@ -28,25 +27,22 @@ docker run -i --rm \
 ```
 
 To download the latest executable (LINUX) of the script run:  
-```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.8-linux/BetterCovers; chmod +x BetterCovers```  
-
+```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.9-linux/BetterCovers; chmod +x BetterCovers```  
 Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
 
 # Api keys
 At the moment the scripts works the best with 2 api keys, but only 1 is needed (TMDB recommended). 
 To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/), to get a key you have to create an account.
 
-And to get missing metadata and ratings from IMDB, RT and MTS it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
-<!--The script can work without any api key, but it only will generate covers for episodes with embeded mediainfo if generateImages is enabled, in the future this will also be posible with existing cover images.-->
+And to get missing metadata and missing ratings it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
+(OMDB is not realy needed but it covers some missing ratings)  
 
 To save the api keys edit ```config.json``` or execute the script like this to automaticaly save them:  
  ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
-
  
  # Dependencies
-The only non optional external dependency is `wkhtmltopdf` to generate the images.  
-This can be installed with: `sudo apt install -y wkhtmltopdf`.  
-Aditionaly to get screenshots and get mediainfo it uses `ffmpeg` 
+To run the script outside of docker 2 dependencies need to be installed: `wkhtmltopdf` and `ffmpeg`.  
+This can be done with: `sudo apt install -y wkhtmltopdf ffmpeg`.  
  
 # Usage
 If library looks like this:
@@ -61,9 +57,6 @@ Movies:
   └──  ...
 
 ```  
-
-or
-
 TV Shows:
 ```
 /media
@@ -85,29 +78,17 @@ TV Shows:
  The year is not needed but its recommended to find the correct media
 
 # Planned features
-- [ ] Executable for windows
 - [ ] Option to save images on Agent metadata folder to improve menu loading time (if metadata is on faster drive)
 - [ ] Different themes (suggestions are apreciate)
-- [ ] Improve to run as a service and make script to create service on linux
+- [x] Improve to run periodicaly
 - [ ] Add to PyPi?
-- [ ] Plugin for most common media servers
 - [ ] Use existing cover
-- [x] Episodes support, get cover from internet or extract with ffmpeg
 - [ ] Add aditional mediainfo properties (dolby, ATMOS, audio channels)
-- [ ] Add studio/provider
 - [ ] Add aditional ratings providers (suggestions?)
-- [ ] Add certifications
 - [ ] Add python dependencies file
-- [x] Add docker container
-- [x] Make docker container fully customizable like script
-- [x] Flags for audio language
-- [x] Add backdrop support
 - [ ] Add connection with Sonarr and Radarr api
-- [x] Add connection to emby and jellyfin api
 - [ ] Add connection to plex api
-- [x] Add age certifications
-- [x] Add source (blueray, web, dvd...)
-- [x] Add custom overlays
+- [ ] Add original downloaded image cache for faster cover creation (wkhtmltopdf cache not working)
 
 # Customization
 The idea of this script is to be fully customizable, for this purpouse you can change the values on each section of the config.json file, edit the Ratings/MediaInfo images or even create your own css/html files!
@@ -115,32 +96,21 @@ The idea of this script is to be fully customizable, for this purpouse you can c
 ## Config.json
 ### Sections
 The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` and `movie`. Each section can be customized individually.  
-| Name           | Description                                        | Values                     |
-| -------------- | -------------------------------------------------- | -------------------------- | 
-| config         | Sets which ratings/mediainfo item is enabled       |                            |
-| position       | Position of item                                   | top, bottom, left or right |
-| alignment      | Alignment on position                              | start, center or end       |
-| imgSize        | Icon size                                          | HTML size, ex: 60px        |
-| padding        | Container padding                                  | HTML size, ex: 60px        |
-| space          | Space between each icon                            | HTML size, ex: 60px        |
-| color          | Container background color                         | HTML Color, ex: #ff0000ff  |
-| fontFamily     | Text font family                                   | HTML Font, ex: Arial       |
-| textColor      | Text color                                         | HTML Color ex: #ff0000ff   |
-| fontSize       | Text size                                          | HTML size, ex: 60px        |
-| iconSpace      | Space between ratings icon and text                | HTML size, ex: 60px        |
-| generateImages | Generate images with ffmpeg instead of downloading | boolean                    |
-| audio          | Audio languages to use (uses first language found) | str, ex: ENG,SPA,JPN       |
-| outpu          | Image file name                                    | str, ex: cover.jpg         |
-| width          | Image Width                                        | int, ex: 2000              |
-| heigh          | Image Height                                       | int, ex: 3000              |
+Most options on this part just turn on and off icons / ratings these are the different ones:
+| Name                | Description                                        | Values                     |
+| ------------------- | -------------------------------------------------- | -------------------------- | 
+| generateImages      | Extract images from media instead of downloading   | true or false              |
+| audio               | Audio languages to use (uses first language found) | ENG,SPA,JPN (ISO 639-2/T)  |
+| output              | Output file names separated by ';'                 | poster.jpg;cover.png       |
+| productionCompanies | Show production companies logos                    | true or false              |
 
 ### Global
-| Name                  | Description                                        | Values                     |
-| --------------------- | -------------------------------------------------- | -------------------------- | 
-| defaultAudio          | Default language to use if no language found       | str, ex: ENG, empty for off|
-| englishUSA            | Use USA flag for english language instead of UK    | boolean                    |
-| metadataUpdateInterval| Time to update metadata and mediainfo (days)       | number                     |
-
+| Name                   | Description                                        | Values                          |
+| ---------------------- | -------------------------------------------------- | ------------------------------- | 
+| defaultAudio           | Default language to use if no language found       | ENG (ISO 639-2/T), empty for off|
+| englishUSA             | Use USA flag for english language instead of UK    | true or false                   |
+| metadataUpdateInterval | Time to update metadata and mediainfo (days)       | 14                              |
+| usePercentage          | Show a percentage instead of 0 to 10               | true or false                   |
 
 ### Agent (To update library)
 | Name           | Description                                        | Values                     |
@@ -153,46 +123,37 @@ The config file is divided in 5 sections: `tv`, `season`, `episode`, `backdrop` 
 | Name           | Description                                        | Values                     |
 | -------------- | -------------------------------------------------- | -------------------------- | 
 | RT             | Get certifications and audience ratings            | true or false              |
-| IMDB           | Get up to date ratings from IMDB and MTC (MustSee) | true or false              |
+| IMDB           | Get up to date ratings from IMDB, MTC and MTC-MS   | true or false              |
 | textlessPosters| Use textless poster if found in MovieMania (SLOW!) | true or false              |
+| LB             | Scrapping letterbox                                | true or false              |
 
-### Overlays
-Custom overlays can be placed on `media/overlays`, an example is available on: `media/overlays/kids.html`
-| Name           | Description                                               | Values                          |
-| -------------- | --------------------------------------------------------- | ------------------------------- | 
-| type           | Type of media separated by ',' or * for any               | movie,tv,backdrop,season,episode|
-| name           | Name of the html file to use (without .html)              | kids                            |
-| path           | Text that needs to be on path to be applied (or * for any)| /media/kidsMovies               |
+### Covers
+This is where most customization happends, media can have a specific html cover based on type, media propery, ratings, type, age ratings, etc.
+This process is detailed in [Covers](##covers).
+The only required property is: `cover`
+| Name                | Description                                                | Values                           |
+| ------------------- | ---------------------------------------------------------- | -------------------------------- | 
+| cover               | Html file to use, needs to be located on /media/covers     | movie,tv,backdrop,season,episode |
+| ratings             | Filter by ratings with a value > or < than a number        | "TMDB": ">7.5"                   |
+| path                | Filter by text on path                                     | /media/kidsMovies                |
+| type                | Filter by type of media, sepparated by ','                 | movie,tv,backdrop,season,episode |
+| productionCompanies | Filter by production company TMDB id, int array            | [150, 250, 2]                    |
+| ageRating           | Filter by age rating < than value                          | G, PG, PG-13, R, NC-17, NR       |
 
 
 ## Replacing Assets
 Assets can be placed inside a folder called `media` in the work directory (can be changed with -wd, default wd is next to script), paths have to be the same as [here](https://github.com/ilarramendi/Cover-Ratings/tree/main/media).  
 
-## Custom html/css  
-This way you can fully customize covers how you like.  
-Files need to be stored in the work directory.  
-The html file is customized from the script to add the images/ratings (this will probably change in the future),  
-`<!--RATINGS-->` its replaced for:
-```
-<div class = 'ratingContainer'>
-   <img src= '../media/ratings/PROVIDER.png' class='ratingIcon'> 
-   <label class='ratingText'>VALUE</label>
-</div>
-```  
-For each enabled retings PROVIDER.  
-
-`<!--MEDIAINFO-->` is replaced with:
-```
-<div class='mediainfoImgContainer'>
-   <img src= '../media/mediainfo/PROPERTY.png' class='mediainfoIcon'> 
-</div>
-```  
-
-For each enabled mediainfo PROPERTY. 
-And `<!--CERTIFICATION-->` is replaced with the svg of the age rating if enabled.
-
-Also it overwrites the same variables that are on `:root {}` from the css with the values from `config.json` as a style tag in the html and adds a stylesheet import to the default cover.css or a new file located next to the executable.  
-To see an example of the generated html file stop the script while running and look at the threads folder.
+## Covers 
+This is how you can customize covers however you like, after selecting wich cover file to used based on the filters of [config](#configjson), the script replaces certain tags on the html file:
+| TAG                         | Raplace Value                                                                                                                            |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `<!--TITLE-->`              | Title of media                                                                                                                           |
+| `$IMGSRC`                   | Path to cover/backdrop                                                                                                                   |
+| `<!--RATINGS-->`            | `<div class='ratingContainer ratings-NAME'><img src='...' class='ratingIcon'/>VALUE<label class='ratingText'></div>` <br>For each rating |
+| `<!--MEDIAINFO-->`          | `<div class='mediainfoImgContainer mediainfo-PROPERY'><img src= '...' class='mediainfoIcon'></div>` <br>For each mediainfo property      |
+| `<!--PRODUCTIONCOMPANIES-->`| `<div class='pcWrapper producionCompany-ID'><img src='...' class='producionCompany'/></div>` <br>For mediainfo property                  |
+| `<!--CERTIFICATIONS-->`     | `<img src= "..." class="certification"/>`                                                                                                |
 
 # Parameters
 `-o true` Ovewrite covers  

@@ -19,7 +19,7 @@ def searchRT(type, title, year = False):
     dictUrl = {'movie': 'm', 'tv': 'tv'}
     if dictType[type] in rs:
         for mv in rs[dictType[type]]:
-            if title.lower() == mv[dictTitle[type]].lower() and (not year or int(year) == mv[dictYear[type]]):
+            if title.lower() == mv[dictTitle[type]].lower() and (not year or not mv[dictYear[type]] or abs(int(year) - mv[dictYear[type]]) <= 1):
                 mt = findall('\/' + dictUrl[type] + '\/[^/]+', mv['url'])
                 return mt[0] if len(mt) == 1 else False
     return False

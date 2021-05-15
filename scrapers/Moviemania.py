@@ -13,7 +13,7 @@ def getUrl(type, title, year = False):
                 tl = findall('"title">([^<]+)', it)
                 yr = findall('"year">(\d+)', it)
                 url = findall('href="([^"]*)"', it)
-                if len(tl) == 1 and len(url) == 1 and title.lower() == tl[0].lower() and (not year or len(yr) != 1 or year == yr[0]):
+                if len(tl) == 1 and len(url) == 1 and title.lower() == tl[0].lower() and (not year or len(yr) != 1 or abs(year - yr[0]) <= 1):
                     return 'https://www.moviemania.io' + url[0]
     return False
 

@@ -11,3 +11,4 @@ config.json
 BetterCovers.spec
 BetterCovers.log
 db.json
+cache
