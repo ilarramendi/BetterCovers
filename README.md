@@ -133,7 +133,7 @@ This process is detailed in [Covers](##covers).
 The only required property is: `cover`
 | Name                | Description                                                | Values                           |
 | ------------------- | ---------------------------------------------------------- | -------------------------------- | 
-| cover               | Html file to use, needs to be located on /media/covers     | movie,tv,backdrop,season,episode |
+| cover               | Html file to use, needs to be located on /media/covers     | newCover, goodMovies, etc...     |
 | ratings             | Filter by ratings with a value > or < than a number        | "TMDB": ">7.5"                   |
 | path                | Filter by text on path                                     | /media/kidsMovies                |
 | type                | Filter by type of media, sepparated by ','                 | movie,tv,backdrop,season,episode |
