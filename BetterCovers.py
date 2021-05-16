@@ -12,6 +12,7 @@ from functions import log
 from requests import post
 from re import findall
 from copy import deepcopy
+from hashlib import md5
 
 config = {}
 tasks = []
@@ -27,10 +28,9 @@ def generateTasks(metadata, overWrite):
     tsks = []
     pts = conf['output'].replace('$NAME', (metadata['path'] if metadata['type'] in ['tv', 'season', 'backdrop'] else metadata['mediaFile']).rpartition('.')[0].rpartition('/')[2])
     tsk = {
-        'out': [join(metadata['path'], pt) for pt in pts.split(';')],
+        'out': [],
         'type': metadata['type'],
         'title': metadata['title'],
-        'overwrite': overWrite,
         'generateImage': path if metadata['type'] in ['episode', 'backdrop'] and config[metadata['type']]['generateImages'] else False,
         'mediainfo': deepcopy(metadata['mediainfo']),
         'ratings': {},
@@ -69,10 +69,16 @@ def generateTasks(metadata, overWrite):
     imgNm = 'backdrop' if metadata['type'] == 'backdrop' else 'cover'
     if imgNm in metadata: tsk['image'] = metadata[imgNm]
 
-    if overWrite or not all(exists(out) for out in tsk['out']):
-        if 'image' in tsk or tsk['generateImage']: tsks.append(tsk)
-        else: log('No ' + ('backdrop' if tsk['type'] == 'backdrop' else 'cover') + ' image found for: ' + tsk['title'], 3, 3)
-    else: log('Existing cover image found for: ' + tsk['title'], 3, 3)
+    for pt in [join(metadata['path'], pt) for pt in pts.split(';')]:
+        if overWrite or not exists(pt) or automatic: tsk['out'].append(pt)
+
+    if len(tsk['out']) > 0:
+        hs = md5(json.dumps(tsk, sort_keys=True).encode('utf8')).hexdigest()
+        if not automatic or any(not exists(pt) or hs != functions.getHash(pt) for pt in tsk['out']): # Overwrites all images
+            if 'image' in tsk or tsk['generateImage']: tsks.append(tsk)
+            else: log('No ' + ('backdrop' if tsk['type'] == 'backdrop' else 'cover') + ' image found for: ' + tsk['title'], 3, 3)
+        else: log('No need to update cover for: ' + tsk['title'], 3, 3)
+    else: log('Not overwriting any image for: ' + tsk['title'], 3, 3)
 
     if metadata['type'] == 'tv':
         for sn in metadata['seasons']:
@@ -156,7 +162,7 @@ def processTasks():
             while True:
                 if not (thrs[i] and thrs[i].is_alive()):
                     tsk = tasks.pop()
-                    thread = Thread(target=functions.processTask, args=(tsk, config[tsk['type']], str(i).zfill(thrsLength)))
+                    thread = Thread(target=functions.processTask, args=(tsk, str(i).zfill(thrsLength)))
                     thread.start()
                     thrs[i] = thread
                     j += 1
@@ -171,11 +177,12 @@ def saveDB():
     while processing:
         with open(join(workDirectory, 'db.json'), 'w') as dbf:
             dbf.write(json.dumps(db, indent=7))
-        time.sleep(5)
+        time.sleep(10)
 # endregion
 
 # region Params
 overWrite = '-o' in argv and argv[argv.index('-o') + 1] == 'true'
+automatic = '-a' in argv and argv[argv.index('-a') + 1] == 'true'
 threads = 20 if not '-w' in argv else int(argv[argv.index('-w') + 1])
 config = {}
 pt = argv[1]
@@ -261,7 +268,7 @@ if running:
         if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
             log('Succesfully updated ' + config['agent']['type'] + ' libraries (' + config['agent']['url'] + ')', 2, 2)
         else: log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'])
-    else: log('Not updating ' + config['agent']['type'] + ' library, Are api and url set?', 3, 3)
+    else: log('Not updating ' + config['agent']['type'] + ' library, API key not set.', 3, 3)
 # endregion
 
 log('DONE! Finished generating ' + str(tasksLength) + ' images in: ' + str(timedelta(seconds=round(time.time() - gstart))), 0, 0)

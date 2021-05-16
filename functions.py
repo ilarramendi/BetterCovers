@@ -3,7 +3,6 @@ from re import findall, match
 from subprocess import call, getstatusoutput, DEVNULL
 from requests import get
 from time import sleep
-from PIL import Image, ImageFont, ImageDraw
 from os import access, W_OK
 from os.path import exists, realpath, join
 import sys
@@ -11,14 +10,15 @@ from datetime import timedelta, datetime
 import time
 from urllib.parse import quote
 import json
-from exif import Image as imgTag
-from scrapers.RottenTomatoes import getRTRatings, getRTSeasonRatings, getRTEpisodeRatings, searchRT
+from scrapers.RottenTomatoes import getRTTVRatings, getRTMovieRatings, getRTSeasonRatings, getRTEpisodeRatings, searchRT
 from scrapers.IMDB import getIMDBRating
 from scrapers.Moviemania import getTextlessPosters, getTextlessPostersByName
 from scrapers.letterboxd import searchLB, getLBRatings
 import xmltodict
 from math import sqrt
-
+from threading import Thread
+from exif import Image as exifImage
+from hashlib import md5
 
 workDirectory = "./"
 extensions = ['mkv', 'mp4', 'avi']
@@ -66,30 +66,6 @@ def log(text, type = 0, level = 2): # 0 = Normal, 1 = Error, 2 = Success, 3 = Wa
         with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
             log.write('[' + ['Info', 'Error', 'Success', 'Warning'][level] + datetime.now().strftime("][%m/%d/%Y %H:%M:%S] --> ") + text + '\n')
 
-def generateCSS(config):
-    minfo = config['mediainfo']
-    rts = config['ratings']
-    
-    body = 'body {\n'
-    
-    body += '--mediainfoContainerMargin: ' + minfo['space'] + ';\n'
-    body += '--mediainfoPadding: ' + minfo['padding'] + ';\n'
-    body += '--mediainfoBColor: ' + minfo['color'] + ';\n' 
-    body += '--mediainfoIconSize: ' + minfo['imgSize'] + ';\n'
-    
-    body += '--ratingContainerMargin: ' + rts['space'] + ';\n'
-    body += '--ratingIconMargin: ' + rts['iconSpace'] + ';\n'
-    body += '--ratingsContainerPadding: ' + rts['padding'] + ';\n'
-    body += '--ratingsContainerBColor: ' + rts['color'] + ';\n'
-    body += '--ratingIconSize: ' + rts['imgSize'] + ';\n'
-    body += '--ratingTextColor: ' + rts['textColor'] + ';\n'
-    body += '--ratingTextFontFamily: ' + rts['fontFamily'] + ';\n'
-    body += '--ratingTextFontSize: ' + rts['fontSize'] + ';\n'
-
-    body += '}'
-
-    return body
-
 def frequent(list):
     if len(list) == 0: return ''
     count = 0
@@ -128,8 +104,6 @@ def getMediaFiles(folder):
     return[fl for fl in mediaFiles if 'trailer' not in fl]
 
 def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
-    print('0', time.time())
-    sc = False
     if 'metadataDate' not in mt: mt['metadataDate'] = '1/1/1999'
     if 'mediainfoDate' not in mt: mt['mediainfoDate'] = '1/1/1999'
     if 'releaseDate' not in mt: mt['releaseDate'] = datetime.now().strftime("%d/%m/%Y")
@@ -137,107 +111,125 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
     if 'certifications' not in mt: mt['certifications'] = []
     if 'ageRating' not in mt: mt['ageRating'] = 'NR'
     if 'ratings' not in mt: mt['ratings'] = {}
+    if 'urls' not in mt: mt['urls'] = {}
+
+    def _getExtraInfo():
+        # Get meediainfo if movie
+        if mt['type'] == 'movie':
+            if (datetime.now() - datetime.strptime(mt['mediainfoDate'], '%d/%m/%Y')) >= timedelta(days=mediainfoUpdateInterval): 
+                mediaFiles = getMediaFiles(mt['path'])
+                if len(mediaFiles) >= 1:
+                    success, mt['mediainfo'] = getMediaInfo(mediaFiles[0], defaultLanguage)
+                    mt['mediaFile'] = mediaFiles[0]
+                    if success: mt['mediainfoDate'] = datetime.now().strftime("%d/%m/%Y")   
+                else: log('No media file found on: ' + mt['path'], 3, 3)
+            else: log('No need to update mediainfo for: ' + mt['title'], 3, 3)
+        else: # Get metadata and mediainfo for seasons if tv
+            for sn in mt['seasons']:
+                getSeasonMetadata(sn, mt['seasons'][sn], mt['ids'], mt['productionCompanies'], omdbApi, tmdbApi, sn in forceSeasons)
+                getSeasonMediainfo(mt['seasons'][sn], defaultLanguage)
+            mt['mediainfo'] = getParentMediainfo(mt['seasons'])
+
+    extraInfo = Thread(target=_getExtraInfo, args=())
+    extraInfo.start()
 
     # Get general show metadata
     if (datetime.now() - datetime.strptime(mt['metadataDate'], '%d/%m/%Y')) >= timedelta(days=getUpdateInterval(mt['releaseDate'])):
         tsks = []
-        if tmdbApi != '': 
-            result = False  
-            if 'TMDBID' not in mt['ids']:
-                if 'IMDBID' in mt['ids']:
-                    res = getJSON('https://api.themoviedb.org/3/find/' + mt['ids']['IMDBID'] + '?api_key=' + tmdbApi + '&language=en-US&external_source=imdb_id')
-                    if res and len(res[mt['type'] + '_results']) == 1:  
-                        mt['ids']['TMDBID'] = str(res[mt['type'] + '_results'][0]['id'])
-                else:  
-                    res = getJSON('https://api.themoviedb.org/3/search/' + mt['type'] + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&append_to_response=releases,external_ids&query=' + quote(mt['title']) + ('&year=' + mt['year'] if mt['year'] else ''))
-                    if res and 'results' in res and len(res['results']) > 0: 
-                        mt['ids']['TMDBID'] = str(res['results'][0]['id'])
-            if 'TMDBID' in mt['ids']: # this is ok
-                res = getJSON('https://api.themoviedb.org/3/' + mt['type'] + '/' + mt['ids']['TMDBID'] + '?api_key=' + tmdbApi + '&language=en&append_to_response=releases,external_ids')
-                if res: result = res
-
-            if result:
-                sc = True
-                if 'poster_path' in result and result['poster_path']:
-                    mt['cover'] = 'https://image.tmdb.org/t/p/original' + result['poster_path']
-                if 'backdrop_path' in result and result['backdrop_path']: 
-                    mt['backdrop'] = 'https://image.tmdb.org/t/p/original' + result['backdrop_path']
-                if 'vote_average' in result and result['vote_average'] != 0:
-                    mt['ratings']['TMDB'] = {'icon': 'TMDB', 'value': str(result['vote_average'])}
-                if 'imdb_id' in result['external_ids'] and 'IMDBID' not in mt['ids']:
-                    mt['ids']['IMDBID'] = result['external_ids']['imdb_id']
-                if 'last_air_date' in result and result['last_air_date']:
-                    mt['releaseDate'] = datetime.strptime(result['last_air_date'], '%Y-%m-%d').strftime("%d/%m/%Y") # TODO change this on new episodes
-                elif 'release_date' in result and result['release_date']:
-                    mt['releaseDate'] = datetime.strptime(result['release_date'], '%Y-%m-%d').strftime("%d/%m/%Y")
-                if 'releases' in result and 'countries' in result['releases']:
-                    for rl in result['releases']['countries']:
-                        if rl['iso_3166_1'] == 'US':
-                            if rl['certification'] != '': mt['ageRating'] = rl['certification']
-                            break
-                
-                if 'title' in res: mt['title'] = res['title']
-                elif 'name' in res: mt['title'] = res['name'] 
-                
-                if 'production_companies' in res:
-                    for pc in res['production_companies']:
-                        if pc['logo_path']: mt['productionCompanies'].append({'id': pc['id'], 'name': pc['name'], 'logo': 'https://image.tmdb.org/t/p/original' + pc['logo_path']})
-            else: log('No results found on TMDB for: ', 3, 1)
-            
-        if len(omdbApi) > 0 and ('IMDBID' in mt['ids'] or 'title' in mt): # TODO add release date from omdb
-            url = 'http://www.omdbapi.com/?apikey=' + omdbApi + '&tomatoes=true'
-            url += '&i=' + mt['ids']['IMDBID'] if 'IMDBID' in mt['ids'] else '&t=' + quote(mt['title'].replace(' ', '+')) + ('&y=' + mt['year'] if mt['year'] else '')
-            res = getJSON(url)
-            if res:
-                sc = True
-                if 'cover' not in mt and 'Poster' in res and res['Poster'] != 'N/A':
-                    mt['cover'] = res['Poster']
-                if 'Metascore' in res and res['Metascore'] != 'N/A':
-                    mt['ratings']['MTC'] = {'icon': 'MTC', 'value': str(int(res['Metascore']) / 10).rstrip('0').rstrip('.')}
-                if 'imdbRating' in res and res['imdbRating'] != 'N/A':
-                    mt['ratings']['IMDB'] = {'icon': 'IMDB', 'value': res['imdbRating'].rstrip('0').rstrip('.')}
-                if 'Ratings' in res:
-                    for rt in res['Ratings']:
-                        if rt['Source'] == 'Rotten Tomatoes' and rt['Value'] != 'N/A':
-                            mt['ratings']['RT'] = {'icon': 'RT' if int(rt['Value'][:-1]) >= 60 else 'RT-LS', 'value': str(int(rt['Value'][:-1]) / 10).rstrip('0').rstrip('.')}
-                            break
-                if 'Title' in res and 'title' not in mt and not mt['title']: mt['title'] = res['Title']
-            else: log('No results found on OMDB for: ' + name + ('(' + year + ')' if year else ''), 3, 1)
-        print('2', time.time())
         
-        if scraping['textlessPosters'] and 'TMDBID' in mt['ids']:
-            posters = getTextlessPosters('https://www.moviemania.io/phone/movie/' + mt['ids']['TMDBID'])
-            if posters and len(posters) > 0: mt['cover'] = posters[0]
-            else: log('No textless poster found for: ' + name, 3, 3)
-        
-        if scraping['RT'] and searchRT(mt): getRTRatings(mt)
-        print('3', time.time())
-        
-        if scraping['IMDB'] and 'IMDBID' in mt['ids']: getIMDBRating(mt)
-        print('4', time.time())
+        def _getTMDB():
+            if tmdbApi != '':
+                result = False
+                if 'TMDBID' not in mt['ids']:
+                    if 'IMDBID' in mt['ids']:
+                        res = getJSON('https://api.themoviedb.org/3/find/' + mt['ids']['IMDBID'] + '?api_key=' + tmdbApi + '&language=en-US&external_source=imdb_id')
+                        if res and len(res[mt['type'] + '_results']) == 1:  
+                            mt['ids']['TMDBID'] = str(res[mt['type'] + '_results'][0]['id'])
+                    else:
+                        res = getJSON('https://api.themoviedb.org/3/search/' + mt['type'] + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&append_to_response=releases,external_ids&query=' + quote(mt['title']) + ('&year=' + mt['year'] if mt['year'] else ''))
+                        if res and 'results' in res and len(res['results']) > 0: 
+                            mt['ids']['TMDBID'] = str(res['results'][0]['id'])
+                if 'TMDBID' in mt['ids']: # this is ok
+                    res = getJSON('https://api.themoviedb.org/3/' + mt['type'] + '/' + mt['ids']['TMDBID'] + '?api_key=' + tmdbApi + '&language=en&append_to_response=releases,external_ids')
+                    if res: result = res
 
-        LB = mt['type'] == 'movie' and scraping['LB'] and searchLB(mt)
-        if LB: getLBRatings(mt)
-        print('5', time.time())
+                if result:
+                    if 'poster_path' in result and result['poster_path']:
+                        mt['cover'] = 'https://image.tmdb.org/t/p/original' + result['poster_path']
+                    if 'backdrop_path' in result and result['backdrop_path']: 
+                        mt['backdrop'] = 'https://image.tmdb.org/t/p/original' + result['backdrop_path']
+                    if 'vote_average' in result and result['vote_average'] != 0:
+                        mt['ratings']['TMDB'] = {'icon': 'TMDB', 'value': str(result['vote_average'])}
+                    if 'imdb_id' in result['external_ids'] and 'IMDBID' not in mt['ids']:
+                        mt['ids']['IMDBID'] = result['external_ids']['imdb_id']
+                    if 'last_air_date' in result and result['last_air_date']:
+                        mt['releaseDate'] = datetime.strptime(result['last_air_date'], '%Y-%m-%d').strftime("%d/%m/%Y") # TODO change this on new episodes
+                    elif 'release_date' in result and result['release_date']:
+                        mt['releaseDate'] = datetime.strptime(result['release_date'], '%Y-%m-%d').strftime("%d/%m/%Y")
+                    if 'releases' in result and 'countries' in result['releases']:
+                        for rl in result['releases']['countries']:
+                            if rl['iso_3166_1'] == 'US':
+                                if rl['certification'] != '': mt['ageRating'] = rl['certification']
+                                break
+                    
+                    if 'title' in res: mt['title'] = res['title']
+                    elif 'name' in res: mt['title'] = res['name'] 
+                    
+                    if 'production_companies' in res:
+                        for pc in res['production_companies']:
+                            if pc['logo_path']: 
+                                for prc in mt['productionCompanies']: 
+                                    if prc['id'] == pc['id']: break
+                                else:
+                                    mt['productionCompanies'].append({'id': pc['id'], 'name': pc['name'], 'logo': 'https://image.tmdb.org/t/p/original' + pc['logo_path']})
+                else: log('No results found on TMDB for: ', 3, 1)
 
-        if sc: mt['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
+        def _getOMDB():     
+            if len(omdbApi) > 0 and ('IMDBID' in mt['ids'] or 'title' in mt): # TODO add release date from omdb
+                url = 'http://www.omdbapi.com/?apikey=' + omdbApi + '&tomatoes=true'
+                url += '&i=' + mt['ids']['IMDBID'] if 'IMDBID' in mt['ids'] else '&t=' + quote(mt['title'].replace(' ', '+')) + ('&y=' + mt['year'] if mt['year'] else '')
+                res = getJSON(url)
+                if res:
+                    if 'cover' not in mt and 'Poster' in res and res['Poster'] != 'N/A':
+                        mt['cover'] = res['Poster']
+                    if 'Metascore' in res and res['Metascore'] != 'N/A':
+                        mt['ratings']['MTC'] = {'icon': 'MTC', 'value': str(int(res['Metascore']) / 10).rstrip('0').rstrip('.')}
+                    if 'imdbRating' in res and res['imdbRating'] != 'N/A':
+                        mt['ratings']['IMDB'] = {'icon': 'IMDB', 'value': res['imdbRating'].rstrip('0').rstrip('.')}
+                    if 'Ratings' in res:
+                        for rt in res['Ratings']:
+                            if rt['Source'] == 'Rotten Tomatoes' and rt['Value'] != 'N/A':
+                                mt['ratings']['RT'] = {'icon': 'RT' if int(rt['Value'][:-1]) >= 60 else 'RT-LS', 'value': str(int(rt['Value'][:-1]) / 10).rstrip('0').rstrip('.')}
+                                break
+                    if 'Title' in res and 'title' not in mt and not mt['title']: mt['title'] = res['Title']
+                else: log('No results found on OMDB for: ' + name + ('(' + year + ')' if year else ''), 3, 1)
+        
+        def _getMovieMania():
+            if scraping['textlessPosters'] and 'TMDBID' in mt['ids']:
+                posters = getTextlessPosters('https://www.moviemania.io/phone/movie/' + mt['ids']['TMDBID'])
+                if posters and len(posters) > 0: mt['cover'] = posters[0]
+                else: log('No textless poster found for: ' + name, 3, 3)
+        
+        def _getRT():
+            if scraping['RT'] and searchRT(mt): 
+                if mt['type'] == 'movie': getRTMovieRatings(mt)
+                else: getRTTVRatingsTVRatings(mt)
+        
+        def _getIMDB():
+            if scraping['IMDB'] and 'IMDBID' in mt['ids']: getIMDBRating(mt)
+        
+        def _getLB():
+            LB = mt['type'] == 'movie' and scraping['LB'] and searchLB(mt)
+            if LB: getLBRatings(mt)
+
+        for fn in [_getTMDB, _getOMDB, _getMovieMania, _getRT, _getIMDB, _getLB]:
+            tsks.append(Thread(target=fn, args=()))
+            tsks[-1].start()
+        for tsk in tsks: tsk.join()
+        mt['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
     else: log('No need to update metadata for: ' + mt['title'], 3, 3)
 
-    # Get meediainfo if movie
-    if mt['type'] == 'movie':
-        if (datetime.now() - datetime.strptime(mt['mediainfoDate'], '%d/%m/%Y')) >= timedelta(days=mediainfoUpdateInterval): 
-            mediaFiles = getMediaFiles(mt['path'])
-            if len(mediaFiles) >= 1:
-                success, mt['mediainfo'] = getMediaInfo(mediaFiles[0], defaultLanguage)
-                mt['mediaFile'] = mediaFiles[0]
-                if success: mt['mediainfoDate'] = datetime.now().strftime("%d/%m/%Y")   
-            else: log('No media file found on: ' + metadata['path'], 3, 3)
-        else: log('No need to update mediainfo for: ' + mt['title'], 3, 3)
-    else: # Get metadata and mediainfo for seasons if tv
-        for sn in mt['seasons']:
-            getSeasonMetadata(sn, mt['seasons'][sn], mt['ids'], mt['productionCompanies'], omdbApi, tmdbApi, sn in forceSeasons)
-            getSeasonMediainfo(mt['seasons'][sn], defaultLanguage)
-        mt['mediainfo'] = getParentMediainfo(mt['seasons'])
+    extraInfo.join()
 
 def getMediaInfo(file, defaultLanguage):
     out = getstatusoutput('ffprobe "' + file + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet')
@@ -319,62 +311,58 @@ def getParentMediainfo(childrens):
 def getSeasonMetadata(sn, season, ids, productionCompanies, omdbApi, tmdbApi, force):
     if force or (datetime.now() - datetime.strptime(season['metadataDate'], '%d/%m/%Y')) >= timedelta(days=getUpdateInterval(season['releaseDate'])):
         log('Updating metadata for: ' + season['title'], 3, 3)
-        sc = False
         season['productionCompanies'] = productionCompanies
         for ep in season['episodes']: 
             season['episodes'][ep]['productionCompanies'] = productionCompanies
-
-        if len(tmdbApi) > 0 and 'TMDBID' in ids:
-            res = getJSON('https://api.themoviedb.org/3/tv/' + ids['TMDBID'] + '/season/' + sn + '?api_key=' + tmdbApi + '&language=en')
-            if res:
-                sc = True
-                if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
-                if 'episodes' in res:
-                    for ep in res['episodes']:
-                        if 'episode_number' not in ep or ep['episode_number'] == 'N/A': continue
-                        num = str(ep['episode_number'])
-                        if num not in season['episodes']: continue
-                        if 'still_path' in ep and ep['still_path'] != 'N/A' and ep['still_path']:
-                            season['episodes'][num]['cover'] = 'https://image.tmdb.org/t/p/original' + ep['still_path']
-                        if 'vote_average' in ep and ep['vote_average'] != 'N/A' and 'vote_count' in ep and ep['vote_count'] > minVotes:
-                            season['episodes'][num]['ratings']['TMDB'] = {'icon': 'TMDB', 'value': "{:.1f}".format(float(ep['vote_average']))}
-                        if 'id' in ep: 
-                            season['episodes'][num]['ids']['TMDBID'] = ep['id']
-                rts = [season['episodes'][ep]['ratings']['TMDB']['value'] for ep in season['episodes'] if 'TMDB' in season['episodes'][ep]['ratings']]
-                if len(rts) > 0:
-                    season['ratings']['TMDB'] = {'icon': 'TMDB', 'value': avg(rts)}
-            else: log('Error getting info on TMDB for: ' + title + ' S' + sn, 3, 1)
         
-        if len(omdbApi) > 0 and 'IMDBID' in ids:
-            res = getJSON('http://www.omdbapi.com/?i=' + ids['IMDBID'] + '&Season=' + sn + '&apikey=' + omdbApi)
-            if res and 'Episodes' in res and len(res['Episodes']) > 0:
-                sc = True
-                rts = []
-                for ep in res['Episodes']:
-                    if ep['Episode'] not in season['episodes']: continue
-                    if 'imdbRating' in ep and ep['imdbRating'] != 'N/A': 
-                        season['episodes'][ep['Episode']]['ratings']['IMDB'] = {'icon': 'IMDB', 'value': float(ep['imdbRating'])}
-                        rts.append(float(ep['imdbRating']))
-                    if 'imdbID' in ep and ep['imdbID'] != 'N/A':
-                        season['episodes'][ep['Episode']]['ids']['IMDBID'] = ep['imdbID']
-                season['ratings']['IMDB'] = {'icon': 'IMDB', 'value': avg(rts)}
-            else: log('Error getting info on OMDB for: ' + title + ' S' + sn, 3, 1)
+        def _getTMDB():
+            if len(tmdbApi) > 0 and 'TMDBID' in ids:
+                res = getJSON('https://api.themoviedb.org/3/tv/' + ids['TMDBID'] + '/season/' + sn + '?api_key=' + tmdbApi + '&language=en')
+                if res:
+                    if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']: season['cover'] = 'https://image.tmdb.org/t/p/original' + res['poster_path']
+                    if 'episodes' in res:
+                        for ep in res['episodes']:
+                            if 'episode_number' not in ep or ep['episode_number'] == 'N/A': continue
+                            num = str(ep['episode_number'])
+                            if num not in season['episodes']: continue
+                            if 'still_path' in ep and ep['still_path'] != 'N/A' and ep['still_path']:
+                                season['episodes'][num]['cover'] = 'https://image.tmdb.org/t/p/original' + ep['still_path']
+                            if 'vote_average' in ep and ep['vote_average'] != 'N/A' and 'vote_count' in ep and ep['vote_count'] > minVotes:
+                                season['episodes'][num]['ratings']['TMDB'] = {'icon': 'TMDB', 'value': "{:.1f}".format(float(ep['vote_average']))}
+                            if 'id' in ep: 
+                                season['episodes'][num]['ids']['TMDBID'] = ep['id']
+                    rts = [season['episodes'][ep]['ratings']['TMDB']['value'] for ep in season['episodes'] if 'TMDB' in season['episodes'][ep]['ratings']]
+                    if len(rts) > 0:
+                        season['ratings']['TMDB'] = {'icon': 'TMDB', 'value': avg(rts)}
+                else: log('Error getting info on TMDB for: ' + title + ' S' + sn, 3, 1)
 
-        if 'RTURL' in season:
-            sc = True
-            RT = getRTSeasonRatings(season['RTURL'])
-            if RT:
-                for rt in RT['ratings']:
-                    season['ratings'][rt] = RT['ratings'][rt]
-                season['certifications'] = RT['certifications']
-                for ep in RT['episodes']:
-                    if ep in season['episodes']:
-                        season['episodes'][ep]['RTURL'] = RT['episodes'][ep]
-                        RTE = getRTEpisodeRatings(RT['episodes'][ep])
-                        if RTE:
-                            for rte in RTE['ratings']: season['episodes'][ep]['ratings'][rte] = RTE['ratings'][rte]
+        def _getOMDB():  
+            if len(omdbApi) > 0 and 'IMDBID' in ids:
+                res = getJSON('http://www.omdbapi.com/?i=' + ids['IMDBID'] + '&Season=' + sn + '&apikey=' + omdbApi)
+                if res and 'Episodes' in res and len(res['Episodes']) > 0:
+                    rts = []
+                    for ep in res['Episodes']:
+                        if ep['Episode'] not in season['episodes']: continue
+                        if 'imdbRating' in ep and ep['imdbRating'] != 'N/A': 
+                            season['episodes'][ep['Episode']]['ratings']['IMDB'] = {'icon': 'IMDB', 'value': float(ep['imdbRating'])}
+                            rts.append(float(ep['imdbRating']))
+                        if 'imdbID' in ep and ep['imdbID'] != 'N/A':
+                            season['episodes'][ep['Episode']]['ids']['IMDBID'] = ep['imdbID']
+                    season['ratings']['IMDB'] = {'icon': 'IMDB', 'value': avg(rts)}
+                else: log('Error getting info on OMDB for: ' + title + ' S' + sn, 3, 1)
 
-        if sc: season['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
+        def _getRT():
+            if 'RT' in season['urls']:
+                if getRTSeasonRatings(season):
+                    for ep in season['episodes']: getRTEpisodeRatings(season['episodes'][ep])
+        
+        tsks = []
+        for fn in [_getTMDB, _getOMDB, _getRT]:
+            tsks.append(Thread(target=fn, args=()))
+            tsks[-1].start()
+        for tsk in tsks: tsk.join()
+        
+        season['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
 
 def getSeasonMediainfo(season, defaultLanguage):
     for ep in season['episodes']:
@@ -402,6 +390,7 @@ def updateSeasons(coverName, backdropName, episodeName, mt):
                 'mediainfo': {},
                 'certifications': [],
                 'ageRating': 'NR',
+                'urls': {},
                 'releaseDate': datetime.now().strftime("%d/%m/%Y")
             }
 
@@ -414,7 +403,7 @@ def updateSeasons(coverName, backdropName, episodeName, mt):
                         'mediaFile': ep,
                         'path': ep.rpartition('/')[0],
                         'type': 'episode',
-                        'title': mt['title'] + ' (Season: ' + res[0] + ' Episode: ' + mc[0] + ')',
+                        'title': mt['title'] + ' (Season: ' + res[0] + ' Episode: ' + mc[0].zfill(len(str(len(eps)))) + ')',
                         'ids': {},
                         'ratings': {},
                         'mediainfoDate': '1/1/1999',
@@ -422,6 +411,7 @@ def updateSeasons(coverName, backdropName, episodeName, mt):
                         'mediainfo': {},
                         'certifications': {},
                         'ageRating': 'NR',
+                        'urls': {},
                         'releaseDate': datetime.now().strftime("%d/%m/%Y")}
 
     if 'seasons' not in mt: 
@@ -447,15 +437,17 @@ def updateSeasons(coverName, backdropName, episodeName, mt):
                         del mt['seasons'][sn]['episodes'][ep]
     return ret
 
-def tagImage(path):
+def tagImage(path, hs):
     with open(path, 'rb') as image:
-        img = imgTag(image)
-    img["software"] = "BetterCovers"
+        img = exifImage(image)
+
+    img["software"] = "BetterCovers#" + hs
     img['datetime_original'] = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+
     with open(path, 'wb') as image:
         image.write(img.get_file())
 
-def processTask(task, config, thread):
+def processTask(task, thread):
     st = time.time()
     imageGenerated = task['generateImage'] and generateMediaImage(task['generateImage'], thread)
     if task['generateImage'] and not imageGenerated:
@@ -500,14 +492,14 @@ def processTask(task, config, thread):
 
     with open(join(workDirectory, 'threads', thread + '.html'), 'w') as out:
         out.write(HTML)
-    
+
     i = 0
-    command = ['wkhtmltoimage', '--cache-dir', join(workDirectory, 'cache'), '--javascript-delay', '2000', '--enable-local-file-access', '--transparent', 'file://' + join(workDirectory, 'threads', thread + '.html'), join(workDirectory, 'threads', thread + '.png')]
+    command = ['wkhtmltoimage', '--cache-dir', join(workDirectory, 'cache'), '--javascript-delay', '2000', '--enable-local-file-access', '--transparent', 'file://' + join(workDirectory, 'threads', thread + '.html'), join(workDirectory, 'threads', thread + '.jpg')]
     while i < 3 and not call(command, stdout=DEVNULL, stderr=DEVNULL) == 0: i += 1
     if i < 3:
-        # tagImage(join(workDirectory, 'threads', thread + '.png'))
+        tagImage(join(workDirectory, 'threads', thread + '.jpg'), md5(json.dumps(task, sort_keys=True).encode('utf8')).hexdigest())
         for fl in task['out']:
-            cm = call(['cp', '-f', join(workDirectory, 'threads', thread + '.png'), fl])
+            cm = call(['cp', '-f', join(workDirectory, 'threads', thread + '.jpg'), fl])
             if cm != 0:
                 log('Error moving to: ' + fl, 3, 3)
                 return False  
@@ -561,4 +553,18 @@ def getCover(mt, covers):
                     if 'ageRating' not in cover or ageRatingOk(cover['ageRating']):
                         if 'productionCompanies' not in cover or arrayOk(cover['productionCompanies'], [pc['id'] for pc in mt['productionCompanies']]):
                             return cover['cover']
-    return 'newCover'        
+    return 'newCover'       
+
+def getHash(fl):
+    with open(fl, 'rb') as image:
+        img = exifImage(image)
+        if img.has_exif and 'software' in img.list_all():
+            sp = img['software'].split('#')
+            if len(sp) == 2: return sp[1]
+    return ''
+
+###  ---------------
+# TODO add a way to update the cover if metadata was updated (like overwrite but if mt changed)
+# IDEA Add hash of properties enabled on tag to allow knowing what properties the img has
+# TODO add function to generate hash of task?
+# TODO change most settings of the config file to the 'covers' section

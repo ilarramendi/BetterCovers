@@ -63,7 +63,7 @@
                "MTC-MS": true
           },
           "productionCompanies": true,
-          "output": "$NAME.png",
+          "output": "$NAME.jpg",
           "generateImages": false
      },
      "movie": {
@@ -112,7 +112,7 @@
                "MTC-MS": true
           },
           "productionCompanies": true,
-          "output": "folder.png"
+          "output": "folder.jpg"
      },
      "backdrop": {
           "mediainfo": {
@@ -160,7 +160,7 @@
                "MTC-MS": true
           },
           "productionCompanies": true,
-          "output": "thumb.png;backdrop.png",
+          "output": "thumb.jpg;backdrop.jpg",
           "generateImages": false
      },
      "season": {
@@ -209,7 +209,7 @@
                "MTC-MS": true
           },
           "productionCompanies": true,
-          "output": "folder.png"
+          "output": "folder.jpg"
      },
      "tv": {
           "mediainfo": {
@@ -257,7 +257,7 @@
                "MTC-MS": true
           },
           "productionCompanies": true,
-          "output": "folder.png"
+          "output": "folder.jpg"
      },
      "covers": [
           {

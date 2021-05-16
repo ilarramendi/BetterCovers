@@ -11,7 +11,7 @@ def getIMDBRating(mt):
         mc = findall('metacriticScore[^>]*>\n<span>(\d+)<', rq.text)
         if len(mc) == 1: 
             if int(mc[0]) > 80:    
-                    rq = get('https://www.imdb.com/title/' + id + '/criticreviews')
+                    rq = get('https://www.imdb.com/title/' + mt['ids']['IMDBID'] + '/criticreviews')
                     if rq.status_code == 200:
                         mc2 = findall('ratingCount">(\d+)<', rq.text)
                         if len(mc2) > 0 and int(mc2[0]) > 14:

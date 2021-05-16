@@ -10,7 +10,6 @@ def searchLB(mt):
         soup = BeautifulSoup(rq.text, 'lxml')
         for mv in soup.find_all('span', attrs={'class': 'film-title-wrapper'}):
             mvn = mv.find('a')
-            print(mvn)
             if 'IMDBID' in mt['ids']: 
                 mt['urls']['LB'] = 'https://letterboxd.com/csi' + mvn['href'] + 'rating-histogram/'
                 return True
