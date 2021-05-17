@@ -158,9 +158,10 @@ Examples cover templates can be found on [media/covers](https://github.com/ilarr
 | `<!--CERTIFICATIONS-->`     | `<img src= "..." class="certification"/>`<br>For each certification                                                                      |
 
 # Parameters
-`-o true` Ovewrite covers  
-`-wd /path/to/wd` Change the default working directory (where config and icons are stored)    
-`-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly)  
+`-o true` Ovewrite any cover found  
+`-a true` Overwrite only files created by the script with different settings/ratings/etc  
+`-wd /path/to/wd` Change the default working directory (where config files, images and covers are stored)    
+`-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly or hitting api limits)  
 `-omdb apiKey` Store the OMDB api key  
 `-tmdb apiKey` Store TMDB api key
 `-v number` Verbose level from 0 to 3, default 2.

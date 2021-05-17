@@ -113,9 +113,8 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
     if 'ratings' not in mt: mt['ratings'] = {}
     if 'urls' not in mt: mt['urls'] = {}
 
-    def _getExtraInfo():
-        # Get meediainfo if movie
-        if mt['type'] == 'movie':
+    def _getMediaInfo():
+        if mt['type'] == 'movie': # Get mediainfo if movie
             if (datetime.now() - datetime.strptime(mt['mediainfoDate'], '%d/%m/%Y')) >= timedelta(days=mediainfoUpdateInterval): 
                 mediaFiles = getMediaFiles(mt['path'])
                 if len(mediaFiles) >= 1:
@@ -124,14 +123,12 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
                     if success: mt['mediainfoDate'] = datetime.now().strftime("%d/%m/%Y")   
                 else: log('No media file found on: ' + mt['path'], 3, 3)
             else: log('No need to update mediainfo for: ' + mt['title'], 3, 3)
-        else: # Get metadata and mediainfo for seasons if tv
-            for sn in mt['seasons']:
-                getSeasonMetadata(sn, mt['seasons'][sn], mt['ids'], mt['productionCompanies'], omdbApi, tmdbApi, sn in forceSeasons)
-                getSeasonMediainfo(mt['seasons'][sn], defaultLanguage)
+        else: # Get mediainfo for episodes and seasons
+            for sn in mt['seasons']: getSeasonMediainfo(mt['seasons'][sn], defaultLanguage)
             mt['mediainfo'] = getParentMediainfo(mt['seasons'])
 
-    extraInfo = Thread(target=_getExtraInfo, args=())
-    extraInfo.start()
+    mediainfo = Thread(target=_getMediaInfo, args=())
+    mediainfo.start()
 
     # Get general show metadata
     if (datetime.now() - datetime.strptime(mt['metadataDate'], '%d/%m/%Y')) >= timedelta(days=getUpdateInterval(mt['releaseDate'])):
@@ -213,7 +210,7 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
         def _getRT():
             if scraping['RT'] and searchRT(mt): 
                 if mt['type'] == 'movie': getRTMovieRatings(mt)
-                else: getRTTVRatingsTVRatings(mt)
+                else: getRTTVRatings(mt)
         
         def _getIMDB():
             if scraping['IMDB'] and 'IMDBID' in mt['ids']: getIMDBRating(mt)
@@ -225,11 +222,16 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
         for fn in [_getTMDB, _getOMDB, _getMovieMania, _getRT, _getIMDB, _getLB]:
             tsks.append(Thread(target=fn, args=()))
             tsks[-1].start()
+        
+        for tsk in tsks[:2]: tsk.join()
+        if mt['type'] == 'tv': 
+            for sn in mt['seasons']: getSeasonMetadata(sn, mt['seasons'][sn], mt['ids'], mt['productionCompanies'], omdbApi, tmdbApi, sn in forceSeasons)
         for tsk in tsks: tsk.join()
         mt['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
+
     else: log('No need to update metadata for: ' + mt['title'], 3, 3)
 
-    extraInfo.join()
+    mediainfo.join()
 
 def getMediaInfo(file, defaultLanguage):
     out = getstatusoutput('ffprobe "' + file + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet')
@@ -361,7 +363,7 @@ def getSeasonMetadata(sn, season, ids, productionCompanies, omdbApi, tmdbApi, fo
             tsks.append(Thread(target=fn, args=()))
             tsks[-1].start()
         for tsk in tsks: tsk.join()
-        
+
         season['metadataDate'] = datetime.now().strftime("%d/%m/%Y")
 
 def getSeasonMediainfo(season, defaultLanguage):
