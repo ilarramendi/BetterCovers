@@ -19,7 +19,7 @@ The easiest option for running is using [docker](https://hub.docker.com/r/ilarra
 docker run -i --rm \
   -v /path/to/media:/media \
   -v /path/to/config:/config \
-  -e o=false \
+  -e a=true \
   -e w=20 \
   -e tmdb=xxxxxx \
   -e omdb=xxxxxx \
@@ -159,7 +159,7 @@ Examples cover templates can be found on [media/covers](https://github.com/ilarr
 
 # Parameters
 `-o true` Ovewrite any cover found  
-`-a true` Overwrite only files created by the script with different settings/ratings/etc  
+`-a true` Overwrite only files created by the script with different settings/ratings/etc (recommended to always set to true)  
 `-wd /path/to/wd` Change the default working directory (where config files, images and covers are stored)    
 `-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly or hitting api limits)  
 `-omdb apiKey` Store the OMDB api key  
