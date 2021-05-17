@@ -13,3 +13,4 @@ ENTRYPOINT ./BetterCovers \
         -w "$w" \
         -o "$o" \
         -v "$v"
+        -a "$a"
