@@ -29,7 +29,8 @@ docker run -i --rm \
 
 To download the latest executable (LINUX) of the script run:  
 ```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.9.1-linux/BetterCovers; chmod +x BetterCovers```  
-Alternatively you can download the whole project and run `python3 BetterCovers.py` (aditional pypi dependencies need to be installed).
+Alternatively you can download the whole project and run `python3 BetterCovers.py`,  
+And run `pip3 install -r requirements.txt` to install requirments.
 
 # Api keys
 At the moment the scripts works the best with 2 api keys, but only 1 is needed (TMDB recommended). 
