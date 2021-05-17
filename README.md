@@ -8,7 +8,7 @@ Better-Covers is a script to automaticaly generate cover images (and backdrops) 
 <img src="https://user-images.githubusercontent.com/30437204/118219642-48ff3400-b450-11eb-8aa4-ca602c28fe08.png" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/117389362-a16b8a00-aec2-11eb-8c9c-67a896c5dd41.png" width="49.7%">
 <img src="https://user-images.githubusercontent.com/30437204/118219636-44d31680-b450-11eb-89f4-65b3074518da.png" width="100%">
 
-Cover images are saved as folder.png, episode covers as filename.png and backdrops as backdrop.png and thumb.png (customizable).     
+Cover images are saved as folder.jpg, episode covers as filename.jpg and backdrops as backdrop.jpg and thumb.jpg (customizable).     
 The script is made to be fully customizable, all properties can be disabled and custom covers can be selected based on a large number of filters!   
 Most important things can be customized in the [config](#configjson) file, and and visual changes can be done adjusting html/css [cover](#covers-1) files.    
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Or configure the agent in the config file to automaticaly update the library!)
