@@ -12,5 +12,5 @@ ENTRYPOINT ./BetterCovers \
         -omdb "$omdb" \
         -w "$w" \
         -o "$o" \
-        -v "$v"
+        -v "$v" \
         -a "$a"

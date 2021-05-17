@@ -26,7 +26,7 @@ db = {'version': dbVersion}
 def generateTasks(metadata, overWrite):
     conf = config[metadata['type']]
     tsks = []
-    pts = conf['output'].replace('$NAME', (metadata['path'] if metadata['type'] in ['tv', 'season', 'backdrop'] else metadata['mediaFile']).rpartition('.')[0].rpartition('/')[2])
+    pts = conf['output'].replace('$NAME', (metadata['path'] if metadata['type'] in ['tv', 'season', 'backdrop'] else metadata['mediaFile'] if 'mediaFile' in metadata else metadata['path'] ).rpartition('.')[0].rpartition('/')[2])
     tsk = {
         'out': [],
         'type': metadata['type'],
@@ -176,7 +176,7 @@ def processTasks():
 def saveDB():
     while processing:
         with open(join(workDirectory, 'db.json'), 'w') as dbf:
-            dbf.write(json.dumps(db, indent=7))
+            dbf.write(json.dumps(deepcopy(db), indent=7))
         time.sleep(10)
 # endregion
 
