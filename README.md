@@ -31,16 +31,6 @@ To download the latest executable (LINUX) of the script run:
 ```wget https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.9.1-linux/BetterCovers; chmod +x BetterCovers```  
 Alternatively you can download the whole project and run `python3 BetterCovers.py`,  
 And run `pip3 install -r requirements.txt` to install requirments.
-
-# Api keys
-At the moment the scripts works the best with 2 api keys, but only 1 is needed (TMDB recommended). 
-To get the metadata / cover images it uses [TMDB](https://www.themoviedb.org/), to get a key you have to create an account.
-
-And to get missing metadata and missing ratings it uses [OMDBApi](http://www.omdbapi.com/) to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.  
-(OMDB is not realy needed but it covers some missing ratings)  
-
-To save the api keys edit ```config.json``` or execute the script like this to automaticaly save them:  
- ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
  
  # Dependencies
 To run the script outside of docker 2 dependencies need to be installed: `wkhtmltopdf` and `ffmpeg`.  
@@ -158,6 +148,13 @@ Examples cover templates can be found on [media/covers](https://github.com/ilarr
 | `<!--PRODUCTIONCOMPANIES-->`| `<div class='pcWrapper producionCompany-ID'><img src='...' class='producionCompany'/></div>` <br>For production company                  |
 | `<!--CERTIFICATIONS-->`     | `<img src= "..." class="certification"/>`<br>For each certification                                                                      |
 
+# Api keys
+An optional [OMDB](http://www.omdbapi.com/) api key can be used to get missing metadata, to get a free api key visit [this](http://www.omdbapi.com/apikey.aspx) link.   
+Also if you find problems with TMDB you can also change the default api key.
+
+To save the api keys edit ```config.json``` or execute the script like this to automaticaly save them:  
+ ```./CoverRatings '/Movies/*' -tmdb TMDBApiKey -omdb OMDBApiKey```  
+ 
 # Parameters
 `-o true` Ovewrite any cover found  
 `-a true` Overwrite only files created by the script with different settings/ratings/etc (recommended to always set to true)  
