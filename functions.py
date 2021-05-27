@@ -112,6 +112,7 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
     if 'ageRating' not in mt: mt['ageRating'] = 'NR'
     if 'ratings' not in mt: mt['ratings'] = {}
     if 'urls' not in mt: mt['urls'] = {}
+    if 'trailers' not in mt: mt['trailers'] = []
 
     def _getMediaInfo():
         if mt['type'] == 'movie': # Get mediainfo if movie
@@ -147,7 +148,7 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
                         if res and 'results' in res and len(res['results']) > 0: 
                             mt['ids']['TMDBID'] = str(res['results'][0]['id'])
                 if 'TMDBID' in mt['ids']: # this is ok
-                    res = getJSON('https://api.themoviedb.org/3/' + mt['type'] + '/' + mt['ids']['TMDBID'] + '?api_key=' + tmdbApi + '&language=en&append_to_response=releases,external_ids')
+                    res = getJSON('https://api.themoviedb.org/3/' + mt['type'] + '/' + mt['ids']['TMDBID'] + '?api_key=' + tmdbApi + '&language=en&append_to_response=releases,external_ids,videos')
                     if res: result = res
 
                 if result:
@@ -168,7 +169,13 @@ def getMetadata(mt, omdbApi, tmdbApi, scraping, defaultLanguage, forceSeasons):
                             if rl['iso_3166_1'] == 'US':
                                 if rl['certification'] != '': mt['ageRating'] = rl['certification']
                                 break
-                    
+                    if 'results' in result['videos']:
+                        for vd in result['videos']['results']:
+                            if vd['site'] == 'YouTube' and vd['type'] == 'Trailer':
+                                for tr in mt['trailers']:
+                                    if tr['id'] == vd['key']: break
+                                else: mt['trailers'].append({'id': vd['key'], 'name': vd['name'], 'language': vd['iso_639_1'].upper(), 'resolution': vd['size']})
+
                     if 'title' in res: mt['title'] = res['title']
                     elif 'name' in res: mt['title'] = res['name'] 
                     
@@ -566,7 +573,3 @@ def getHash(fl):
     return ''
 
 ###  ---------------
-# TODO add a way to update the cover if metadata was updated (like overwrite but if mt changed)
-# IDEA Add hash of properties enabled on tag to allow knowing what properties the img has
-# TODO add function to generate hash of task?
-# TODO change most settings of the config file to the 'covers' section

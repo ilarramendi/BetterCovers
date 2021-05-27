@@ -249,6 +249,7 @@ try:
 
     PROCESSING.join()
     processing = False
+    time.sleep(1)
     with open(join(workDirectory, 'db.json'), 'w') as js:
         js.write(json.dumps(db, indent=7))
     log('Finished generating tasks', 0, 2)

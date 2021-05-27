@@ -1,6 +1,6 @@
 {
      "version": 3,
-     "tmdbApi": "",
+     "tmdbApi": "c13bbebafbd3dad0e281c6241304aeff",
      "omdbApi": "",
      "agent": {
           "type": "emby",

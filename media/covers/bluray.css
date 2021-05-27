@@ -1,8 +1,21 @@
 .image {
-    height: 280px;
-    margin: 25px;
+    height: 130px;
+    width: auto;
+    margin: 18px 25px;
+}
+.br-text {
+    font-size: 120px;
+    color: #4788c7;
+    font-weight: 600;
 }
 
-.overlay {background-color: #2648b8;}
+.topContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;  
+  width: 100%;
+}
+
+.overlay {background-color: #193cb1;}
 
 .mediainfo-BR {display: none;}

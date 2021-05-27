@@ -68,7 +68,7 @@ def getRTSeasonRatings(mt):
     return True
 
 def getRTEpisodeRatings(mt):
-    rq = get(BASE_URL + url)
+    rq = get(BASE_URL + mt['urls']['RT'])
     if rq.status_code == 403: print('Rotten tomatoes api limit reached!')
     if rq.status_code != 200: return
     rts = _getTvRatings(rq.text)
