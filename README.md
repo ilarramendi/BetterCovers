@@ -21,7 +21,6 @@ docker run -i --rm \
   -v /path/to/config:/config \
   -e a=true \
   -e w=20 \
-  -e tmdb=xxxxxx \
   -e omdb=xxxxxx \
   -e v=2 \
   ilarramendi/better-covers 
