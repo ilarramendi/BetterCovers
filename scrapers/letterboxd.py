@@ -3,29 +3,29 @@ from re import findall
 import json
 from bs4 import BeautifulSoup
 
-def searchLB(mt):
-    try:
-        rq = get('https://letterboxd.com/search/' + (mt['ids']['IMDBID'] if 'IMDBID' in mt['ids'] else name))
-        if rq.status_code != 200: return False
+BASE_URL = 'https://letterboxd.com/csi' 
+
+def searchLB(IMDBID, name, year):
+    rq = get('https://letterboxd.com/search/' + (IMDBID if IMDBID else name))
+    if rq.status_code == 200:
         soup = BeautifulSoup(rq.text, 'lxml')
-        for mv in soup.find_all('span', attrs={'class': 'film-title-wrapper'}):
-            mvn = mv.find('a')
-            if 'IMDBID' in mt['ids']: 
-                mt['urls']['LB'] = 'https://letterboxd.com/csi' + mvn['href'] + 'rating-histogram/'
-                return True
-            else:
-                if mvn.contents[0].strip().lower() == name.lower() and abs(year - int(mv.find_all('a')[1].contents[0])) <= 1: 
-                    mt['urls']['LB'] =  'https://letterboxd.com/csi' + mvn['href'] + 'rating-histogram/'
-                    return True
-    except:
-        pass
+        if soup:
+            for mv in soup.find_all('span', attrs={'class': 'film-title-wrapper'}):
+                media = mv.find('a')
+                if media:
+                    if IMDBID: return media['href'] + 'rating-histogram/'
+                    else:
+                        # If search by name check if year is almost the same
+                        if media.contents[0].strip().lower() == name.lower() and (not year or abs(year - int(mv.find_all('a')[1].contents[0])) <= 1):
+                            return  media['href'] + 'rating-histogram/'
+
     return False
 
-def getLBRatings(mt):
-    try:
-        rq = get(mt['urls']['LB'])
-        if rq.status_code != 200: return
+def getLBRatings(url):
+    rq = get(BASE_URL + url)
+    if rq.status_code == 200:
         soup = BeautifulSoup(rq.text, 'lxml')
-        rt = soup.find('a', attrs={'class': 'display-rating'}).contents[0]
-        mt['ratings']['LB'] = {'icon': 'LB', 'value': str(float(rt) * 2).replace('.0', '')}
-    except: return
+        if soup:
+            rt = soup.find('a', attrs={'class': 'display-rating'}).contents[0]
+            if rt: return {'icon': 'LB', 'value': str(float(rt) * 2).replace('.0', '')}
+    return False

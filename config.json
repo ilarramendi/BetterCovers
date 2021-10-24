@@ -1,22 +1,22 @@
 {
      "version": 3,
      "tmdbApi": "c13bbebafbd3dad0e281c6241304aeff",
-     "omdbApi": "",
+     "omdbApi": "82cec063",
      "agent": {
           "type": "emby",
           "url": "https://192.168.1.7:8989",
           "apiKey": ""
      },
      "scraping": {
-          "RT": true,
+          "RT": false,
           "IMDB": true,
           "textlessPosters": false,
           "LB": true
      },
-     "defaultAudio": "ENG",
+     "defaultAudioLanguage": "ENG",
      "englishUSA": true,
      "mediainfoUpdateInterval": 14,
-     "usePecentage": false,
+     "preferedImageLanguage": "en-US",
      "episode": {
           "mediainfo": {
                "color": {
@@ -48,6 +48,7 @@
                "TMDB": true,
                "RT": true,
                "RTA": true,
+               "TVTime": true,
                "LB": false
           },
           "ageRatings": {
@@ -62,9 +63,12 @@
                "RT-CF": true,
                "MTC-MS": true
           },
-          "productionCompanies": true,
+          "productionCompanies": [],
+          "usePercentage": false,
+          "productionCompaniesBlacklist": true,
           "output": "$NAME.jpg",
-          "generateImages": false
+          "extractImage": false,
+          "useExistingImage": false
      },
      "movie": {
           "mediainfo": {
@@ -97,6 +101,7 @@
                "TMDB": true,
                "RT": true,
                "RTA": true,
+               "TVTime": true,
                "LB": true
           },
           "ageRatings": {
@@ -111,57 +116,64 @@
                "RT-CF": true,
                "MTC-MS": true
           },
+          "useExistingImage": false,
           "productionCompanies": true,
-          "output": "folder.jpg"
-     },
-     "backdrop": {
-          "mediainfo": {
-               "color": {
-                    "UHD-HDR": true,
-                    "HDR": true,
-                    "SDR": true
+          "usePercentage": false,
+          "output": "folder.jpg",
+          "backdrop": {
+               "mediainfo": {
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "QHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": false,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": false
+                    },
+                    "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
                },
-               "resolution": {
-                    "UHD": true,
-                    "QHD": true,
-                    "HD": true,
-                    "SD": true
+               "ratings": {
+                    "IMDB": true,
+                    "MTC": true,
+                    "TMDB": true,
+                    "RT": true,
+                    "RTA": true,
+                    "TVTime": true,
+                    "LB": true
                },
-               "codec": {
-                    "AVC": true,
-                    "HEVC": true
+               "ageRatings": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
                },
-               "source": {
-                    "BR": false,
-                    "WEBDL": false,
-                    "WEBRIP": false,
-                    "DVD": false
+               "certifications": {
+                    "RT-CF": false,
+                    "MTC-MS": true
                },
-               "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
-          },
-          "ratings": {
-               "IMDB": true,
-               "MTC": true,
-               "TMDB": true,
-               "RT": true,
-               "RTA": true,
-               "LB": true
-          },
-          "ageRatings": {
-               "NC-17": false,
-               "R": false,
-               "PG-13": false,
-               "PG": false,
-               "G": false,
-               "NR": false
-          },
-          "certifications": {
-               "RT-CF": true,
-               "MTC-MS": true
-          },
-          "productionCompanies": true,
-          "output": "thumb.jpg;backdrop.jpg",
-          "generateImages": false
+               "useExistingImage": false,
+               "usePercentage": false,
+               "extractImage": false,
+               "productionCompanies": [],
+               "productionCompaniesBlacklist": true,
+               "output": "thumb.jpg;backdrop.jpg",
+               "generateImages": false
+          }
      },
      "season": {
           "mediainfo": {
@@ -194,6 +206,7 @@
                "TMDB": true,
                "RT": true,
                "RTA": true,
+               "TVTime": true,
                "LB": false
           },
           "ageRatings": {
@@ -208,8 +221,64 @@
                "RT-CF": true,
                "MTC-MS": true
           },
+          "useExistingImage": false,
+          "usePercentage": false,
           "productionCompanies": true,
-          "output": "folder.jpg"
+          "output": "folder.jpg",
+          "backdrop": {
+               "mediainfo": {
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "QHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": false,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": false
+                    },
+                    "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
+               },
+               "ratings": {
+                    "IMDB": true,
+                    "MTC": true,
+                    "TMDB": true,
+                    "RT": true,
+                    "RTA": true,
+                    "TVTime": true,
+                    "LB": true
+               },
+               "ageRatings": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               },
+               "certifications": {
+                    "RT-CF": false,
+                    "MTC-MS": true
+               },
+               "useExistingImage": false,
+               "usePercentage": false,
+               "extractImage": false,
+               "productionCompanies": [],
+               "productionCompaniesBlacklist": true,
+               "output": "thumb.jpg;backdrop.jpg",
+               "generateImages": false
+          }
      },
      "tv": {
           "mediainfo": {
@@ -242,6 +311,7 @@
                "TMDB": true,
                "RT": true,
                "RTA": true,
+               "TVTime": true,
                "LB": false
           },
           "ageRatings": {
@@ -256,10 +326,66 @@
                "RT-CF": true,
                "MTC-MS": true
           },
+          "useExistingImage": false,
+          "usePercentage": false,
           "productionCompanies": true,
-          "output": "folder.jpg"
+          "output": "folder.jpg",
+          "backdrop": {
+               "mediainfo": {
+                    "color": {
+                         "UHD-HDR": true,
+                         "HDR": true,
+                         "SDR": true
+                    },
+                    "resolution": {
+                         "UHD": true,
+                         "QHD": true,
+                         "HD": true,
+                         "SD": true
+                    },
+                    "codec": {
+                         "AVC": true,
+                         "HEVC": true
+                    },
+                    "source": {
+                         "BR": false,
+                         "WEBDL": false,
+                         "WEBRIP": false,
+                         "DVD": false
+                    },
+                    "audio": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL"
+               },
+               "ratings": {
+                    "IMDB": true,
+                    "MTC": true,
+                    "TMDB": true,
+                    "RT": true,
+                    "RTA": true,
+                    "TVTime": true,
+                    "LB": true
+               },
+               "ageRatings": {
+                    "NC-17": false,
+                    "R": false,
+                    "PG-13": false,
+                    "PG": false,
+                    "G": false,
+                    "NR": false
+               },
+               "certifications": {
+                    "RT-CF": false,
+                    "MTC-MS": true
+               },
+               "useExistingImage": false,
+               "usePercentage": false,
+               "extractImage": false,
+               "productionCompanies": [],
+               "productionCompaniesBlacklist": true,
+               "output": "thumb.jpg;backdrop.jpg",
+               "generateImages": false
+          }
      },
-     "covers": [
+     "templates": [
           {
                "type": "movie",
                "cover": "disneyBluray",
@@ -285,10 +411,6 @@
                     "IMDB": ">7.5",
                     "RT": ">7.5"
                }
-          },
-          {
-               "type": "backdrop,episode",
-               "cover": "backdrop"
           }
      ]
 }

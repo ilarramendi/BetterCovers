@@ -1,0 +1,31 @@
+.wrapper {
+    width: 3840 !important;
+    height: 2160 !important;
+    margin-right: -5px; /* This is needed because it generates a white border on the right*/
+}
+
+.ratingIcon {width: 175px;}
+.ratingText {font-size: 125px;}
+.ratingsContainer {padding: 12px}
+.mediainfoContainer {height: 180px; padding: 10px}
+
+.certification {
+    width: auto;
+    height: 400px;
+}
+.certification:not(:last-child) {
+    margin-right: 50px;
+}
+
+.certificationsContainer {
+    padding: 20px;
+    margin: 70px;
+    width: min-content;
+    height: min-content;
+    display: flex;
+}
+
+.contentContainer {
+    justify-content: flex-start;
+    align-items: flex-end;
+}

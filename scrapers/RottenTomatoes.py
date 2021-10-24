@@ -2,13 +2,17 @@ from requests import get
 import json
 from re import findall
 from urllib.parse import quote
+from time import sleep
 
 SEARCH_URL = 'https://www.rottentomatoes.com/api/private/v2.0/search?q='
 BASE_URL = 'https://www.rottentomatoes.com'
 
-def searchRT(mt):
-    rq = get(SEARCH_URL + mt['title'].lower().replace(' ', '+'))
+# TODO replace search url with scrapping because of api limits
+# Searches in rottentomatoes by title and returns an url
+def searchRT(type, title, year):
+    rq = get(SEARCH_URL + title.lower().replace(' ', '+'))
     if rq.status_code == 403: print('Rotten tomatoes api limit reached!')
+    sleep(2) # RT gets angry
     if rq.status_code != 200: return False
     try:
         rs = rq.json()
@@ -19,70 +23,74 @@ def searchRT(mt):
     dictYear = {'movie': 'year', 'tv': 'startYear'}
     dictUrl = {'movie': 'm', 'tv': 'tv'}
 
-    if dictType[mt['type']] in rs:
-        for mv in rs[dictType[mt['type']]]:
-            if mt['title'].lower() == mv[dictTitle[mt['type']]].lower() and (not mt['year'] or not mv[dictYear[mt['type']]] or abs(int(mt['year']) - mv[dictYear[mt['type']]]) <= 1):
-                rt = findall('\/' + dictUrl[mt['type']] + '\/[^/]+', mv['url'])
-                if len(rt) == 1: mt['urls']['RT'] = rt[0]
-                return len(rt) == 1
+    if dictType[type] in rs:
+        for mv in rs[dictType[type]]:
+            if title.lower() == mv[dictTitle[type]].lower() and (not year or not mv[dictYear[type]] or abs(year - mv[dictYear[type]]) <= 1):
+                rt = findall('\/' + dictUrl[type] + '\/[^/]+', mv['url'])
+                if len(rt) == 1: return rt[0].replace('_', '-')
     return False
 
-def _getTvRatings(text):
-    res = {'ratings': {}, }
+def _parseTvRatings(text):
+    res = {'ratings': {}, 'certifications': []}
     RT = findall('tomatometer-container[^%]*tomatometer[^\d]*(\d+)%', text)
     RTCF = findall('tomatometer-container[^%]*certified_fresh', text)
     RTA = findall('audience-score-container[^%]*audience-score[^\d]*(\d+)%', text)
-    res['certifications'] = ['RT-CF'] if len(RTCF) > 0 else []
-    if len(RT) > 0: res['ratings']['RT'] = {'icon': 'RT-CF' if len(RTCF) > 0 else 'RT' if int(RT[0]) >= 60 else 'RT-LS', 'value': str(int(RT[0]) / 10).replace('.0', '')} 
-    if len(RTA) > 0: res['ratings']['RTA'] = {'icon': 'RTA' if int(RTA[0]) >= 60 else 'RTA-LS', 'value': str(int(RTA[0]) / 10).replace('.0', '')} 
+    if len(RTCF) > 0: res['certifications'] = ['RT-CF']
+    if len(RT) > 0: 
+        res['ratings']['RT'] = {'icon': 'RT-CF' if len(RTCF) > 0 else 'RT' if int(RT[0]) >= 60 else 'RT-LS', 'value': str(int(RT[0]) / 10).replace('.0', '')} 
+    if len(RTA) > 0: 
+        res['ratings']['RTA'] = {'icon': 'RTA' if int(RTA[0]) >= 60 else 'RTA-LS', 'value': str(int(RTA[0]) / 10).replace('.0', '')} 
     return res
 
-def getRTTVRatings(mt):
-    rq = get(BASE_URL + mt['urls']['RT'])
-    if rq.status_code == 403: print('Rotten tomatoes api limit reached!')
-    if rq.status_code != 200: return
+def getRTTVRatings(url):
+    rq = get(BASE_URL + url)
+    res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code, 'seasons': {}}
+    sleep(2) # RT gets angry
+    if rq.status_code != 200: return res
     
-    ret = {'seasons': {}}
-    rt = _getTvRatings(rq.text)
-    for rtg in rt['ratings']: mt['ratings'][rtg] = rt['ratings'][rtg]
+    tmp = _parseTvRatings(rq.text)
+    res['ratings'] = tmp['ratings']
+    res['certifications'] = tmp['certifications']
+
+    for sn in findall('(' + url.replace('/', '\/') + '\/s(\d{1,3}))"', rq.text): # Gets url for each season
+        res['seasons'][int(sn[1])] = sn[0]
     
-    for ct in rt['certifications']:
-        if ct not in mt['certifications']: mt['certifications'].append(ct)
-    for sn in findall('(' + mt['urls']['RT'].replace('/', '\/') + '\/s0*(\d+))"', rq.text):
-        if sn[1] in mt['seasons']: mt['seasons'][sn[1]]['urls']['RT'] = sn[0]
+    return res
 
-def getRTSeasonRatings(mt):
-    rq = get(BASE_URL + mt['urls']['RT'])
-    if rq.status_code == 403: print('Rotten tomatoes api limit reached!')
-    if rq.status_code != 200: return False
+def getRTSeasonRatings(url):
+    rq = get(BASE_URL + url)
+    ret = {'statusCode': rq.status_code, 'episodes': {}}
+    sleep(2) # RT gets angry
+    if rq.status_code == 200:
+        rt = _parseTvRatings(rq.text)
+        ret['ratings'] = rt['ratings']
+        ret['certifications'] = rt['certifications']
+        eps = findall('href="' + url.rpartition('/')[2] + '(\/e(\d{1,3}))">View Details', rq.text)
+        for ep in eps[:int(len(eps)/2)]: ret['episodes'][int(ep[1])] = url + ep[0] # Grab half of the results
+            
     
-    ret = {'episodes': {}}
-    rt = _getTvRatings(rq.text)
-    for rtg in rt['ratings']: mt['ratings'][rtg] = rt['ratings'][rtg]
-    for cf in rt['certifications']: 
-        if cf not in mt['certifications']: mt['certifications'].append(cf)
+    return ret
 
-    for sn in findall('(' + mt['urls']['RT'].replace('/', '\/') + '\/e0*(\d+))"', rq.text):
-        if sn[1] in mt['episodes']: mt['episodes'][sn[1]]['urls']['RT'] = sn[0]
- 
-    return True
-
-def getRTEpisodeRatings(mt):
-    rq = get(BASE_URL + mt['urls']['RT'])
-    if rq.status_code == 403: print('Rotten tomatoes api limit reached!')
-    if rq.status_code != 200: return
-    rts = _getTvRatings(rq.text)
-    for rt in rts: mt['ratings'][rt] = rts['ratings'][rt]
-
-def getRTMovieRatings(mt):
-    rq = get(BASE_URL + mt['urls']['RT'])
-    if rq.status_code == 403: print('Rotten tomatoes api limit reached!')
-    if rq.status_code != 200: return
+def getRTEpisodeRatings(url):
+    rq = get(BASE_URL + url)
+    sleep(1) # RT gets angry
+    return {'statusCode': rq.status_code, 'ratings': _parseTvRatings(rq.text)['ratings'] if rq.status_code == 200 else {}}
+    
+def getRTMovieRatings(url):
+    rq = get(BASE_URL + url)
+    res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code}
+    sleep(2) # RT gets angry
+    if rq.status_code != 200: return res
     sc = findall('<score-board[^>]*>', rq.text)
-    if len(sc) == 0: return
-    res = {'ratings': {}}
+    if len(sc) == 0: return res
+    
+    if 'certified-fresh' in sc[0]: res['certifications'] = ['RT-CF'] # Certified fresh
+
     rt = findall('tomatometerscore="(\d+)"', sc[0])
-    if len(rt) == 1: mt['ratings']['RT'] = {'icon': 'RT-CF' if 'certified-fresh' in sc[0] else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': str(float(rt[0]) / 10).replace('.0', '')}
-    res['certifications'] = ['RT-CF'] if 'certified-fresh' in sc[0] else []
+    # Sets icon to RT-CF, RT, or RT-LS acording to value
+    if len(rt) == 1: 
+        res['ratings']['RT'] = {'icon': 'RT-CF' if len(res['certifications']) > 0 else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': str(float(rt[0]) / 10).replace('.0', '')}
     rta = findall('audiencescore="(\d+)"', sc[0])
-    if len(rta) == 1: mt['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': str(float(rta[0]) / 10).replace('.0', '')} 
+    if len(rta) == 1: 
+        res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': str(float(rta[0]) / 10).replace('.0', '')} 
+    return res
