@@ -1,6 +1,7 @@
 from sys import argv
 import json
 from os.path import exists, join, abspath
+from shutil import rmtree
 import time
 from subprocess import call, getstatusoutput
 import functions
@@ -9,56 +10,62 @@ from threading import Thread, Lock
 from time import sleep
 from glob import glob 
 import pickle 
+from requests import post
 
-# TODO Daemon in thread to terminate when core program ends
-# TODO check scrapers
-# TODO generate tasks for backdrops (llamar la misma funcion cambiandole el param de config por el bakdrop dentro)
-# TODO edit production companies based on episode/season
-# TODO production companies not loading for tv
 # TODO change to tmdb api v4
-# TODO metadata update
-# TODO add thread lock to getseasonmetadata and getseasonmedainfo
-# TODO update tv mediainfo
-# TODO change config file to YAML
 # TODO update all logs
-# TODO ratings icons are not sorted anymore
-# TODO add log to view time for each provider (_getRT)
-# TODO get season TVTime score as average
 # TODO add trakt and moviechart
-
-
+# TODO update metadata on delete/add episode
+# TODO Update readme
+# TODO Make readme specific for cover configuration
+# TODO add log on each episode getting metadata
+# TODO Add logs on getMetadata
+# TODO Rotten Tomatoes api returns covers
+# TODO MovieTweetings -> Interesting
+# TODO Create better function for requests with included wait
+# TODO delete icon from ratings since it can be calculated
+# TODO change h264 icon
+# TODO images cache not working
+# TODO Get different ratings from metacritics
 
 # region parameters
+# Check parameters
 if len(argv) == 1:
     functions.log('A path is needed to work: BetterCovers "/media/movies/*"', 3, 0)
     exit()
-pt = argv[1]
-folders = sorted(glob(pt)) if '*' in pt else [pt] # if its a single folder dont use glob
 if '-wd' in argv and len(argv) == argv.index('-wd') + 1:
     functions.log('-wd parameter requieres a correct directory: -wd ./BetterCovers', 3, 0)
     exit()
-workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 1])
-functions.workDirectory = workDirectory
-overwrite = '-o' in argv
-automaticOverwrite = '-a' in argv
 if '-w' in argv and (len(argv) == argv.index('-w') + 1 or not argv[argv.index('-w') + 1].isnumeric()):
     functions.log('-w parameter requieres a number: -w 20', 3, 0)
     exit()
+if '--log-level' in argv and (len(argv) == argv.index('--log-level') + 1 or not argv[argv.index('--log-level') + 1].isnumeric()):
+    functions.log('--log-level parameter requieres a number: --log-level 2', 3, 0)
+    exit()
+
+pt = argv[1]
+folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [pt] # if its a single folder dont use glob
 threads = 20 if '-w' not in argv else int(argv[argv.index('-w') + 1])
 processing = True
+automaticOverwrite = '-a' in argv
+overwrite = '-o' in argv
+workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 1])
+functions.workDirectory = workDirectory
+functions.logLevel = 2 if '--log-level' not in argv else int(argv[argv.index('--log-level') + 1]) 
 # endregion
 
 
-dbVersion = 3
-configVersion = 3
+dbVersion = 5
+configVersion = 5
 tasksLock = Lock()
 
 tasks = []
 tasksLength = 0
 db = {'version': dbVersion}
+config = {}
+covers = {}
 
 # region Functions
-
 # Calls processfolder for all folders in multiple threads
 def processFolders():
     thrs = [False] * threads
@@ -76,7 +83,6 @@ def processFolders():
     # Wait for threads to end
     for th in thrs: 
         if th: th.join()
-    print('asd')
     global processing
     processing = False
 
@@ -105,63 +111,24 @@ def processTasks():
     
     return j
 
-# Loads configuration file and sets omdb and tmdb keys if found in parameters
-def loadConfig(cfg):
-    try:
-        with open(cfg, 'r') as js:
-            global config 
-            config = json.load(js)
-            if 'version' not in config or config['version'] != configVersion:
-                log('Wrong version of config file, please update!', 1, 0)
-                exit()
-            if '-omdb' in argv and len(argv) > (argv.index('-omdb') + 1) and argv[argv.index('-omdb') + 1] != '': config['omdbApi'] = argv[argv.index('-omdb') + 1]
-            if '-tmdb' in argv and len(argv) > (argv.index('-tmdb') + 1) and argv[argv.index('-tmdb') + 1] != '': config['tmdbApi'] = argv[argv.index('-tmdb') + 1]
-        with open(cfg, 'w') as out: 
-            out.write(json.dumps(config, indent = 5))
-    except:
-        log('Error loading config file from: ' + cfg, 1, 0)
-        exit()
-
 # Updates all information for a given movie or tv show and generates tasks
 def processFolder(folder):
     start = time.time()
-    if folder not in db: # New entry
-        metadata = {'path': folder}
-        mediaFiles = functions.getMediaFiles(folder) # finds media files inside folder
-        metadata['title'], metadata['year'] = functions.getName(folder) # Parse title and year from folder
-        if len(mediaFiles) == 0: 
-            metadata['type'] = 'tv'
-        else: metadata['type'] = 'movie' # Movie
-
-        # TODO get IMDBID from name
-        nfo = join(folder, 'tvshow.nfo') if metadata['type'] == 'tv' else (mediaFiles[0].rpartition('.')[0] + '.nfo') if len(mediaFiles) > 0 else join(folder, 'FALSE')
-        if exists(nfo): metadata['ids'] = functions.readNFO(nfo) # Gets ids from NFO file if exists
-    else: # Existing folder
-        metadata = db[folder] # Get metadata from database
-    
-    if metadata['type'] == 'tv': 
+    metadata = db[folder] if folder in db else functions.scannFolder(folder)  # Get existing metadata or get metadata from folder
+    if metadata['type'] == 'tv': # Update seasons and episodes from disk
         if not functions.updateSeasons(metadata):
-            log('No seasons found for: ' + metadata['title'], 3, 1)
+            functions.log('No seasons found for: ' + metadata['title'] + ', is this a TV show?', 3, 1)
             return
-    
     
     # Update metadata if needed
     getMetadata = Thread(target=functions.getMetadata , args=(metadata, config['omdbApi'], config['tmdbApi'], config['scraping'], config['preferedImageLanguage']))
     getMetadata.start()
     
-    # Update mediainfo for movies
-    if metadata['type'] == 'movie':
-        if 'mediainfoDate' not in metadata or (datetime.now() - datetime.strptime(metadata['mediainfoDate'], '%d/%m/%Y')) >= timedelta(days=config['mediainfoUpdateInterval']):
-            mediainfo = functions.getMediaInfo(functions.getMediaFiles(folder)[0], config['defaultAudioLanguage'])
-            if mediainfo: 
-                metadata['mediainfo'] = mediainfo
-                metadata['mediainfoDate'] = datetime.now().strftime("%d/%m/%Y")
-            elif 'mediainfo' not in metadata: metadata['mediainfo'] = {}
-        else: log('No need to update mediainfo for: ' + metadata['title'], 3, 3)
+    if metadata['type'] == 'movie': functions.getMediaInfo(metadata, config['defaultAudioLanguage'], config['mediainfoUpdateInterval']) # Update mediainfo for movies
     
-    getMetadata.join()
-    if metadata['type'] == 'tv':
-        tsks = []
+    getMetadata.join() # Wait for metadata
+    if metadata['type'] == 'tv': # Update mediainfo and metadata for seasons
+        tsks = [] # Does all seasons in parallel, this can be improved for efficiency (generaly slow for anime with lots of chapters in each season)
         for sn in metadata['seasons']: 
             tsks.append(Thread(target=functions.getSeasonMetadata , args=(sn, metadata['seasons'][sn], metadata['ids'], config['omdbApi'], config['tmdbApi'])))
             tsks.append(Thread(target=functions.getSeasonMediainfo , args=(metadata['seasons'][sn], config['defaultAudioLanguage'], config['mediainfoUpdateInterval'])))
@@ -171,14 +138,12 @@ def processFolder(folder):
         metadata['mediainfo'] = functions.getParentMediainfo(metadata['seasons'])
 
     # Generate tasks
-    functions.log('Finished getting metadata for: ' + metadata['title'] + ' in:' + functions.timediff(start), 0, 2)
-    start2 = time.time()
-    generatedTasks = functions.generateTasks(metadata['type'], metadata, overwrite, automaticOverwrite, config[metadata['type']], config['templates'])
+    generatedTasks = functions.generateTasks(metadata['type'], metadata, overwrite, automaticOverwrite, covers[metadata['type']], config['templates'])
     if metadata['type'] == 'tv':
-        for sn in metadata['seasons']:
-            generatedTasks += functions.generateTasks('season', metadata['seasons'][sn], overwrite, automaticOverwrite, config['season'], config['templates'])
+        for sn in metadata['seasons']: # Generate tasks for each season/episode
+            generatedTasks += functions.generateTasks('season', metadata['seasons'][sn], overwrite, automaticOverwrite, covers['season'], config['templates'])
             for ep in metadata['seasons'][sn]['episodes']:
-                generatedTasks += functions.generateTasks('episode', metadata['seasons'][sn]['episodes'][ep], overwrite, automaticOverwrite, config['episode'], config['templates'])
+                generatedTasks += functions.generateTasks('episode', metadata['seasons'][sn]['episodes'][ep], overwrite, automaticOverwrite, covers['episode'], config['templates'])
     
     # Added lock to prevent problems with accessing the same variable from different threads, this was never a problem tho
     with tasksLock: 
@@ -186,64 +151,104 @@ def processFolder(folder):
         tasks.extend(generatedTasks) # Extend SHOULD be thread safe anyway
         tasksLength += len(generatedTasks)
     
-    functions.log(str(len(generatedTasks)) + ' tasks generated for: ' + metadata['title'] + ' in ' + functions.timediff(start2), 0, 2)
+    functions.log('Finished getting metadata for: ' + metadata['title'] + ', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start), 0, 2)
     
     db[folder] = metadata # Update metadata in database
-
 # endregion
 
 
-# Load "database"
-if exists(join(workDirectory, 'db.pickle')):
-    with open(join(workDirectory, 'db.pickle'), 'rb') as pk:
+# Load stored metadata
+if exists(join(workDirectory, 'metadata.pickle')):
+    with open(join(workDirectory, 'metadata.pickle'), 'rb') as pk:
         try:
             db = pickle.load(pk)
             if 'version' not in db or db['version'] != dbVersion:
-                functions.log('Removing database file because this is a new version of the script', 3, 3)
+                functions.log('Removing metadata file because this is a new version of the script', 3, 3)
                 db = {'version': dbVersion}
         except:
-            functions.log('Error loading database from: ' + join(workDirectory, 'db.pickle'), 2, 2)
+            functions.log('Error loading metadata from: ' + join(workDirectory, 'metadata.pickle'), 2, 2)
 
-# Check for configuration file
-if not exists(join(workDirectory, 'config.json')):
+# Load configuration file
+if exists(join(workDirectory, 'config.json')):
+    cfg = join(workDirectory, 'config.json')
+    try:
+        with open(cfg, 'r') as js:
+            config = json.load(js)
+            if 'version' not in config or config['version'] != configVersion:
+                log('Wrong version of config file, please update!', 1, 0)
+                exit()
+            # Load order for ratings and mediainfo, TODO change this to a setting in each image
+            functions.ratingsOrder = config['ratingsOrder']
+            functions.mediainfoOrder = config['mediainfoOrder']
+    except:
+        log('Error loading config file from: ' + cfg, 1, 0)
+        exit()
+else:
     log('Missing config.json inside work directory', 1, 0)
     exit()
-else: loadConfig(join(workDirectory, 'config.json'))
+
+# Loads covers configuration file
+if exists(join(workDirectory, 'covers.json')):
+    cvr = join(workDirectory, 'covers.json')
+    try:
+        with open(cvr, 'r') as js:
+            covers = json.load(js)
+            if 'version' not in covers or covers['version'] != configVersion:
+                log('Wrong version of covers file, please update!', 1, 0)
+                exit()
+    except:
+        log('Error loading covers file from: ' + cvr, 1, 0)
+        exit()
+else:
+    log('Missing cover.json inside work directory', 1, 0)
+    exit()
 
 # Check for TMDB api key
 if config['tmdbApi'] == '':
     log('TMDB api key is needed to run. (WHY DID YOU REMOVE IT?!?!)', 1, 0)
     exit() 
 
-# region Check Dependencies
-dependencies = [
-    'wkhtmltox',
-    'ffmpeg' if config['episode']['extractImage'] else False]
-
-for dp in [d for d in dependencies if d]:
-    cl = getstatusoutput('apt-cache policy ' + dp)[1]
+# Check Dependencies
+for dp in [d for d in ['wkhtmltox','ffmpeg'] if d]:
+    cl = getstatusoutput('apt-cache policy ' + dp)[1] # TODO fix this for windows
     if 'Installed: (none)' in cl:
         log(dp + ' is not installed', 1, 0)
         exit()
-# endregion
+
+# Set path to wkhtmltoimage
+functions.wkhtmltoimage = config['wkhtmltoimagePath']
+
+# Updates IMDB datasets
+if config['scraping']['IMDB']: functions.scrapers.IMDB.updateDataset(workDirectory, 10, 10)
+
+
 
 # Start
-
-st = time.time()
 functions.log('Starting BetterCovers for directory: ' + pt, 1, 1)
-
-
+st = time.time()
 th1 = Thread(target=processFolders)
 th1.start()
 th2 = Thread(target=processTasks)
 th2.start()
-th1.join()
-# Write database to file
-with open(join(workDirectory, 'db.pickle'), 'wb') as file:
+th1.join() # Wait for tasks to be generated
+
+# Write metadata to pickle file
+with open(join(workDirectory, 'metadata.pickle'), 'wb') as file:
     pickle.dump(db, file, protocol=pickle.HIGHEST_PROTOCOL)
-if '--json' in argv:
-    with open(join(workDirectory, 'db.json'), 'w') as js:
+if '--json' in argv: # If parameter --json also write to a json file
+    with open(join(workDirectory, 'metadata.json'), 'w') as js:
         js.write(json.dumps(db, indent=7))
-th2.join()
+th2.join() # Wait for tasks to be processed
+if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
+
+# Update Agent
+if config['agent']['apiKey'] != '': # TODO add plex
+    url = config['agent']['url'] + ('/Library/refresh?api_key=' + config['agent']['apiKey'] if config['agent']['type'] == 'emby' else '/ScheduledTasks/Running/6330ee8fb4a957f33981f89aa78b030f')
+    time.sleep(2)
+    if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
+        functions.log('Succesfully updated ' + config['agent']['type'] + ' libraries (' + config['agent']['url'] + ')', 0, 2)
+    else: functions.log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'], 2, 2)
+else: functions.log('Not updating ' + config['agent']['type'] + ' library, API key not set.', 1, 3)
+
 functions.log('FINISH, total time was: ' + functions.timediff(st), 0, 1)
 

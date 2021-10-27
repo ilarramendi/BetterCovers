@@ -1,16 +1,7 @@
-FROM debian
+FROM python:3
 RUN apt-get -y update
-RUN apt-get install -y wkhtmltopdf ffmpeg wget
-RUN wget -O BetterCovers 'https://github.com/ilarramendi/Cover-Ratings/releases/download/v0.9.2-linux/BetterCovers' -q
-RUN chmod +x ./BetterCovers
-ENV w 20
-ENV v 2
-ENTRYPOINT ./BetterCovers \
-        "/media/*" \
-        -wd "/config" \
-        -tmdb "$tmdb" \
-        -omdb "$omdb" \
-        -w "$w" \
-        -o "$o" \
-        -v "$v" \
-        -a "$a"
+RUN apt-get install -y wkhtmltopdf ffmpeg wget git
+RUN git clone https://github.com/ilarramendi/BetterCovers
+WORKDIR "/BetterCovers"
+RUN python3 -m pip install -r ./requirements.txt
+ENTRYPOINT python3 ./BetterCovers.py "/media/*" -wd "/config"

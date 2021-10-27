@@ -1,23 +1,53 @@
 from requests import get
 from re import findall
 import json
+from os.path import exists, realpath, join
+from glob import glob
+import urllib.request
+from datetime import datetime
+import gzip
 
-# Gets certifications, IMDB rating and METACRITIC rating from IMDB
+minRatings = 5
+ratingsFile = ''
+episodesFile = ''
+
+# Downloads if necesary new dataset and sets its path for functions below
+def updateDataset(wd, ratingsUpdateInterval, episodesUpdateInterval):
+    global ratingsFile, episodesFile
+    rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs')) # WD is always an absolute path
+    if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > ratingsUpdateInterval:
+        tz = urllib.request.urlopen('https://datasets.imdbws.com/title.ratings.tsv.gz')
+        if tz.getcode() == 200:
+            out = join(wd, 'cache/IMDBRatings_' + datetime.now().strftime('%m-%d-%Y') + '.tvs')
+            with open(out, 'wb') as outfile: # Extract gz in memory and save output to file
+                outfile.write(gzip.decompress(tz.read()))
+                ratingsFile = out
+            print('Succesfully updated IMDB Ratings Dataset')
+        else: print('Error downloading Ratings Dataset from IMDB')
+    else: 
+        print('No need to update IMDB Ratings Dataset')
+        ratingsFile = rtsFile[0]
+
+    epsFile = glob(join(wd, 'cache/IMDBEpisodes*.tvs'))
+    if len(epsFile) == 0 or (datetime.now() - datetime.strptime(epsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > episodesUpdateInterval:
+        tz = urllib.request.urlopen('https://datasets.imdbws.com/title.episode.tsv.gz')
+        if tz.getcode() == 200:
+            out = join(wd, './cache/IMDBEpisodes_' + datetime.now().strftime('%m-%d-%Y') + '.tvs')
+            with open(out, 'wb') as outfile: # Extract gz in memory and save output to file
+                outfile.write(gzip.decompress(tz.read()))
+                episodesFile = out
+            print('Succesfully updated IMDB Episodes Dataset')
+        else: print('Error downloading Episodes Dataset from IMDB')
+    else: 
+        print('No need to update IMDB Episodes Dataset')   
+        episodesFile = epsFile[0]
+
 def getIMDBRating(id):
-    ret = {'ratings': {}, 'certifications': []}
-    rq = get('https://www.imdb.com/title/' + id)
-    if rq.status_code != 200: return ret
-    # "aggregateRating": {\n[^}]*"ratingValue": "([\d.]+)"
-    sc = findall('AggregateRatingButton__RatingScore[^>]*>([\d\.]{1,4})<', rq.text) # Get IMDB score
-    if len(sc) > 0: ret['ratings']['IMDB'] = {'icon': 'IMDB', 'value': sc[0].replace('.0', '')}
-    # Metacritic score is only shown for movies for some reason
-    sc = findall('metacriticScore[^>]*>\n<span>(\d+)<', rq.text) # Get METACRITIC score
-    if len(sc) == 1: 
-        if int(sc[0]) > 80:    
-                rq = get('https://www.imdb.com/title/' + id + '/criticreviews')
-                if rq.status_code == 200:
-                    mc = findall('ratingCount">(\d+)<', rq.text)
-                    if len(mc) > 0 and int(mc[0]) > 14: # MTC must watch if ammount of ratings > 14 and rating > 80
-                        ret['certifications'] = ['MTC-MS']
-        ret['ratings']['MTC'] = {'icon': 'MTC-MS' if 'MTC-MS' in ret['certifications'] else 'MTC', 'value': str(int(mc[0]) / 10).replace('.0', '')} # Set MTC icon depending on score
-    return ret  
+    with open(ratingsFile, 'r') as f:
+        rt = findall(id + r'[^\S]([\d\.]+)[^\S](\d+)', f.read()) # \s dosnt work for some reason so \s = [^\S]
+        if len(rt) > 0 and int(rt[0][1]) > minRatings: return (("%.1f" % float(rt[0][0])).replace('.0', ''), rt[0][1])
+        else: return False
+
+def getEpisodesIMDBID(showID):
+    with open(episodesFile, 'r') as f:
+        return findall(r'(tt\d+)[^\S]' + showID + r'[^\S](\d+)[^\S](\d+)', f.read()) # ID, SeasonNumber, EpisodeNumber
