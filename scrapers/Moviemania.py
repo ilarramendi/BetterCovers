@@ -1,4 +1,3 @@
-from requests import get
 from re import findall
 import json
 from urllib.parse import quote

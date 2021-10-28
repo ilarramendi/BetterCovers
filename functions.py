@@ -1,7 +1,7 @@
 from glob import glob
 from re import findall, match
 from subprocess import call, getstatusoutput, DEVNULL
-from requests import get
+import requests
 from time import sleep
 from os import access, W_OK
 from os.path import exists, realpath, join
@@ -12,15 +12,17 @@ from urllib.parse import quote
 import json
 from scrapers.RottenTomatoes import getRTTVRatings, getRTMovieRatings, getRTSeasonRatings, getRTEpisodeRatings, searchRT
 import scrapers.IMDB
-from scrapers.Moviemania import getTextlessPosters, getTextlessPostersByName
+#from scrapers.Moviemania import getTextlessPosters
 from scrapers.letterboxd import searchLB, getLBRatings
 from scrapers.MetaCritic import getMetacriticScore
+from scrapers.Trakt import getTraktRating
 from scrapers.TVTime import *
 from math import sqrt
 from threading import Thread, Lock
 from exif import Image as exifImage
 from hashlib import md5
 from copy import deepcopy
+from random import random
 
 logLevel = 50
 
@@ -29,7 +31,7 @@ wkhtmltoimage = ''
 mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts'] # Type of extensions to look for media files
 workDirectory = ''
 minVotes = 3
-ratingsOrder = ['TMDB', 'IMDB', 'LB', 'RT', 'RTA', 'MTC', 'TVTime']
+ratingsOrder = ['TMDB', 'IMDB', 'Trakt', 'LB', 'RT', 'RTA', 'MTC', 'TVTime']
 mediainfoOrder = ['color', 'resolution', 'languages', 'codec', 'source']
 
 # Returns all media files inside a folder except for trailers
@@ -42,14 +44,14 @@ def getMediaFiles(folder):
 # Updates seasons and episodes from disk, adds new and removes missing
 def updateSeasons(metadata):
     sns = {}
-    for folder in glob(join(metadata['path'], '*')): # For all files inside tv show directory
+    for folder in glob(join(metadata['path'].translate({91: '[[]', 93: '[]]'}), '*')): # For all files inside tv show directory
         sn = findall('.*\/[Ss]eason[ ._-](\d{1,3})$', folder) # Gets season number
         if len(sn) == 1: # If its a season
             sn = int(sn[0])
             sns[sn] = { # Add to new seasons array
                 'URLS': {},
                 'type': 'season', 
-                'title': metadata['title'] + ' (S: ' + str(sn) + ')',
+                'title': metadata['title'] + ' (S:' + str(sn) + ')',
                 'ratings': {}, 
                 'path': folder,
                 'ids': {}, 
@@ -59,7 +61,7 @@ def updateSeasons(metadata):
             }
 
             eps = []
-            for ex in mediaExtensions: eps += glob(join(folder, '*.' + ex)) # Finds all media files inside season
+            for ex in mediaExtensions: eps += glob(join(folder.translate({91: '[[]', 93: '[]]'}), '*.' + ex)) # Finds all media files inside season
             for ep in eps: 
                 epn = findall('S0*' + str(sn) + 'E0*(\d+)', ep) 
                 if len(epn) == 1: # If its an episode from the same season
@@ -67,7 +69,7 @@ def updateSeasons(metadata):
                     sns[sn]['episodes'][epn] = { # Adds episode to season
                         'URLS': {},
                         'type': 'episode',
-                        'title': metadata['title'] + ' (S: ' + str(sn) + ' E: ' + str(epn).zfill(len(str(len(eps)))) + ')', # Fills with 0 acording to the maximum number of episodes (can fail with absolute numered episodes)    
+                        'title': metadata['title'] + ' (S:' + str(sn) + ' E:' + str(epn).zfill(len(str(len(eps)))) + ')', # Fills with 0 acording to the maximum number of episodes (can fail with absolute numered episodes)    
                         'ratings': {}, 
                         'path': ep,
                         'ids': {}, 
@@ -223,25 +225,26 @@ def getMetadata(metadata, omdbApi, tmdbApi, scraping, preferedImageLanguage):
             else: log('No need to update OMDB metadata for: ' + metadata['title'], 1, 4)
     
     # Gets textless posters from MOVIEMANIA
-    def _getMovieMania(): # TODO fix this or delete
-        if scraping['textlessPosters'] and 'TMDBID' in metadata['ids']:
-            if 'textlessPDate' not in metadata or checkDate(metadata['textlessPDate'], metadata['releaseDate']):
-                    posters = getTextlessPosters('https://www.moviemania.io/phone/movie/' + metadata['ids']['TMDBID'])
-                    if posters and len(posters) > 0: 
-                        metadata['cover'] = posters[0]
-                        metadata['textlessPDate'] = datetime.now().strftime("%d/%m/%Y")
-                    else: log('No textless poster found for: ' + name, 3, 3)
-            else: log('No need to update OMDB metadata for: ' + metadata['title'], 1, 4)
+    #
+    #def _getMovieMania(): # TODO fix this or delete
+    #    if scraping['textlessPosters'] and 'TMDBID' in metadata['ids']:
+    #        if 'textlessPDate' not in metadata or checkDate(metadata['textlessPDate'], metadata['releaseDate']):
+    #                posters = getTextlessPosters('https://www.moviemania.io/phone/movie/' + metadata['ids']['TMDBID'])
+    #                if posters and len(posters) > 0: 
+    #                    metadata['cover'] = posters[0]
+    #                    metadata['textlessPDate'] = datetime.now().strftime("%d/%m/%Y")
+    #                else: log('No textless poster found for: ' + name, 3, 3)
+    #        else: log('No need to update OMDB metadata for: ' + metadata['title'], 1, 4)
   
     # Get RT ratings, certifications and url for media and seasons if needed
     def _getRT():
         if scraping['RT']: 
             if 'RTDate' not in metadata or checkDate(metadata['RTDate'], metadata['releaseDate']):
                 start = time.time()
-                url = searchRT(metadata['type'], metadata['title'], metadata['year'])
+                url = searchRT(metadata['type'], metadata['title'], metadata['year'], get)
                 if url: # if roten tomatoes url is found
                     metadata['URLS']['RT'] = url
-                    rt = getRTMovieRatings(url) if metadata['type'] == 'movie' else getRTTVRatings(url)
+                    rt = getRTMovieRatings(url, get) if metadata['type'] == 'movie' else getRTTVRatings(url, get)
                     if rt['statusCode'] == 403: return log('Rotten tomatoes api limit reached!', 3, 0)
                     
                     for rating in rt['ratings']:
@@ -295,10 +298,10 @@ def getMetadata(metadata, omdbApi, tmdbApi, scraping, preferedImageLanguage):
     def _getLB():
         if metadata['type'] == 'movie' and scraping['LB']:
             if 'LBDate' not in metadata or checkDate(metadata['LBDate'], metadata['releaseDate']):
-                LB = searchLB(metadata['ids']['IMDBID'] if 'IMDBID' in metadata['ids'] else False, metadata['title'], metadata['year'])
+                LB = searchLB(metadata['ids']['IMDBID'] if 'IMDBID' in metadata['ids'] else False, metadata['title'], metadata['year'], get)
                 if LB: 
                     metadata['URLS']['LB'] = LB
-                    LB = getLBRatings(LB)
+                    LB = getLBRatings(LB, get)
                     if LB: 
                         metadata['ratings']['LB'] = LB
                         metadata['LBDate'] = datetime.now().strftime("%d/%m/%Y")
@@ -310,10 +313,10 @@ def getMetadata(metadata, omdbApi, tmdbApi, scraping, preferedImageLanguage):
     def _getTVTime():
         if metadata['type'] == 'tv' and scraping['TVTime']:
             start = time.time()
-            url = searchTVTime(metadata['title'])
+            url = searchTVTime(metadata['title'], get)
             if url:
                 metadata['URLS']['TVTime'] = url
-                data = getTVTimeEpisodes(url)
+                data = getTVTimeEpisodes(url, get)
                 if data:
                     if 'rating' in data: metadata['ratings']['TVTime'] = {'icon': 'TVTime', 'value': "{:.1f}".format(float(data['rating']))}
                     for season in data['seasons']:
@@ -326,12 +329,13 @@ def getMetadata(metadata, omdbApi, tmdbApi, scraping, preferedImageLanguage):
                 else: log('No results found in TVTime: ' + url, 2, 3)
             else: log('No result found in TVTime for: ' + metadata['title'], 1, 3)
     
+    # TODO do this for seasons and episodes?
     # Gets ratings from metaCritic
     def _getMetaCritic():
-        if scraping['MetaCritic']:
+        if scraping['MetaCritic'] and 'IMDBID' in metadata['ids']:
             if 'MTCDate' not in metadata or checkDate(metadata['MTCDate'], metadata['releaseDate']):
                 start = time.time()
-                sc = getMetacriticScore(metadata['ids']['IMDBID'])
+                sc = getMetacriticScore(metadata['ids']['IMDBID'], get)
                 if sc:
                     metadata['ratings']['MTC'] = {'icon': 'MTC-MS' if sc['MTC-MS'] else 'MTC', 'value': sc['rating']}
                     if sc['MTC-MS']:
@@ -343,11 +347,26 @@ def getMetadata(metadata, omdbApi, tmdbApi, scraping, preferedImageLanguage):
                     log('Finished getting MetaCritic ratings for: ' + metadata['title'] + ' in: ' + timediff(start), 1, 5)
                 else: log('Error getting MetaCritic ratings', 2, 3)
             else: log('No need to update MetaCritic metadata for: ' + metadata['title'], 1, 4)
+    
+    # Gets ratings from Trakt
+    def _getTrakt():
+        if scraping['Trakt']:
+            if 'TMDBID' in metadata['ids']:
+                if 'TraktDate' not in metadata or checkDate(metadata['TraktDate'], metadata['releaseDate']):
+                    start = time.time()
+                    rt = getTraktRating(metadata['ids']['TMDBID'], get)
+                    if rt:
+                        metadata['ratings']['Trakt'] = {'icon': 'Trakt', 'value': rt}
+                        metadata['TraktDate'] = datetime.now().strftime("%d/%m/%Y")
+                        log('Finished getting Trakt ratings for: ' + metadata['title'] + ' in: ' + timediff(start), 1, 5)
+                    else: log('Error getting Trakt ratings', 2, 3)
+                else: log('No need to update Trakt metadata for: ' + metadata['title'], 1, 4)
+    
     tsks = []
 
     _getTMDB() # Get general information first
 
-    for fn in [_getOMDB, _getMovieMania, _getRT, _getIMDB, _getLB, _getTVTime, _getMetaCritic]: # Starts rest of the tasks
+    for fn in [_getOMDB, _getRT, _getIMDB, _getLB, _getTVTime, _getMetaCritic, _getTrakt]: # Starts rest of the tasks
         tsks.append(Thread(target=fn, args=()))
         tsks[-1].start()
     for tsk in tsks: tsk.join() # Wait for tasks to finish
@@ -372,24 +391,22 @@ def log(text, type = 0, level = 2): # 0 = Success, 1 = Normal, 2 = Warning, 3 = 
 
 # returns a tuple of the name and year from file, if year its not found returns false in year
 def getName(folder):
-    fl = folder[:-1].rpartition('/')[2]
-    inf = findall("(?:([^(]+) \(?(\d{4})\)?)|(.+)", fl)
+    fl = (folder[:-1] if folder[-1] == '/' else folder).rpartition('/')[2]
+
+    inf = findall("(?:^([^(]+) \(?(\d{4})\)?)|(^[^[\(]+)", fl)
     if len(inf) == 1: 
         if inf[0][2] == '':
             return [inf[0][0].translate({'.': ' ', '_': ' '}), int(inf[0][1])]
         else: return [inf[0][2].translate({'.': ' ', '_': ' '}), False]
-    else: return [False, False]
+    else:
+        log('Name not found for: ' + fl, 3, 2)
+        return [False, False]
 
 #Makes a https request to a url and returns a JSON object if successfull
 def getJSON(url):
     response = get(url)
-    if response.status_code == 401: # API hit limit
-        log('Problem with api key!\n' +
-            'Server Response:\n' +
-            response.text,
-            1, 0)
-        exit() # TODO fix this because of threading
-    if response.status_code != 200 or 'application/json' not in response.headers.get('content-type'): # Wrong response from server
+
+    if 'application/json' not in response.headers.get('content-type'): # Wrong response from server
         log('Error connecting to: ' + url + '\nResponse Code: ' + str(response.status_code), 1, 1)
         log(response.text, 1, 3)
         return False
@@ -457,7 +474,7 @@ def getMediaInfo(metadata, defaultAudioLanguage, mediainfoUpdateInterval):
     return True
 
 # Returns all tasks for a given entry on the db (covers and backdrops)
-def generateTasks(type, metadata, overwrite, automatic, config, templates):
+def generateTasks(type, metadata, overwrite, config, templates):
     tsks = []
     img = metadata['path']  # Extract images from media file TODO fix image extraction
     if not(type in ['episode', 'backdrop'] and config['extractImage']):
@@ -519,22 +536,21 @@ def generateTasks(type, metadata, overwrite, automatic, config, templates):
             if pc['id'] not in config['productionCompanies']: tsk['productionCompanies'].append(pc)
         elif pc['id'] in config['productionCompanies']: tsk['productionCompanies'].append(pc)
 
-    if automatic: # Generate hash of task to compare with the previously generated image
-        tskCopy = deepcopy(tsk)
-        del tskCopy['out']
-        tskHash = md5(json.dumps(tskCopy, sort_keys=True).encode('utf8')).hexdigest()
+    
+    tskCopy = deepcopy(tsk) # Generate hash of task to compare with the previously generated image
+    del tskCopy['out']
+    tskHash = md5(json.dumps(tskCopy, sort_keys=True).encode('utf8')).hexdigest()
     # Add paths to for images to generate if file dosnt exist, overwrite or automatic and hash different
     path = metadata['path'] if metadata['type'] in ['season', 'tv'] else metadata['path'].rpartition('/')[0]
     name = metadata['path'].rpartition('/')[2] if metadata['type'] in ['season', 'tv'] else metadata['path'].rpartition('/')[2].rpartition('.')[0]
     for pt in [join(path, pt) for pt in config['output'].replace('$NAME', name).split(';')]:
         if not exists(pt) or overwrite: tsk['out'].append(pt)
-        elif automatic:
-            if tskHash != getHash(pt): tsk['out'].append(pt)
-            else: log('No need to update image in: "' + pt + '"', 1, 3)
-        else: log('Not overwriting any image for: ' + metadata['title'], 1, 3)
+        elif tskHash != getHash(pt): tsk['out'].append(pt)
+        else: log('No need to update image in: "' + pt + '"', 1, 3)
 
     if len(tsk['out']) > 0: tsks.append(tsk)
-    if type in ['movie', 'tv']: tsks.extend(generateTasks('backdrop', metadata, overwrite, automatic, config['backdrop'], templates))
+    if type in ['movie', 'tv']: tsks.extend(generateTasks('backdrop', metadata, overwrite, config['backdrop'], templates))
+    
     return tsks
 
 # Returns what html template should be used
@@ -628,8 +644,8 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
                                 season['episodes'][int(ep['episode_number'])]['ratings']['TMDB'] = {'icon': 'TMDB', 'value': "{:.1f}".format(float(ep['vote_average']))}
                                 rts.append(float(ep['vote_average']))
                             if 'id' in ep: 
-                                season['episodes'][int(ep['episode_number'])]['ids']['TMDBID'] = ep['id']
-                            if 'air_date' in ep:
+                                season['episodes'][int(ep['episode_number'])]['ids']['TMDBID'] = str(ep['id'])
+                            if 'air_date' in ep and ep['air_date'] != '':
                                 season['episodes'][int(ep['episode_number'])]['releaseDate'] = datetime.strptime(ep['air_date'], '%Y-%m-%d').strftime("%d/%m/%Y")
                         # Set season rating as avergage of all episodes ratings
                         if len(rts) > 0: season['ratings']['TMDB'] = {'icon': 'TMDB', 'value': avg(rts)}
@@ -672,7 +688,7 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
         start = time.time()
         if 'RT' in season['URLS']:
             if 'RTDate' not in season or checkDate(season['RTDate'], season['releaseDate']):
-                RT = getRTSeasonRatings(season['URLS']['RT'])
+                RT = getRTSeasonRatings(season['URLS']['RT'], get)
                 
                 if RT['epStatusCode'] == 200: # Get episodes urls and ratings
                     success = False
@@ -684,7 +700,7 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
                     for ep in season['episodes']:
                         if 'RT' in season['episodes'][ep]['URLS']:
                             start2 = time.time()
-                            RTE = getRTEpisodeRatings(season['episodes'][ep]['URLS']['RT'])
+                            RTE = getRTEpisodeRatings(season['episodes'][ep]['URLS']['RT'], get)
                             if RTE['statusCode'] == 401:
                                 log('Rotten Tomatoes limit reached!', 3, 1)
                                 break
@@ -724,7 +740,7 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
             for episode in season['episodes']:
                 if 'TVTime' in season['episodes'][episode]['URLS']:
                     start2 = time.time()
-                    rating = getTVTimeEpisodeRating(season['episodes'][episode]['URLS']['TVTime'])
+                    rating = getTVTimeEpisodeRating(season['episodes'][episode]['URLS']['TVTime'], get)
                     if rating:
                         season['episodes'][episode]['ratings']['TVTime'] = {'icon': 'TVTime', 'value': rating}
                         rts.append(float(rating))
@@ -738,8 +754,34 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
             else: log('Error getting TVTime metadata for: ' + season['title'], 2, 3)
         else: log('No need to update TVTime metadata for: ' + season['title'], 1, 4)
     
+    # Gets ratings from Trakt
+    def _getTrakt():
+        if 'TMDBID' in season['ids']:
+            if 'TraktDate' not in season or checkDate(season['TraktDate'], season['releaseDate']):
+                start = time.time()
+                rt = getTraktRating(season['ids']['TMDBID'])
+                if rt:
+                    season['ratings']['Trakt'] = {'icon': 'Trakt', 'value': rt}
+                    season['TraktDate'] = datetime.now().strftime("%d/%m/%Y")
+                    log('Found rating in Trakt for ' + season['title'] + ': ' + rt + ' in: ' + timediff(start), 0, 4)
+                else: log('Error getting Trakt ratings', 2, 3)
+            else: log('No need to update Trakt metadata for: ' + season['title'], 1, 4)
+        
+        for ep in season['episodes']:
+            eps = season['episodes'][ep]
+            if 'TMDBID' in eps['ids']:
+                if 'TraktDate' not in eps or checkDate(eps['TraktDate'], season['releaseDate']):
+                    start = time.time()
+                    rt = getTraktRating(eps['ids']['TMDBID'])
+                    if rt:
+                        eps['ratings']['Trakt'] = {'icon': 'Trakt', 'value': rt}
+                        eps['TraktDate'] = datetime.now().strftime("%d/%m/%Y")
+                        log('Found rating in Trakt for ' + eps['title'] + ': ' + rt + ' in: ' + timediff(start), 0, 4)
+                    else: log('Error getting Trakt ratings', 2, 3)
+                else: log('No need to update Trakt metadata for: ' + eps['title'], 1, 4)
+        
     tsks = []
-    for fn in [_getTMDB, _getOMDB, _getRT, _getTVTime]:
+    for fn in [_getTMDB, _getOMDB, _getRT, _getTVTime, _getTrakt]:
         tsks.append(Thread(target=fn, args=()))
         tsks[-1].start()
     for tsk in tsks: tsk.join()
@@ -887,6 +929,35 @@ def scannFolder(folder):
         metadata['ids']['TMDBID'] = tmdbid[0]
 
     return metadata
+
+# Custom requests.get implementation with progressive random delay, retries and error catching
+def get(url, headers = {}):
+    ret = {}
+    site = url.split('/')[2]
+    delay = 0 
+    n = 0
+    while n < 3:
+        try:
+            rq = requests.get(url, headers=headers)
+            if rq.status_code == 200: return rq
+            elif rq.status_code == 401:
+                log('Api limit reached for: ' + site, 3, 2)
+                return rq
+            elif rq.status_code == 404:
+                log('Resource not found in: ' + url, 2, 3)
+                return rq
+            else: log('Error accessing ' + site + ' (' + str(rq.status_code) + '), retrying.')
+        except requests.exceptions.ConnectionError:
+            ret['status_code'] = 401
+            log('Too many requests to: ' + site + ', try lowering amount of workers!', 3, 1)
+        except: 
+            log('Unknown error trying to access: ' + url, 3, 0)
+            ret['status_code'] = 777
+        
+        delay += 2 + random() * 3 # 2 to 5 seconds
+        n += 1
+    return ret
+
 
 
 

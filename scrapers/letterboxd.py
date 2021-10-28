@@ -1,10 +1,9 @@
-from requests import get
 from re import findall
 import json
 
 BASE_URL = 'https://letterboxd.com' 
 
-def searchLB(IMDBID, title, year):
+def searchLB(IMDBID, title, year, get):
     rq = get(BASE_URL + '/search/' + (IMDBID if IMDBID else title.lower().replace(' ', '+')))
     if rq.status_code == 200:
         for movie in findall('film-title-wrapper">[^>]*"(\/film\/[^"]+)">([^<]+)<[^<]+<[^<]+>([\d\.]+)', rq.text):
@@ -15,7 +14,7 @@ def searchLB(IMDBID, title, year):
 
     return False
 
-def getLBRatings(url):
+def getLBRatings(url, get):
     rq = get(BASE_URL + '/csi' + url + 'rating-histogram/')
     if rq.status_code == 200:
         rt = findall('Weighted average of ([\d\.]+)', rq.text)

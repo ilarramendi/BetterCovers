@@ -1,4 +1,3 @@
-from requests import get
 import json
 from re import findall
 from urllib.parse import quote
@@ -8,26 +7,24 @@ SEARCH_URL = 'https://www.rottentomatoes.com/api/private/v2.0/search?q='
 BASE_URL = 'https://www.rottentomatoes.com'
 
 # Searches in rottentomatoes by title and returns an url
-def searchRT(type, title, year):
+def searchRT(type, title, year, get):
+    rq = get(SEARCH_URL + title.lower().replace(' ', '+'))
+    sleep(2) # RT gets angry
+    if rq.status_code != 200: return False
     try:
-        rq = get(SEARCH_URL + title.lower().replace(' ', '+'))
-        sleep(2) # RT gets angry
-        if rq.status_code != 200: return False
-        try:
-            rs = rq.json()
-        except:
-            return False  
-        dictType = {'movie': 'movies', 'tv': 'tvSeries'}
-        dictTitle = {'movie': 'name', 'tv': 'title'}
-        dictYear = {'movie': 'year', 'tv': 'startYear'}
-        dictUrl = {'movie': 'm', 'tv': 'tv'}
+        rs = rq.json()
+    except:
+        return False  
+    dictType = {'movie': 'movies', 'tv': 'tvSeries'}
+    dictTitle = {'movie': 'name', 'tv': 'title'}
+    dictYear = {'movie': 'year', 'tv': 'startYear'}
+    dictUrl = {'movie': 'm', 'tv': 'tv'}
 
-        if dictType[type] in rs:
-            for mv in rs[dictType[type]]:
-                if title.lower() == mv[dictTitle[type]].lower() and (not year or not mv[dictYear[type]] or abs(year - mv[dictYear[type]]) <= 1):
-                    rt = findall('\/' + dictUrl[type] + '\/[^/]+', mv['url'])
-                    if len(rt) == 1: return rt[0]
-    except: pass
+    if dictType[type] in rs:
+        for mv in rs[dictType[type]]:
+            if title.lower() == mv[dictTitle[type]].lower() and (not year or not mv[dictYear[type]] or abs(year - mv[dictYear[type]]) <= 1):
+                rt = findall('\/' + dictUrl[type] + '\/[^/]+', mv['url'])
+                if len(rt) == 1: return rt[0]
     
     return False
 
@@ -45,10 +42,10 @@ def _parseTvRatings(text):
     return res
 
 # Scraps ratings for show and gets seasons urls
-def getRTTVRatings(url):
+def getRTTVRatings(url, get):
     rq = get(BASE_URL + url)
     res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code, 'seasons': {}}
-    sleep(2) # RT gets angry
+    sleep(1) # RT gets angry
     if rq.status_code != 200: return res
     
     tmp = _parseTvRatings(rq.text)
@@ -60,52 +57,43 @@ def getRTTVRatings(url):
     
     return res
 
-def getRTSeasonRatings(url):
+def getRTSeasonRatings(url, get):
     ret = {}
-    try:
-        rq = get(BASE_URL + url)
-        ret['statusCode'] = rq.status_code
+    rq = get(BASE_URL + url)
+    ret['statusCode'] = rq.status_code
 
-        if rq.status_code == 200:
-            rt = _parseTvRatings(rq.text)
-            ret['ratings'] = rt['ratings']
-            ret['certifications'] = rt['certifications']
-    except: return {'statusCode': 401, 'epStatusCode': 401}
+    if ret['statusCode'] == 200:
+        rt = _parseTvRatings(rq.text)
+        ret['ratings'] = rt['ratings']
+        ret['certifications'] = rt['certifications']
     
-    try:
-        rq = get(BASE_URL + '/napi' + url + '/episodes')
-        ret['epStatusCode'] = rq.status_code
-        if rq.status_code == 200:
-            ret['episodes'] = [(int(ep['episodeNumber']), url + '/' + ep['vanityUrl'].rpartition('/')[2]) for ep in json.loads(rq.text)]
-    except: ret['epStatusCode'] = 401
+    rq = get(BASE_URL + '/napi' + url + '/episodes')
+    ret['epStatusCode'] = rq.status_code
+    if ret['epStatusCode'] == 200:
+        ret['episodes'] = [(int(ep['episodeNumber']), url + '/' + ep['vanityUrl'].rpartition('/')[2]) for ep in json.loads(rq.text)]
 
     return ret
 
-def getRTEpisodeRatings(url):
-    try:
-        rq = get(BASE_URL + url)
-        sleep(3) # RT gets angry
-        return {'statusCode': rq.status_code, 'ratings': _parseTvRatings(rq.text)['ratings'] if rq.status_code == 200 else {}}
-    except: return {'statusCode': 401}
+def getRTEpisodeRatings(url, get):
+    rq = get(BASE_URL + url)
+    sleep(1) # RT gets angry
+    return {'statusCode': rq.status_code, 'ratings': _parseTvRatings(rq.text)['ratings'] if rq.status_code == 200 else {}}
 
-def getRTMovieRatings(url):
-    try:
-        rq = get(BASE_URL + url)
-        res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code}
-        sleep(2) # RT gets angry
-        if rq.status_code != 200: return res
-        sc = findall('<score-board[^>]*>', rq.text)
-        if len(sc) == 0: return res
-        
-        if 'certified-fresh' in sc[0]: res['certifications'] = ['RT-CF'] # Certified fresh
+def getRTMovieRatings(url, get):
+    rq = get(BASE_URL + url)
+    res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code}
+    sleep(1) # RT gets angry
+    if rq.status_code != 200: return res
+    sc = findall('<score-board[^>]*>', rq.text)
+    if len(sc) == 0: return res
+    
+    if 'certified-fresh' in sc[0]: res['certifications'] = ['RT-CF'] # Certified fresh
 
-        rt = findall('tomatometerscore="(\d+)"', sc[0])
-        # Sets icon to RT-CF, RT, or RT-LS acording to value
-        if len(rt) == 1: 
-            res['ratings']['RT'] = {'icon': 'RT-CF' if len(res['certifications']) > 0 else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': str(float(rt[0]) / 10).replace('.0', '')}
-        rta = findall('audiencescore="(\d+)"', sc[0])
-        if len(rta) == 1: 
-            res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': str(float(rta[0]) / 10).replace('.0', '')} 
-        return res
-    except: 
-        return {'statusCode': 401}
+    rt = findall('tomatometerscore="(\d+)"', sc[0])
+    # Sets icon to RT-CF, RT, or RT-LS acording to value
+    if len(rt) == 1: 
+        res['ratings']['RT'] = {'icon': 'RT-CF' if len(res['certifications']) > 0 else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': str(float(rt[0]) / 10).replace('.0', '')}
+    rta = findall('audiencescore="(\d+)"', sc[0])
+    if len(rta) == 1: 
+        res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': str(float(rta[0]) / 10).replace('.0', '')} 
+    return res

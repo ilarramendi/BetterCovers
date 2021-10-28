@@ -32,7 +32,7 @@
               "RT": true,
               "RTA": true,
               "TVTime": true,
-              "LB": false
+              "Trakt": true
          },
          "ageRatings": {
               "NC-17": false,
@@ -85,6 +85,7 @@
               "RT": true,
               "RTA": true,
               "TVTime": true,
+              "Trakt": true,
               "LB": true
          },
          "ageRatings": {
@@ -136,6 +137,7 @@
                    "RT": true,
                    "RTA": true,
                    "TVTime": true,
+                   "Trakt": true,
                    "LB": true
               },
               "ageRatings": {
@@ -191,6 +193,7 @@
               "RT": true,
               "RTA": true,
               "TVTime": true,
+              "Trakt": true,
               "LB": false
          },
          "ageRatings": {
@@ -242,6 +245,7 @@
                    "RT": true,
                    "RTA": true,
                    "TVTime": true,
+                   "Trakt": true,
                    "LB": true
               },
               "ageRatings": {
@@ -297,6 +301,7 @@
               "RT": true,
               "RTA": true,
               "TVTime": true,
+              "Trakt": true,
               "LB": false
          },
          "ageRatings": {
@@ -348,6 +353,7 @@
                    "RT": true,
                    "RTA": true,
                    "TVTime": true,
+                   "Trakt": true,
                    "LB": true
               },
               "ageRatings": {

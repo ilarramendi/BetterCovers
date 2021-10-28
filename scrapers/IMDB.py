@@ -1,4 +1,3 @@
-from requests import get
 from re import findall
 import json
 from os.path import exists, realpath, join
@@ -12,7 +11,7 @@ ratingsFile = ''
 episodesFile = ''
 
 # Downloads if necesary new dataset and sets its path for functions below
-def updateDataset(wd, ratingsUpdateInterval, episodesUpdateInterval):
+def updateIMDBDataset(wd, ratingsUpdateInterval, episodesUpdateInterval, get):
     global ratingsFile, episodesFile
     rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs')) # WD is always an absolute path
     if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > ratingsUpdateInterval:

@@ -47,7 +47,6 @@ pt = argv[1]
 folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [pt] # if its a single folder dont use glob
 threads = 20 if '-w' not in argv else int(argv[argv.index('-w') + 1])
 processing = True
-automaticOverwrite = '-a' in argv
 overwrite = '-o' in argv
 workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 1])
 functions.workDirectory = workDirectory
@@ -138,12 +137,12 @@ def processFolder(folder):
         metadata['mediainfo'] = functions.getParentMediainfo(metadata['seasons'])
 
     # Generate tasks
-    generatedTasks = functions.generateTasks(metadata['type'], metadata, overwrite, automaticOverwrite, covers[metadata['type']], config['templates'])
+    generatedTasks = functions.generateTasks(metadata['type'], metadata, overwrite, covers[metadata['type']], config['templates'])
     if metadata['type'] == 'tv':
         for sn in metadata['seasons']: # Generate tasks for each season/episode
-            generatedTasks += functions.generateTasks('season', metadata['seasons'][sn], overwrite, automaticOverwrite, covers['season'], config['templates'])
+            generatedTasks += functions.generateTasks('season', metadata['seasons'][sn], overwrite, covers['season'], config['templates'])
             for ep in metadata['seasons'][sn]['episodes']:
-                generatedTasks += functions.generateTasks('episode', metadata['seasons'][sn]['episodes'][ep], overwrite, automaticOverwrite, covers['episode'], config['templates'])
+                generatedTasks += functions.generateTasks('episode', metadata['seasons'][sn]['episodes'][ep], overwrite, covers['episode'], config['templates'])
     
     # Added lock to prevent problems with accessing the same variable from different threads, this was never a problem tho
     with tasksLock: 
@@ -219,7 +218,7 @@ for dp in [d for d in ['wkhtmltox','ffmpeg'] if d]:
 functions.wkhtmltoimage = config['wkhtmltoimagePath']
 
 # Updates IMDB datasets
-if config['scraping']['IMDB']: functions.scrapers.IMDB.updateDataset(workDirectory, 10, 10)
+if config['scraping']['IMDB']: functions.scrapers.IMDB.updateIMDBDataset(workDirectory, 10, 10, functions.get)
 
 
 

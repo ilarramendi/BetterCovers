@@ -13,7 +13,8 @@
           "textlessPosters": false,
           "LB": true,
           "TVTime": true,
-          "MetaCritic": true
+          "MetaCritic": true,
+          "Trakt": true
      },
      "defaultAudioLanguage": "ENG",
      "mediainfoUpdateInterval": 14,
@@ -21,7 +22,7 @@
      "IMDBRatingsUpdateInterval": 14,
      "preferedImageLanguage": "en-US",
      "wkhtmltoimagePath": "/usr/bin/wkhtmltoimage",
-     "ratingsOrder": ["TMDB", "IMDB", "LB", "RT", "RTA", "MTC", "TVTime"],
+     "ratingsOrder": ["TMDB", "IMDB", "Trakt", "LB", "RT", "RTA", "MTC", "TVTime"],
      "mediainfoOrder": ["color", "resolution", "languages", "codec", "source"],
      "templates": [
           {
