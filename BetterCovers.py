@@ -174,16 +174,16 @@ if exists(join(workDirectory, 'config.json')):
         with open(cfg, 'r') as js:
             config = json.load(js)
             if 'version' not in config or config['version'] != configVersion:
-                log('Wrong version of config file, please update!', 1, 0)
+                functions.log('Wrong version of config file, please update!', 1, 0)
                 exit()
             # Load order for ratings and mediainfo, TODO change this to a setting in each image
             functions.ratingsOrder = config['ratingsOrder']
             functions.mediainfoOrder = config['mediainfoOrder']
     except:
-        log('Error loading config file from: ' + cfg, 1, 0)
+        functions.log('Error loading config file from: ' + cfg, 1, 0)
         exit()
 else:
-    log('Missing config.json inside work directory', 1, 0)
+    functions.log('Missing config.json inside work directory', 1, 0)
     exit()
 
 # Loads covers configuration file
@@ -193,25 +193,25 @@ if exists(join(workDirectory, 'covers.json')):
         with open(cvr, 'r') as js:
             covers = json.load(js)
             if 'version' not in covers or covers['version'] != configVersion:
-                log('Wrong version of covers file, please update!', 1, 0)
+                functions.log('Wrong version of covers file, please update!', 1, 0)
                 exit()
     except:
-        log('Error loading covers file from: ' + cvr, 1, 0)
+        functions.log('Error loading covers file from: ' + cvr, 1, 0)
         exit()
 else:
-    log('Missing cover.json inside work directory', 1, 0)
+    functions.log('Missing cover.json inside work directory', 1, 0)
     exit()
 
 # Check for TMDB api key
 if config['tmdbApi'] == '':
-    log('TMDB api key is needed to run. (WHY DID YOU REMOVE IT?!?!)', 1, 0)
+    functions.log('TMDB api key is needed to run. (WHY DID YOU REMOVE IT?!?!)', 1, 0)
     exit() 
 
 # Check Dependencies
 for dp in [d for d in ['wkhtmltox','ffmpeg'] if d]:
     cl = getstatusoutput('apt-cache policy ' + dp)[1] # TODO fix this for windows
     if 'Installed: (none)' in cl:
-        log(dp + ' is not installed', 1, 0)
+        functions.log(dp + ' is not installed', 1, 0)
         exit()
 
 # Set path to wkhtmltoimage
