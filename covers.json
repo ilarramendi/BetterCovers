@@ -40,7 +40,7 @@
               "PG-13": false,
               "PG": false,
               "G": false,
-              "NR": true
+              "NR": false
          },
          "certifications": {
               "RT-CF": true,
@@ -94,7 +94,7 @@
               "PG-13": true,
               "PG": true,
               "G": true,
-              "NR": true
+              "NR": false
          },
          "certifications": {
               "RT-CF": true,
@@ -146,10 +146,10 @@
                    "PG-13": false,
                    "PG": false,
                    "G": false,
-                   "NR": true
+                   "NR": false
               },
               "certifications": {
-                   "RT-CF": false,
+                   "RT-CF": true,
                    "MTC-MS": true
               },
               "useExistingImage": false,
@@ -202,7 +202,7 @@
               "PG-13": false,
               "PG": false,
               "G": false,
-              "NR": true
+              "NR": false
          },
          "certifications": {
               "RT-CF": true,
@@ -254,10 +254,10 @@
                    "PG-13": false,
                    "PG": false,
                    "G": false,
-                   "NR": true
+                   "NR": false
               },
               "certifications": {
-                   "RT-CF": false,
+                   "RT-CF": true,
                    "MTC-MS": true
               },
               "useExistingImage": false,
@@ -310,7 +310,7 @@
               "PG-13": false,
               "PG": false,
               "G": false,
-              "NR": true
+              "NR": false
          },
          "certifications": {
               "RT-CF": true,
@@ -362,10 +362,10 @@
                    "PG-13": false,
                    "PG": false,
                    "G": false,
-                   "NR": true
+                   "NR": false
               },
               "certifications": {
-                   "RT-CF": false,
+                   "RT-CF": true,
                    "MTC-MS": true
               },
               "useExistingImage": false,

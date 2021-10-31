@@ -9,7 +9,7 @@ from math import sqrt
 from os import W_OK, access
 from os.path import exists, join, realpath
 from random import random
-from re import findall, match
+from re import findall, match, escape
 from subprocess import DEVNULL, call, getstatusoutput
 from threading import Lock, Thread
 from time import sleep
@@ -377,17 +377,16 @@ def getMetadata(metadata, omdbApi, tmdbApi, scraping, preferedImageLanguage):
     
     # Gets ratings from Trakt
     def _getTrakt():
-        if scraping['Trakt']:
-            if 'TMDBID' in metadata['ids']:
-                if 'TraktDate' not in metadata or checkDate(metadata['TraktDate'], metadata['releaseDate']):
-                    start = time.time()
-                    rt = getTraktRating(metadata['ids']['TMDBID'], get)
-                    if rt:
-                        metadata['ratings']['Trakt'] = {'icon': 'Trakt', 'value': rt}
-                        metadata['TraktDate'] = datetime.now().strftime("%d/%m/%Y")
-                        log('Finished getting Trakt ratings for: ' + metadata['title'] + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting Trakt ratings for: ' + metadata['title'], 2, 4)
-                else: log('No need to update Trakt metadata for: ' + metadata['title'], 1, 3)
+        if scraping['Trakt'] and 'TMDBID' in metadata['ids']:
+            if 'TraktDate' not in metadata or checkDate(metadata['TraktDate'], metadata['releaseDate']):
+                start = time.time()
+                rt = getTraktRating(metadata['ids']['TMDBID'], get)
+                if rt:
+                    metadata['ratings']['Trakt'] = {'icon': 'Trakt', 'value': rt}
+                    metadata['TraktDate'] = datetime.now().strftime("%d/%m/%Y")
+                    log('Finished getting Trakt ratings for: ' + metadata['title'] + ' in: ' + timediff(start), 1, 3)
+                else: log('Error getting Trakt ratings for: ' + metadata['title'], 2, 4)
+            else: log('No need to update Trakt metadata for: ' + metadata['title'], 1, 3)
     
     tsks = []
 
@@ -411,10 +410,9 @@ def getUpdateInterval(releaseDate):
 # Logs to file and STDOUT with a specific level and color
 def log(text, type, level): # 0 = Success, 1 = Normal, 2 = Warning, 3 = Error
     if level <= logLevel:
-        with logLock:
-            print((datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") if logLevel > 2 else '') + ['\033[92m', '\033[37m', '\033[93m', '\033[91m'][type] + text + '\033[0m')
-            with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
-                log.write('[' + ['Info   ', 'Error  ', 'Success', 'Warning'][type] + datetime.now().strftime("][%m/%d/%Y %H:%M:%S] --> ") + text + '\n')
+        print((datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") if logLevel > 2 else '') + ['\033[92m', '\033[37m', '\033[93m', '\033[91m'][type] + text + '\033[0m')
+        with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
+            log.write('[' + ['Info   ', 'Error  ', 'Success', 'Warning'][type] + datetime.now().strftime("][%m/%d/%Y %H:%M:%S] --> ") + text + '\n')
 
 # returns a tuple of the name and year from file, if year its not found returns false in year
 def getName(folder):
@@ -443,14 +441,19 @@ def getJSON(url, headers = {}):
 def getMediaInfo(metadata, defaultAudioLanguage, mediainfoUpdateInterval):
     if 'mediainfoDate' not in metadata or (datetime.now() - datetime.strptime(metadata['mediainfoDate'], '%d/%m/%Y')) > timedelta(days=mediainfoUpdateInterval):
         if 'mediainfo' not in metadata: metadata['mediainfo'] = {'languages': []}
-        out = getstatusoutput('ffprobe "' + metadata['path'] + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet')
-        out2 = getstatusoutput('ffprobe "' + metadata['path'] + '" -show_streams -v quiet')
+        # TODO Add extra characters that have problems here
+        cmd = 'ffprobe "' + metadata['path'].translate({36: '\$'}) + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet'
+        cmd2 = 'ffprobe "' + metadata['path'].translate({36: '\$'}) + '" -show_streams -v quiet'
+        print(cmd)
+        out = getstatusoutput(cmd)
+        out2 = getstatusoutput(cmd2)
         
         # Source
         nm = metadata['path'].lower()
         metadata['mediainfo']['source'] = 'BR' if ('bluray' in nm or 'bdremux' in nm) else 'DVD' if 'dvd' in nm else 'WEBRIP' if 'webrip' in nm else 'WEBDL' if 'web-dl' in nm else 'UNKNOWN'
 
-        if out[0] != 0: return log('Error getting media info for: "' + metadata['title'] + '", exit code: ' + str(out[0]), 3, 1)
+        if out[0] != 0: return log('Error getting media info for: "' + metadata['title'] + '", exit code: ' + str(out[0]) + '\n Command: ' + cmd, 3, 1)
+        if out2[0] != 0: return log('Error getting media info for: "' + metadata['title'] + '", exit code: ' + str(out2[0]) + '\n Command: ' + cmd2, 3, 1)
              
         
         # Get first video track
@@ -464,7 +467,7 @@ def getMediaInfo(metadata, defaultAudioLanguage, mediainfoUpdateInterval):
         if not video: return log('Error getting media info, no video tracks found for: ' + metadata['title'], 3, 1)
         
         # Color space (HDR or SDR)
-        metadata['mediainfo']['color'] = 'HDR' if out2[0] == 0 and 'bt2020' in out2[1] else 'SDR'
+        metadata['mediainfo']['color'] = 'HDR' if 'bt2020' in out2[1] else 'SDR'
         
         # Resolution
         metadata['mediainfo']['resolution'] = 'UHD' if video['width'] >= 3840 else 'QHD' if video['width'] >= 2560 else 'HD' if video['width'] >= 1920 else 'SD'
@@ -565,7 +568,7 @@ def generateTasks(type, metadata, overwrite, config, templates):
     for pt in [join(path, pt) for pt in config['output'].replace('$NAME', name).split(';')]:
         if not exists(pt) or overwrite: tsk['out'].append(pt)
         elif tskHash != getHash(pt): tsk['out'].append(pt)
-        else: log('No need to update image in: "' + pt + '"', 1, 2)
+        else: log('No need to update image in: "' + pt + '"', 1, 3)
 
     if len(tsk['out']) > 0: tsks.append(tsk)
     if type in ['movie', 'tv']: tsks.extend(generateTasks('backdrop', metadata, overwrite, config['backdrop'], templates))

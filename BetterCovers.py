@@ -32,6 +32,8 @@ from requests import post
 # TODO fix all scraperDate update
 # TODO instead of having scraperDate change to next update day
 # TODO fix date in container
+# TODO Fix templates, ratings getting too cramed
+# TODO Allow the script to be killed with CTRL + C
 
 # region parameters
 # Check parameters
@@ -120,7 +122,7 @@ def processTasks():
 def processFolder(folder):
     start = time.time()
     metadata = db[folder] if folder in db else functions.scannFolder(folder)  # Get existing metadata or get metadata from folder
-    functions.log('Processing: ' + metadata['title'], 1, 2)
+    functions.log('Processing: ' + metadata['title'], 0, 2)
     if metadata['type'] == 'tv': # Update seasons and episodes from disk
         if not functions.updateSeasons(metadata):
             functions.log('No seasons found for: ' + metadata['title'] + ', is this a TV show?', 3, 1)
@@ -157,7 +159,7 @@ def processFolder(folder):
             global tasks, tasksLength
             tasks.extend(generatedTasks) # Extend SHOULD be thread safe anyway
             tasksLength += len(generatedTasks)
-        
+
     functions.log('Finished getting metadata for: ' + metadata['title'] + ((', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start)) if not dry else ''), 0, 2)
     
     db[folder] = metadata # Update metadata in database
