@@ -44,7 +44,7 @@ def updateIMDBDataset(wd, ratingsUpdateInterval, episodesUpdateInterval, get):
 def getIMDBRating(id):
     with open(ratingsFile, 'r') as f:
         rt = findall(id + r'[^\S]([\d\.]+)[^\S](\d+)', f.read()) # \s dosnt work for some reason so \s = [^\S]
-        if len(rt) > 0 and int(rt[0][1]) > minRatings: return (("%.1f" % float(rt[0][0])).replace('.0', ''), rt[0][1])
+        if len(rt) > 0 and int(rt[0][1]) > minRatings: return ("%.1f" % float(rt[0][0]), rt[0][1])
         else: return False
 
 def getEpisodesIMDBID(showID):

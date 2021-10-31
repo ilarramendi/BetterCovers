@@ -5,7 +5,7 @@
               "color": {
                    "UHD-HDR": true,
                    "HDR": true,
-                   "SDR": true
+                   "SDR": false
               },
               "resolution": {
                    "UHD": true,
@@ -47,7 +47,7 @@
               "MTC-MS": true
          },
          "productionCompanies": [],
-         "productionCompaniesBlacklist": true,
+         "productionCompaniesBlacklist": false,
          "usePercentage": false,
          "output": "$NAME.jpg",
          "extractImage": false,
@@ -102,7 +102,7 @@
          },
          "useExistingImage": false,
          "productionCompanies": [],
-         "productionCompaniesBlacklist": true,
+         "productionCompaniesBlacklist": false,
          "usePercentage": false,
          "output": "folder.jpg",
          "backdrop": {
@@ -110,7 +110,7 @@
                    "color": {
                         "UHD-HDR": true,
                         "HDR": true,
-                        "SDR": true
+                        "SDR": false
                    },
                    "resolution": {
                         "UHD": true,
@@ -156,7 +156,7 @@
               "usePercentage": false,
               "extractImage": false,
               "productionCompanies": [],
-              "productionCompaniesBlacklist": true,
+              "productionCompaniesBlacklist": false,
               "output": "thumb.jpg;backdrop.jpg",
               "generateImages": false
          }
@@ -166,7 +166,7 @@
               "color": {
                    "UHD-HDR": true,
                    "HDR": true,
-                   "SDR": true
+                   "SDR": false
               },
               "resolution": {
                    "UHD": true,
@@ -211,14 +211,14 @@
          "useExistingImage": false,
          "usePercentage": false,
          "productionCompanies": [],
-         "productionCompaniesBlacklist": true,
+         "productionCompaniesBlacklist": false,
          "output": "folder.jpg",
          "backdrop": {
               "mediainfo": {
                    "color": {
                         "UHD-HDR": true,
                         "HDR": true,
-                        "SDR": true
+                        "SDR": false
                    },
                    "resolution": {
                         "UHD": true,
@@ -264,7 +264,7 @@
               "usePercentage": false,
               "extractImage": false,
               "productionCompanies": [],
-              "productionCompaniesBlacklist": true,
+              "productionCompaniesBlacklist": false,
               "output": "thumb.jpg;backdrop.jpg",
               "generateImages": false
          }
@@ -274,7 +274,7 @@
               "color": {
                    "UHD-HDR": true,
                    "HDR": true,
-                   "SDR": true
+                   "SDR": false
               },
               "resolution": {
                    "UHD": true,
@@ -319,14 +319,14 @@
          "useExistingImage": false,
          "usePercentage": false,
          "productionCompanies": [],
-         "productionCompaniesBlacklist": true,
+         "productionCompaniesBlacklist": false,
          "output": "folder.jpg",
          "backdrop": {
               "mediainfo": {
                    "color": {
                         "UHD-HDR": true,
                         "HDR": true,
-                        "SDR": true
+                        "SDR": false
                    },
                    "resolution": {
                         "UHD": true,
@@ -372,7 +372,7 @@
               "usePercentage": false,
               "extractImage": false,
               "productionCompanies": [],
-              "productionCompaniesBlacklist": true,
+              "productionCompaniesBlacklist": false,
               "output": "thumb.jpg;backdrop.jpg",
               "generateImages": false
          }

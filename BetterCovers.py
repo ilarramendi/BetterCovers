@@ -27,6 +27,11 @@ from requests import post
 # TODO change h264 icon
 # TODO images cache not working
 # TODO Get different ratings from metacritics
+# TODO find why the script runs slower inside docker container
+# TODO pass scrapping enabled/disabled to getSeasons
+# TODO fix all scraperDate update
+# TODO instead of having scraperDate change to next update day
+# TODO fix date in container
 
 # region parameters
 # Check parameters
@@ -51,6 +56,7 @@ overwrite = '-o' in argv
 workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 1])
 functions.workDirectory = workDirectory
 functions.logLevel = 2 if '--log-level' not in argv else int(argv[argv.index('--log-level') + 1]) 
+dry = '--dry' in argv
 # endregion
 
 
@@ -114,6 +120,7 @@ def processTasks():
 def processFolder(folder):
     start = time.time()
     metadata = db[folder] if folder in db else functions.scannFolder(folder)  # Get existing metadata or get metadata from folder
+    functions.log('Processing: ' + metadata['title'], 1, 2)
     if metadata['type'] == 'tv': # Update seasons and episodes from disk
         if not functions.updateSeasons(metadata):
             functions.log('No seasons found for: ' + metadata['title'] + ', is this a TV show?', 3, 1)
@@ -137,35 +144,38 @@ def processFolder(folder):
         metadata['mediainfo'] = functions.getParentMediainfo(metadata['seasons'])
 
     # Generate tasks
-    generatedTasks = functions.generateTasks(metadata['type'], metadata, overwrite, covers[metadata['type']], config['templates'])
-    if metadata['type'] == 'tv':
-        for sn in metadata['seasons']: # Generate tasks for each season/episode
-            generatedTasks += functions.generateTasks('season', metadata['seasons'][sn], overwrite, covers['season'], config['templates'])
-            for ep in metadata['seasons'][sn]['episodes']:
-                generatedTasks += functions.generateTasks('episode', metadata['seasons'][sn]['episodes'][ep], overwrite, covers['episode'], config['templates'])
-    
-    # Added lock to prevent problems with accessing the same variable from different threads, this was never a problem tho
-    with tasksLock: 
-        global tasks, tasksLength
-        tasks.extend(generatedTasks) # Extend SHOULD be thread safe anyway
-        tasksLength += len(generatedTasks)
-    
-    functions.log('Finished getting metadata for: ' + metadata['title'] + ', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start), 0, 2)
+    if not dry:
+        generatedTasks = functions.generateTasks(metadata['type'], metadata, overwrite, covers[metadata['type']], config['templates'])
+        if metadata['type'] == 'tv':
+            for sn in metadata['seasons']: # Generate tasks for each season/episode
+                generatedTasks += functions.generateTasks('season', metadata['seasons'][sn], overwrite, covers['season'], config['templates'])
+                for ep in metadata['seasons'][sn]['episodes']:
+                    generatedTasks += functions.generateTasks('episode', metadata['seasons'][sn]['episodes'][ep], overwrite, covers['episode'], config['templates'])
+        
+        # Added lock to prevent problems with accessing the same variable from different threads, this was never a problem tho
+        with tasksLock: 
+            global tasks, tasksLength
+            tasks.extend(generatedTasks) # Extend SHOULD be thread safe anyway
+            tasksLength += len(generatedTasks)
+        
+    functions.log('Finished getting metadata for: ' + metadata['title'] + ((', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start)) if not dry else ''), 0, 2)
     
     db[folder] = metadata # Update metadata in database
 # endregion
 
 
+# region check files and dependencies
 # Load stored metadata
 if exists(join(workDirectory, 'metadata.pickle')):
     with open(join(workDirectory, 'metadata.pickle'), 'rb') as pk:
         try:
             db = pickle.load(pk)
             if 'version' not in db or db['version'] != dbVersion:
-                functions.log('Removing metadata file because this is a new version of the script', 3, 3)
+                functions.log('Removing metadata file because this is a new version of the script', 3, 1)
                 db = {'version': dbVersion}
         except:
-            functions.log('Error loading metadata from: ' + join(workDirectory, 'metadata.pickle'), 2, 2)
+            functions.log('Error loading metadata from: ' + join(workDirectory, 'metadata.pickle'), 3, 1)
+            exit()
 
 # Load configuration file
 if exists(join(workDirectory, 'config.json')):
@@ -174,16 +184,16 @@ if exists(join(workDirectory, 'config.json')):
         with open(cfg, 'r') as js:
             config = json.load(js)
             if 'version' not in config or config['version'] != configVersion:
-                functions.log('Wrong version of config file, please update!', 1, 0)
+                functions.log('Wrong version of config file, please update!', 1, 1)
                 exit()
             # Load order for ratings and mediainfo, TODO change this to a setting in each image
             functions.ratingsOrder = config['ratingsOrder']
             functions.mediainfoOrder = config['mediainfoOrder']
     except:
-        functions.log('Error loading config file from: ' + cfg, 1, 0)
+        functions.log('Error loading config file from: ' + cfg, 3, 0)
         exit()
 else:
-    functions.log('Missing config.json inside work directory', 1, 0)
+    functions.log('Missing config.json inside work directory', 3, 0)
     exit()
 
 # Loads covers configuration file
@@ -219,16 +229,18 @@ functions.wkhtmltoimage = config['wkhtmltoimagePath']
 
 # Updates IMDB datasets
 if config['scraping']['IMDB']: functions.scrapers.IMDB.updateIMDBDataset(workDirectory, 10, 10, functions.get)
-
+# endregion
 
 
 # Start
-functions.log('Starting BetterCovers for directory: ' + pt, 1, 1)
+functions.log('Starting BetterCovers for directory: ' + pt, 1, 2)
 st = time.time()
 th1 = Thread(target=processFolders)
 th1.start()
-th2 = Thread(target=processTasks)
-th2.start()
+if not dry:
+    th2 = Thread(target=processTasks)
+    th2.start()
+else: log('Starting dry run', 1, 2)
 th1.join() # Wait for tasks to be generated
 
 # Write metadata to pickle file
@@ -237,7 +249,7 @@ with open(join(workDirectory, 'metadata.pickle'), 'wb') as file:
 if '--json' in argv: # If parameter --json also write to a json file
     with open(join(workDirectory, 'metadata.json'), 'w') as js:
         js.write(json.dumps(db, indent=7))
-th2.join() # Wait for tasks to be processed
+if not dry: th2.join() # Wait for tasks to be processed
 if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
 
 # Update Agent

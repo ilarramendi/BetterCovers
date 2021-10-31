@@ -4,7 +4,7 @@
      "omdbApi": "",
      "agent": {
           "type": "emby",
-          "url": "https://emby.ilarramendi.com:443",
+          "url": "https://192.168.1.100:8096",
           "apiKey": ""
      },
      "scraping": {

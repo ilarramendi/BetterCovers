@@ -7,25 +7,18 @@ SEARCH_URL = 'https://www.rottentomatoes.com/api/private/v2.0/search?q='
 BASE_URL = 'https://www.rottentomatoes.com'
 
 # Searches in rottentomatoes by title and returns an url
-def searchRT(type, title, year, get):
-    rq = get(SEARCH_URL + title.lower().replace(' ', '+'))
-    sleep(2) # RT gets angry
-    if rq.status_code != 200: return False
-    try:
-        rs = rq.json()
-    except:
-        return False  
-    dictType = {'movie': 'movies', 'tv': 'tvSeries'}
-    dictTitle = {'movie': 'name', 'tv': 'title'}
-    dictYear = {'movie': 'year', 'tv': 'startYear'}
-    dictUrl = {'movie': 'm', 'tv': 'tv'}
-
-    if dictType[type] in rs:
-        for mv in rs[dictType[type]]:
-            if title.lower() == mv[dictTitle[type]].lower() and (not year or not mv[dictYear[type]] or abs(year - mv[dictYear[type]]) <= 1):
-                rt = findall('\/' + dictUrl[type] + '\/[^/]+', mv['url'])
-                if len(rt) == 1: return rt[0]
-    
+def searchRT(type, title, year, getJSON):
+    rq = getJSON(SEARCH_URL + title.lower().replace(' ', '+'))
+    if rq:
+        dictType = {'movie': 'movies', 'tv': 'tvSeries'}
+        dictTitle = {'movie': 'name', 'tv': 'title'}
+        dictYear = {'movie': 'year', 'tv': 'startYear'}
+        dictUrl = {'movie': 'm', 'tv': 'tv'}
+        
+        if dictType[type] in rq:
+            for media in rq[dictType[type]]:
+                if title.lower() == media[dictTitle[type]].lower() and (not year or not media[dictYear[type]] or abs(year - media[dictYear[type]]) <= 1):
+                    return media['url']
     return False
 
 # Internal function to parse ratings from page content
@@ -67,11 +60,11 @@ def getRTSeasonRatings(url, get):
         ret['ratings'] = rt['ratings']
         ret['certifications'] = rt['certifications']
     
-    rq = get(BASE_URL + '/napi' + url + '/episodes')
-    ret['epStatusCode'] = rq.status_code
-    if ret['epStatusCode'] == 200:
-        ret['episodes'] = [(int(ep['episodeNumber']), url + '/' + ep['vanityUrl'].rpartition('/')[2]) for ep in json.loads(rq.text)]
-
+        rq = get(BASE_URL + '/napi' + url + '/episodes')
+        if rq.status_code == 200:
+            ret['episodes'] = [(int(ep['episodeNumber']), url + '/' + ep['vanityUrl'].rpartition('/')[2]) for ep in json.loads(rq.text)]
+        else: ret['statusCode'] = rq.status_code
+        
     return ret
 
 def getRTEpisodeRatings(url, get):
@@ -92,8 +85,8 @@ def getRTMovieRatings(url, get):
     rt = findall('tomatometerscore="(\d+)"', sc[0])
     # Sets icon to RT-CF, RT, or RT-LS acording to value
     if len(rt) == 1: 
-        res['ratings']['RT'] = {'icon': 'RT-CF' if len(res['certifications']) > 0 else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': str(float(rt[0]) / 10).replace('.0', '')}
+        res['ratings']['RT'] = {'icon': 'RT-CF' if len(res['certifications']) > 0 else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': "%.1f" % (float(rt[0]) / 10)}
     rta = findall('audiencescore="(\d+)"', sc[0])
     if len(rta) == 1: 
-        res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': str(float(rta[0]) / 10).replace('.0', '')} 
+        res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': "%.1f" % (float(rta[0]) / 10)} 
     return res
