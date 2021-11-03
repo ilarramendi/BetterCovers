@@ -123,6 +123,6 @@ The script replaces certain tags on the html file.
 `-o true` Ovewrite any cover found (images are automaticaly overwriten if info changes)
 `-wd /path/to/wd` Change the default working directory (where config files, images and covers are stored)    
 `-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly or hitting api limits)  
-`-v number` Verbose level from 0 to 5, default 2.
-`--dry` Performs a dry run, only getting metadata, not generating any image.
-`--json` Save metadata to metadata.json, usefull for debugin and connecting with other programs.
+`-v number` Verbose level from 0 to 5, default 2.  
+`--dry` Performs a dry run, only getting metadata, not generating any image.  
+`--json` Save metadata to metadata.json, usefull for debugin and connecting with other programs.  
