@@ -10,13 +10,15 @@ After executing the script you have to refresh the library on Emby/Plex/Jellyfin
 
 ## Downloading
 ### Docker
-The easiest option for running is using [docker](https://hub.docker.com/r/ilarramendi/better-covers) (Runs 50% slower than the script for some reason).  
+The easiest option for running is using [docker](https://hub.docker.com/r/ilarramendi/bettercovers).  
 ``` 
 docker run -i --rm \
   -v /path/to/media:/media \
   -v /path/to/config:/config \
-  -e parameters="-o -w 20" \
-  ilarramendi/better-covers 
+  -e parameters="-w 20" `#OPTIONAL` \
+  -e TZ=America/New_York `#OPTIONAL` \
+  -e fileMask="*" `#OPTIONAL` \
+  ilarramendi/bettercovers 
 ```
 ### Python
 Clone the project: `git clone https://github.com/ilarramendi/BetterCovers`  
