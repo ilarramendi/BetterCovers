@@ -124,6 +124,3 @@ The script replaces certain tags on the html file.
 `-wd /path/to/wd` Change the default working directory (where config files, images and covers are stored)    
 `-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly or hitting api limits)  
 `-v number` Verbose level from 0 to 5, default 2.
-
-## Credits
-This project was inspired by [RPDB](https://ratingposterdb.com/)!  
