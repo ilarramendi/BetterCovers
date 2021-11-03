@@ -30,7 +30,7 @@ Each TV show season must be inside a unique folder.
 For better identification folders names can have imdb or tmdb ids like: `[tmdbid=123456]` or `[imdbid=123456]`   
 
 ## Planned features
-- [ ] Option to save images on Agent metadata folder to improve menu loading time (if metadata is on faster drive)
+- [ ] Option to save images on Agent metadata folder to improve menu loading time (media images on HDD load a bit slow on emby)
 - [ ] Different themes (suggestions are apreciate)
 - [ ] Use existing cover
 - [ ] Add aditional mediainfo properties (dolby, ATMOS, audio channels)
