@@ -1,16 +1,17 @@
-from sys import argv
 import json
-from os.path import exists, join, abspath
-from shutil import rmtree
+import pickle
 import time
+from glob import glob
+from os.path import abspath, exists, join
+from shutil import rmtree
 from subprocess import call, getstatusoutput
-import functions
-from datetime import timedelta, datetime
-from threading import Thread, Lock
+from sys import argv
+from threading import Lock, Thread
 from time import sleep
-from glob import glob 
-import pickle 
+
 from requests import post
+
+import functions
 
 # TODO change to tmdb api v4
 # TODO update all logs
@@ -27,7 +28,6 @@ from requests import post
 # TODO change h264 icon
 # TODO images cache not working
 # TODO Get different ratings from metacritics
-# TODO find why the script runs slower inside docker container
 # TODO pass scrapping enabled/disabled to getSeasons
 # TODO fix all scraperDate update
 # TODO instead of having scraperDate change to next update day

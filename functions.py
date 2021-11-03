@@ -9,7 +9,7 @@ from math import sqrt
 from os import W_OK, access
 from os.path import exists, join, realpath
 from random import random
-from re import findall, match, escape
+from re import findall, match
 from subprocess import DEVNULL, call, getstatusoutput
 from threading import Lock, Thread
 from time import sleep
@@ -26,7 +26,6 @@ from scrapers.RottenTomatoes import (getRTEpisodeRatings, getRTMovieRatings,
                                      searchRT)
 from scrapers.Trakt import getTraktRating
 from scrapers.TVTime import *
-
 
 logLevel = 2
 
@@ -444,7 +443,6 @@ def getMediaInfo(metadata, defaultAudioLanguage, mediainfoUpdateInterval):
         # TODO Add extra characters that have problems here
         cmd = 'ffprobe "' + metadata['path'].translate({36: '\$'}) + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet'
         cmd2 = 'ffprobe "' + metadata['path'].translate({36: '\$'}) + '" -show_streams -v quiet'
-        print(cmd)
         out = getstatusoutput(cmd)
         out2 = getstatusoutput(cmd2)
         
@@ -691,18 +689,19 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
                     if 'air_date' in res and len(res['air_date']) > 0:
                         season['releaseDate'] = datetime.strptime(res['air_date'], '%Y-%m-%d').strftime("%d/%m/%Y")    
                     
-                    for prop in res['images']:
-                        mtProp = prop if prop != 'posters' else 'covers'
-                        for image in res['images'][prop]:
-                            imgSrc = 'https://image.tmdb.org/t/p/original' + image['file_path']
-                            
-                            for img in season[mtProp]:
-                                if img['src'] == imgSrc: break
-                            else: season[mtProp].append({
-                                    'src': imgSrc,
-                                    'height': image['height'],
-                                    'language': image['iso_639_1'],
-                                    'source': 'TMDB'})
+                    if 'images' in res:
+                        for prop in res['images']:
+                            mtProp = prop if prop != 'posters' else 'covers'
+                            for image in res['images'][prop]:
+                                imgSrc = 'https://image.tmdb.org/t/p/original' + image['file_path']
+                                
+                                for img in season[mtProp]:
+                                    if img['src'] == imgSrc: break
+                                else: season[mtProp].append({
+                                        'src': imgSrc,
+                                        'height': image['height'],
+                                        'language': image['iso_639_1'],
+                                        'source': 'TMDB'})
 
                     season['TMDBDate'] = datetime.now().strftime("%d/%m/%Y")
                     
@@ -817,7 +816,7 @@ def getSeasonMetadata(number, season, showIDS, omdbApi, tmdbApi):
                         eps['ratings']['Trakt'] = {'icon': 'Trakt', 'value': rt}
                         eps['TraktDate'] = datetime.now().strftime("%d/%m/%Y")
                         log('Found rating in Trakt for ' + eps['title'] + ': ' + rt + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting Trakt ratings', 2, 4)
+                    else: log('Error getting Trakt ratings for:' + eps['title'], 2, 4)
                 else: log('No need to update Trakt metadata for: ' + eps['title'], 1, 3)
         
     tsks = []
