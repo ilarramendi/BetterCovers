@@ -1,6 +1,8 @@
 # Better Covers
 BetterCovers is a script to automaticaly generate covers and backdrops with embeded ratings, mediainfo, language, certifications, age ratings, source, production companies, etc!
 
+This project was inspired by [RPDB](https://ratingposterdb.com/)!
+
 ## Examples
 <img src="https://user-images.githubusercontent.com/30437204/139999685-99a366ab-a3f7-4967-a690-b73482827328.jpg" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/139999850-99fd67a6-bfad-41cf-99fb-b3572907330b.jpg" width="49.7%">
 <img src="https://user-images.githubusercontent.com/30437204/139999682-c146b1fc-0021-4c26-b4e9-048cc763fa2d.jpg" width="100%">
