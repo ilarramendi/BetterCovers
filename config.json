@@ -1,5 +1,5 @@
 {
-     "version": 5,
+     "version": 6,
      "tmdbApi": "c13bbebafbd3dad0e281c6241304aeff",
      "omdbApi": "",
      "agent": {
@@ -17,39 +17,12 @@
           "Trakt": true
      },
      "defaultAudioLanguage": "ENG",
-     "mediainfoUpdateInterval": 14,
+     "mediaInfoUpdateInterval": 14,
      "IMDBTitlesUpdateInterval": 7,
      "IMDBRatingsUpdateInterval": 7,
      "preferedImageLanguage": "en-US",
      "wkhtmltoimagePath": "/usr/bin/wkhtmltoimage",
      "ratingsOrder": ["TMDB", "IMDB", "Trakt", "LB", "RT", "RTA", "MTC", "TVTime"],
-     "mediainfoOrder": ["color", "resolution", "languages", "codec", "source"],
-     "templates": [
-          {
-               "type": "movie",
-               "cover": "disneyBluray",
-               "mediainfo": {
-                    "source": "BR"
-               },
-               "productionCompanies": [
-                    2
-               ]
-          },
-          {
-               "type": "movie",
-               "cover": "bluray",
-               "mediainfo": {
-                    "source": "BR"
-               }
-          },
-          {
-               "type": "movie",
-               "cover": "goodMovies",
-               "ratings": {
-                    "TMDB": ">7.5",
-                    "IMDB": ">7.5",
-                    "RT": ">7.5"
-               }
-          }
-     ]
+     "mediaInfoOrder": ["color", "resolution", "languages", "codec", "source"],
+     "templates": []
 }

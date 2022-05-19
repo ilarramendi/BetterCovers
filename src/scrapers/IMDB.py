@@ -10,8 +10,11 @@ minRatings = 5
 ratingsFile = ''
 episodesFile = ''
 
+# TODO caca
 # Downloads if necesary new dataset and sets its path for functions below
 def updateIMDBDataset(wd, ratingsUpdateInterval, episodesUpdateInterval, get):
+    if not exists(join(wd, 'cache')): call(['mkdir', join(workDirectory, 'cache')])
+
     global ratingsFile, episodesFile
     rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs')) # WD is always an absolute path
     if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > ratingsUpdateInterval:
