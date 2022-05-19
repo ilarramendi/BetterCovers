@@ -46,17 +46,17 @@ class Task:
         st = time()
         # TODO image generation
         try:
-            with open(join(workDirectory, 'media', 'templates', self.template + '.html')) as html:
+            with open(join(workDirectory, 'config', 'templates', self.template + '.html')) as html:
                 HTML = html.read()
         except:
-            log('Error opening: ' + join(workDirectory, 'media', 'templates', self.template + '.html'), 3, 1)
+            log('Error opening: ' + join(workDirectory, 'config', 'templates', self.template + '.html'), 3, 1)
             return False
         
         for rt in self.ratings:
-            stri = '<div class="ratingContainer ' + rt + '"><img src="' + join('..', 'media', 'ratings', self.ratings[rt]['icon']) + '.png" class="ratingIcon"/><label class="ratingText">' + self.ratings[rt]['value'] + '</label></div>'
+            stri = '<div class="ratingContainer ' + rt + '"><img src="' + join('..', 'assets', 'ratings', self.ratings[rt]['icon']) + '.png" class="ratingIcon"/><label class="ratingText">' + self.ratings[rt]['value'] + '</label></div>'
             HTML = HTML.replace('<!--' + rt + '-->', stri)
         for mi in self.media_info:
-            stri = '<div class="mediaInfoImgContainer ' + mi + '"><img src="' + join('..', 'media/mediainfo', self.media_info[mi] + '.png') + '" class="mediainfoIcon"></div>'
+            stri = '<div class="mediaInfoImgContainer ' + mi + '"><img src="' + join('..', 'assets/mediainfo', self.media_info[mi] + '.png') + '" class="mediainfoIcon"></div>'
             HTML = HTML.replace('<!--' + mi + '-->', stri)
         
         pcs = ''
@@ -67,11 +67,11 @@ class Task:
         # TODO change this to be like the others
         cert = ''
         for cr in self.certifications:
-            cert += '<img src= "' + join('..', 'media', 'ratings', cr + '.png') + '" class="certification"/>'
+            cert += '<img src= "' + join('..', 'assets', 'ratings', cr + '.png') + '" class="certification"/>'
         HTML = HTML.replace('<!--CERTIFICATIONS-->', cert)
         
         if self.age_rating: # Grabs age ratings svg file
-            with open(join(workDirectory, 'media', 'ageRatings', self.age_rating + '.svg'), 'r') as svg:
+            with open(join(workDirectory, 'assets', 'ageRatings', self.age_rating + '.svg'), 'r') as svg:
                 HTML = HTML.replace('<!--AGERATING-->', svg.read())
         
         HTML = HTML.replace('$IMGSRC', self.image) # TODO fix for image generation here

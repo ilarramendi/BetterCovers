@@ -47,7 +47,7 @@ class TvShow(Movie):
         for folder in glob(join(self.path.translate({91: '[[]', 93: '[]]'}), '*')):
             sn = findall('.*\/[Ss]eason[ ._-](\d{1,3})$', folder)
             if len(sn) == 1: # If its a season
-                season = Season(self.title + ' (S:' + str(int(sn[0])) + ')', self.year, folder)
+                season = Season(self.title + ' (S:' + str(int(sn[0])) + ')', self.year, folder, folder)
                 season.number = int(sn[0])
                 item.seasons.append(season)
 
@@ -58,7 +58,7 @@ class TvShow(Movie):
                 for file in files: 
                     epn = findall('S0*' + str(season.number) + 'E0*(\d+)', file) 
                     if len(epn) == 1: # If its an episode
-                        episode = Episode(self.title + ' (S:' + str(season.number) + ' E:' + str(int(epn[0])).zfill(len(str(len(season.episodes)))) + ')', self.year, file)
+                        episode = Episode(self.title + ' (S:' + str(season.number) + ' E:' + str(int(epn[0])).zfill(len(str(len(season.episodes)))) + ')', self.year, file, folder)
                         episode.number = int(epn[0])
                         season.episodes.append(episode)
 

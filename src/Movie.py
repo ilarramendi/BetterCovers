@@ -25,7 +25,7 @@ from MediaInfo import MediaInfo
 from Task import Task
 
 class Movie:
-    def __init__(self, title, year, path): # TODO add more params to constructor
+    def __init__(self, title, year, path, folder): # TODO add more params to constructor
         self.title = title
         self.year = year
         self.urls = {}
@@ -33,6 +33,7 @@ class Movie:
         self.release_date = datetime.now()
         self.production_companies = []
         self.path = path
+        self.folder = folder
         self.ids = {}
         self.certifications = []
         self.ageRating = 'NR'
@@ -172,6 +173,7 @@ class Movie:
         return 'backdrop' if backdrop or self.type == 'episode' else 'cover'  # default templates if no custom match found
 
     def updateMetadata(self, omdbApi, tmdbApi, scraping, preferedImageLanguage):
+        print(self)
         # Gets metadata from TMDB api
         def _getTMDB():
             if checkDate(self.updates['TMDB'], self.release_date):

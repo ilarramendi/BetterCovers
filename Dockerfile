@@ -1,7 +1,6 @@
 FROM python:3.8-slim
-RUN apt-get -y update
-RUN apt-get install -y wkhtmltopdf ffmpeg tzdata
-ADD . /BetterCovers
+RUN apt-get -y update && apt-get install -y wkhtmltopdf ffmpeg tzdata git
+RUN git clone https://github.com/ilarramendi/BetterCovers
 ENV TZ America/Montevideo
 ENV parameters ""
 ENV fileMask "*"

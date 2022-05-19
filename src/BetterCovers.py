@@ -57,6 +57,7 @@ if '-w' in argv and (len(argv) == argv.index('-w') + 1 or not argv[argv.index('-
 if '--log-level' in argv and (len(argv) == argv.index('--log-level') + 1 or not argv[argv.index('--log-level') + 1].isnumeric()):
     functions.log('--log-level parameter requieres a number: --log-level 2', 3, 0)
     exit()
+functions.showColor = '--no-colors' not in argv
 
 pt = argv[1]
 folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [pt] # if its a single folder dont use glob
@@ -129,15 +130,14 @@ def processTasks():
 # Updates all information for a given movie or tv show and generates tasks
 def processFolder(folder):
     start = time.time()
-    metadata = None
-    if folder in db: metadata = db['items'][folder]
+    if folder in db['items']: metadata = db['items'][folder]
     else:
         title, year = functions.getName(folder)
         mediaFiles = functions.getMediaFiles(folder)
         type = 'tv' if len(mediaFiles) == 0 else 'movie'
         path = mediaFiles[0] if type == 'movie' else folder
 
-        metadata = Movie(title, year, path) if type == 'movie' else TvShow(title, year, path)
+        metadata = Movie(title, year, path, folder) if type == 'movie' else TvShow(title, year, path, folder)
 
     
     functions.log('Processing: ' + metadata.title, 1, 2)
@@ -172,8 +172,8 @@ if exists(join(workDirectory, 'metadata.pickle')):
             exit()
 
 # Load configuration file
-if exists(join(workDirectory, 'config.json')):
-    cfg = join(workDirectory, 'config.json')
+if exists(join(workDirectory, 'config', 'config.json')):
+    cfg = join(workDirectory, 'config', 'config.json')
     try:
         with open(cfg, 'r') as js:
             config = json.load(js)
@@ -187,12 +187,12 @@ if exists(join(workDirectory, 'config.json')):
         functions.log('Error loading config file from: ' + cfg, 3, 0)
         exit()
 else:
-    functions.log('Missing config.json inside work directory', 3, 0)
+    functions.log('Missing config/config.json inside work directory', 3, 0)
     exit()
 
 # Loads covers configuration file
-if exists(join(workDirectory, 'covers.json')):
-    cvr = join(workDirectory, 'covers.json')
+if exists(join(workDirectory, 'config', 'covers.json')):
+    cvr = join(workDirectory, 'config', 'covers.json')
     try:
         with open(cvr, 'r') as js:
             covers = json.load(js)
@@ -203,7 +203,7 @@ if exists(join(workDirectory, 'covers.json')):
         functions.log('Error loading covers file from: ' + cvr, 1, 0)
         exit()
 else:
-    functions.log('Missing cover.json inside work directory', 1, 0)
+    functions.log('Missing config/cover.json inside work directory', 1, 0)
     exit()
 
 # Check for TMDB api key
@@ -244,7 +244,7 @@ if '--json' in argv: # If parameter --json also write to a json file
     with open(join(workDirectory, 'metadata.json'), 'w') as js:
         json.dump({'version': db['version'], 'items': [db['items'][item].toJSON() for item in db['items']]}, js, indent=7, default=str, sort_keys=True)
 if not dry: th2.join() # Wait for tasks to be processed
-# if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
+if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
 
 # Update Agent
 if config['agent']['apiKey'] != '': # TODO add plex
