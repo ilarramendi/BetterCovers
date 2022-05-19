@@ -41,14 +41,15 @@ For better identification folders names can have imdb or tmdb ids like: `[tmdbid
 - [ ] Add original downloaded image cache for faster cover creation (wkhtmltopdf cache not working)
 
 ## Config.json
-[config.json](https://github.com/ilarramendi/BetterCovers/blob/main/config.md)
+[config.md](https://github.com/ilarramendi/BetterCovers/blob/main/config.md)
 ## Covers.json
-[config.json](https://github.com/ilarramendi/BetterCovers/blob/main/covers.md)
+[covers.md](https://github.com/ilarramendi/BetterCovers/blob/main/covers.md)
 
 ## Parameters
-`-o true` Ovewrite any cover found (images are automaticaly overwriten if info changes)
+`-o` Ovewrite any cover found (images are automaticaly overwriten if info changes)  
 `-wd /path/to/wd` Change the default working directory (where config files, images and covers are stored)    
 `-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly or hitting api limits)  
-`-v number` Verbose level from 0 to 5, default 2.  
+`-log-level number` Verbose level from 0 to 5, default 2.  
 `--dry` Performs a dry run, only getting metadata, not generating any image.  
-`--json` Save metadata to metadata.json, usefull for debugin and connecting with other programs.  
+`--json` Save metadata to metadata.json (usefull for debugin and getting data out for other programs).  
+`--no-colors` Remove colors from output (Usefull for docker).  
