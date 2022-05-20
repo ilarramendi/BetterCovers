@@ -173,7 +173,6 @@ class Movie:
         return 'backdrop' if backdrop or self.type == 'episode' else 'cover'  # default templates if no custom match found
 
     def updateMetadata(self, omdbApi, tmdbApi, scraping, preferedImageLanguage):
-        print(self)
         # Gets metadata from TMDB api
         def _getTMDB():
             if checkDate(self.updates['TMDB'], self.release_date):

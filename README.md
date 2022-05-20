@@ -39,6 +39,7 @@ For better identification folders names can have imdb or tmdb ids like: `[tmdbid
 - [ ] Add connection with Sonarr and Radarr api (or script on import)
 - [ ] Add connection to plex api
 - [ ] Add original downloaded image cache for faster cover creation (wkhtmltopdf cache not working)
+- [ ] Make docker container lighter and faster
 
 ## Config.json
 [config.md](https://github.com/ilarramendi/BetterCovers/blob/main/config.md)

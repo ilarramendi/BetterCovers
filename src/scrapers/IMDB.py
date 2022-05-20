@@ -5,6 +5,7 @@ from glob import glob
 import urllib.request
 from datetime import datetime
 import gzip
+from subprocess import call
 
 minRatings = 5
 ratingsFile = ''
@@ -13,7 +14,7 @@ episodesFile = ''
 # TODO caca
 # Downloads if necesary new dataset and sets its path for functions below
 def updateIMDBDataset(wd, ratingsUpdateInterval, episodesUpdateInterval, get):
-    if not exists(join(wd, 'cache')): call(['mkdir', join(workDirectory, 'cache')])
+    if not exists(join(wd, 'cache')): call(['mkdir', join(wd, 'cache')])
 
     global ratingsFile, episodesFile
     rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs')) # WD is always an absolute path

@@ -43,7 +43,7 @@ class TvShow(Movie):
 
     # Update season and episodes
     def updateFiles(self):
-        item = TvShow(False, False, False)
+        item = TvShow(False, False, False, False)
         for folder in glob(join(self.path.translate({91: '[[]', 93: '[]]'}), '*')):
             sn = findall('.*\/[Ss]eason[ ._-](\d{1,3})$', folder)
             if len(sn) == 1: # If its a season

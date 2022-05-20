@@ -41,7 +41,6 @@ import functions
 
 # TODO Change ratings to be only values stored
 # TODO Trailers missiing url?
-# TODO some logs with time are in 00:00:00 format instead of 0s
 
 # region parameters
 # Check parameters
@@ -57,7 +56,6 @@ if '-w' in argv and (len(argv) == argv.index('-w') + 1 or not argv[argv.index('-
 if '--log-level' in argv and (len(argv) == argv.index('--log-level') + 1 or not argv[argv.index('--log-level') + 1].isnumeric()):
     functions.log('--log-level parameter requieres a number: --log-level 2', 3, 0)
     exit()
-functions.showColor = '--no-colors' not in argv
 
 pt = argv[1]
 folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [pt] # if its a single folder dont use glob
@@ -68,6 +66,7 @@ workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 
 functions.workDirectory = workDirectory
 functions.logLevel = 2 if '--log-level' not in argv else int(argv[argv.index('--log-level') + 1]) 
 dry = '--dry' in argv
+functions.showColor = '--no-colors' not in argv
 # endregion
 
 dbVersion = 6
