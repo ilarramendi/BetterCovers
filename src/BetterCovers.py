@@ -19,13 +19,13 @@ import functions
 
 # TODO change to tmdb api v4
 # TODO update all logs
-# TODO add trakt and moviechart
+# TODO add moviechart
 # TODO update metadata on delete/add episode
 # TODO Update readme
 # TODO Make readme specific for cover configuration
 # TODO add log on each episode getting metadata
 # TODO Add logs on getMetadata
-# TODO Rotten Tomatoes api returns covers
+# TODO Rotten Tomatoes api returns covers !
 # TODO MovieTweetings -> Interesting
 # TODO Create better function for requests with included wait
 # TODO delete icon from ratings since it can be calculated
@@ -33,14 +33,17 @@ import functions
 # TODO images cache not working
 # TODO Get different ratings from metacritics
 # TODO pass scrapping enabled/disabled to getSeasons
-# TODO fix all scraperDate update
-# TODO instead of having scraperDate change to next update day
-# TODO fix date in container
+# TODO fix date in container 
 # TODO Fix templates, ratings getting too cramed
 # TODO Allow the script to be killed with CTRL + C
 
 # TODO Change ratings to be only values stored
 # TODO Trailers missiing url?
+# TODO change picke to json
+# TODO change srings concatenation to {}
+# TODO remove year parameter since releaseDate exists
+# TODO container logs some thimes get corrupted in console, this dosnt happend in portainer, wtf.
+# TODO Also logs in container update in steps or groups instead of normaly
 
 # region parameters
 # Check parameters
@@ -177,7 +180,7 @@ if exists(join(workDirectory, 'config', 'config.json')):
         with open(cfg, 'r') as js:
             config = json.load(js)
             if 'version' not in config or config['version'] != configVersion:
-                functions.log('Wrong version of config file, please update!', 1, 1)
+                functions.log('Wrong version of config file, please delete!', 1, 1)
                 exit()
             # Load order for ratings and mediainfo, TODO change this to a setting in each image
             functions.ratingsOrder = config['ratingsOrder']
@@ -196,7 +199,7 @@ if exists(join(workDirectory, 'config', 'covers.json')):
         with open(cvr, 'r') as js:
             covers = json.load(js)
             if 'version' not in covers or covers['version'] != configVersion:
-                functions.log('Wrong version of covers file, please update!', 1, 0)
+                functions.log('Wrong version of covers file, please delete!', 1, 0)
                 exit()
     except:
         functions.log('Error loading covers file from: ' + cvr, 1, 0)
@@ -254,5 +257,5 @@ if config['agent']['apiKey'] != '': # TODO add plex
     else: functions.log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'], 2, 2)
 else: functions.log('Not updating ' + config['agent']['type'] + ' library, API key not set.', 1, 3)
 
-functions.log('FINISH, total time was: ' + functions.timediff(st), 0, 1)
+functions.log('Done, total time was: ' + functions.timediff(st) + ' and generated: ' + str(tasksLength) + ' images.', 0, 1)
 

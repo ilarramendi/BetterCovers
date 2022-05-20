@@ -143,7 +143,7 @@ def get(url, headers = {}):
             else: log('Error accessing ' + site + ' (' + str(rq.status_code) + ')', 3 if n == 2 else 2, 3 if n == 2 else 4)
         except requests.exceptions.ConnectionError:
             ret.status_code = 401
-            log('Too many requests to: ' + site + ', try lowering amount of workers!', 3, 3)
+            log('Too many requests to: ' + site + ', try lowering amount of workers!', 3, 3) # TODO change this
         except: 
             log('Unknown error trying to access: ' + url, 3, 2)
             ret.status_code = 777

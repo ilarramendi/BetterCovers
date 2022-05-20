@@ -370,7 +370,7 @@ class Movie:
         
         # Gets movie ratings from letterboxd
         def _getLB():
-            if self.type == 'movie' and scraping['LB']:
+            if self.type == 'movie' and scraping['LB'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['LB'], self.release_date):
                     start = time()
                     LB = self.urls['LB'] if 'LB' in self.urls else searchLB(self.ids['IMDB'], self.title, self.year, get)
