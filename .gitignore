@@ -3,7 +3,6 @@ build
 __pycache__
 CoverRatings.spec
 threads
-config.json
 BetterCovers.spec
 BetterCovers.log
 metadata.json

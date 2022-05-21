@@ -44,6 +44,7 @@ import functions
 # TODO remove year parameter since releaseDate exists
 # TODO container logs some thimes get corrupted in console, this dosnt happend in portainer, wtf.
 # TODO Also logs in container update in steps or groups instead of normaly
+# TODO change user of docker container from root using GUID
 
 # region parameters
 # Check parameters
