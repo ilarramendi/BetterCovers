@@ -43,14 +43,12 @@ For better identification folders names can have imdb or tmdb ids like: `[tmdbid
 
 ## Config.json
 [config.md](https://github.com/ilarramendi/BetterCovers/blob/main/config.md)
-## Covers.json
-[covers.md](https://github.com/ilarramendi/BetterCovers/blob/main/covers.md)
 
 ## Parameters
 `-o` Ovewrite any cover found (images are automaticaly overwriten if info changes)  
 `-wd /path/to/wd` Change the default working directory (where config files, images and covers are stored)    
 `-w number` Number of workers to use, default 20 (using too many workers can result in images not loading correctly or hitting api limits)  
-`-log-level number` Verbose level from 0 to 5, default 2.  
+`--log-level number` Verbose level from 0 to 5, default 2.  
 `--dry` Performs a dry run, only getting metadata, not generating any image.  
 `--json` Save metadata to metadata.json (usefull for debugin and getting data out for other programs).  
 `--no-colors` Remove colors from output (Usefull for docker).  
