@@ -1,5 +1,5 @@
 {
-     "version": 6,
+     "version": 7,
      "tmdbApi": "c13bbebafbd3dad0e281c6241304aeff",
      "omdbApi": "",
      "agent": {
@@ -22,7 +22,22 @@
      "IMDBRatingsUpdateInterval": 7,
      "preferedImageLanguage": "en-US",
      "wkhtmltoimagePath": "/usr/bin/wkhtmltoimage",
-     "ratingsOrder": ["TMDB", "IMDB", "Trakt", "LB", "RT", "RTA", "MTC", "TVTime"],
-     "mediaInfoOrder": ["color", "resolution", "languages", "codec", "source"],
-     "templates": []
+     "audioOrder": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL",
+     "templates": [
+          {
+               "type": ["tv_backdrop", "movie_backdrop"],
+               "template": "backdrop.html",
+               "out": ["backdrop.jpg"]
+          },
+          {
+               "type": ["tv", "movie", "season"],
+               "template": "cover.html",
+               "out": ["folder.jpg"]
+          },
+          {
+               "type": ["episode"],
+               "template": "backdrop.html",
+               "out": ["$NAME.jpg"]
+          }
+     ]
 }

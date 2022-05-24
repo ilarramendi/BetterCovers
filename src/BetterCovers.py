@@ -39,12 +39,18 @@ import functions
 
 # TODO Change ratings to be only values stored
 # TODO Trailers missiing url?
-# TODO change picke to json
-# TODO change srings concatenation to {}
-# TODO remove year parameter since releaseDate exists
+# TODO change all srings concatenation to {}
+# TODO remove year point since releaseDate exists
 # TODO container logs some thimes get corrupted in console, this dosnt happend in portainer, wtf.
 # TODO Also logs in container update in steps or groups instead of normaly
 # TODO change user of docker container from root using GUID
+# TODO make a function to check the configuration file
+# TODO make readme more detail and easier to understand
+# TODO Change time.time to the code timing function but is not realy relevant since all timers take more than 3 seconds so i guess is good enought this comment went a bit long but yea
+# TODO make css noob-friendly
+# TODO dont update metadata each run if last time didnt give results
+# TODO rethink log levels
+# TODO add options removed from covers.json like 4k-hdr
 
 # region parameters
 # Check parameters
@@ -74,14 +80,10 @@ functions.showColor = '--no-colors' not in argv
 # endregion
 
 dbVersion = 6
-configVersion = 6
-tasksLock = Lock()
+configVersion = 7
 
-tasks = []
-tasksLength = 0
 db = {'version': dbVersion, 'items': {}}
 config = {}
-covers = {}
 
 # region Functions
 # Calls processfolder for all folders in multiple threads
@@ -91,7 +93,7 @@ def processFolders():
         i = 0
         while True:
             if not (thrs[i] and thrs[i].is_alive()): # If thread was not created or its finish
-                thrs[i] = Thread(target=processFolder , args=(folder, ))
+                thrs[i] = Thread(target=processFolder , args=(folder, i))
                 thrs[i].start()
                 break
             i += 1
@@ -104,34 +106,8 @@ def processFolders():
     global processing
     processing = False
 
-# Calls processTask for all tasks until all tasks are done and it finished generating tasks
-def processTasks():
-    j = 1
-    thrs = [False] * threads
-    thrsLength = len(str(threads))
-
-    if not exists(join(workDirectory, 'threads')): call(['mkdir', join(workDirectory, 'threads')])
-    while processing or len(tasks) > 0:
-        if len(tasks) > 0:
-            i = 0
-            while True:
-                if not (thrs[i] and thrs[i].is_alive()):
-                    with tasksLock: 
-                        tsk = tasks.pop()
-                        thrs[i] = Thread(target=tsk.process, args=(str(i).zfill(thrsLength), workDirectory, config['wkhtmltoimagePath']))
-                    thrs[i].start()
-                    j += 1
-                    break
-                i += 1
-                if i == threads: i = 0
-
-    for th in thrs:
-        if th: th.join()   # Wait for threads to finish
-    
-    return j
-
 # Updates all information for a given movie or tv show and generates tasks
-def processFolder(folder):
+def processFolder(folder, thread):
     start = time.time()
     if folder in db['items']: metadata = db['items'][folder]
     else:
@@ -141,24 +117,19 @@ def processFolder(folder):
         path = mediaFiles[0] if type == 'movie' else folder
 
         metadata = Movie(title, year, path, folder) if type == 'movie' else TvShow(title, year, path, folder)
+        db['items'][folder] = metadata
+    
+    #functions.log('Processing: ' + metadata.title, 1, 2)
 
-    
-    functions.log('Processing: ' + metadata.title, 1, 2)
-    
     # Refresh metadata
     metadata.refresh(config)
+    if metadata.type == 'tv' and len(metadata.seasons) == 0: return functions.log('Empty folder: ' + folder, 1, 2)
     
-    # Generate tasks
-    if not dry:
-        generatedTasks = metadata.generateTasks(overwrite, covers[metadata.type], config['templates'])        
-        with tasksLock:
-            global tasks, tasksLength
-            tasks.extend(generatedTasks)
-            tasksLength += len(generatedTasks)
+    # Generate images
+    if not dry: metadata.process(overwrite, config['templates'], str(thread), workDirectory, config['wkhtmltoimagePath'])        
 
-    functions.log('Finished getting metadata for: ' + metadata.title + ((', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start)) if not dry else ''), 0, 2)
-    
-    db['items'][folder] = metadata # Update metadata in database
+
+    #functions.log('Finished getting metadata for: ' + metadata.title + ((', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start)) if not dry else ''), 0, 2)
 # endregion
 
 # region check files and dependencies
@@ -183,9 +154,6 @@ if exists(join(workDirectory, 'config', 'config.json')):
             if 'version' not in config or config['version'] != configVersion:
                 functions.log('Wrong version of config file, please delete!', 1, 1)
                 exit()
-            # Load order for ratings and mediainfo, TODO change this to a setting in each image
-            functions.ratingsOrder = config['ratingsOrder']
-            functions.mediainfoOrder = config['mediaInfoOrder']
     except:
         functions.log('Error loading config file from: ' + cfg, 3, 0)
         exit()
@@ -193,21 +161,7 @@ else:
     functions.log('Missing config/config.json inside work directory', 3, 0)
     exit()
 
-# Loads covers configuration file
-if exists(join(workDirectory, 'config', 'covers.json')):
-    cvr = join(workDirectory, 'config', 'covers.json')
-    try:
-        with open(cvr, 'r') as js:
-            covers = json.load(js)
-            if 'version' not in covers or covers['version'] != configVersion:
-                functions.log('Wrong version of covers file, please delete!', 1, 0)
-                exit()
-    except:
-        functions.log('Error loading covers file from: ' + cvr, 1, 0)
-        exit()
-else:
-    functions.log('Missing config/cover.json inside work directory', 1, 0)
-    exit()
+if not exists(join(workDirectory, 'threads')): call(['mkdir', join(workDirectory, 'threads')])
 
 # Check for TMDB api key
 if config['tmdbApi'] == '':
@@ -232,13 +186,7 @@ functions.wkhtmltoimage = config['wkhtmltoimagePath']
 # Start
 functions.log('Starting BetterCovers for directory: ' + pt, 1, 2)
 st = time.time()
-th1 = Thread(target=processFolders)
-th1.start()
-if not dry:
-    th2 = Thread(target=processTasks)
-    th2.start()
-else: functions.log('Starting dry run', 1, 2)
-th1.join() # Wait for tasks to be generated
+processFolders()
 
 # Write metadata to pickle file
 with open(join(workDirectory, 'metadata.pickle'), 'wb') as file:
@@ -246,11 +194,11 @@ with open(join(workDirectory, 'metadata.pickle'), 'wb') as file:
 if '--json' in argv: # If parameter --json also write to a json file
     with open(join(workDirectory, 'metadata.json'), 'w') as js:
         json.dump({'version': db['version'], 'items': [db['items'][item].toJSON() for item in db['items']]}, js, indent=7, default=str, sort_keys=True)
-if not dry: th2.join() # Wait for tasks to be processed
+
 if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
 
 # Update Agent
-if config['agent']['apiKey'] != '': # TODO add plex
+if config['agent']['apiKey'] != '':
     url = config['agent']['url'] + ('/Library/refresh?api_key=' + config['agent']['apiKey'] if config['agent']['type'] == 'emby' else '/ScheduledTasks/Running/6330ee8fb4a957f33981f89aa78b030f')
     time.sleep(2)
     if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
@@ -258,5 +206,5 @@ if config['agent']['apiKey'] != '': # TODO add plex
     else: functions.log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'], 2, 2)
 else: functions.log('Not updating ' + config['agent']['type'] + ' library, API key not set.', 1, 3)
 
-functions.log('Done, total time was: ' + functions.timediff(st) + ' and generated: ' + str(tasksLength) + ' images.', 0, 1)
+functions.log('Done, total time was: ' + functions.timediff(st), 0, 1)
 

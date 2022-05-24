@@ -13,6 +13,8 @@ class TvShow(Movie):
     def refresh(self, config):
         self.updateFiles()
 
+        if len(self.seasons == 0): return 
+        
         # Update metadata if needed
         self.updateMetadata(config['omdbApi'], config['tmdbApi'], config['scraping'], config['preferedImageLanguage'])
 
@@ -85,3 +87,4 @@ class TvShow(Movie):
                     if not season.getEpisode(ep.number) or ep.path != season.getEpisode(ep.number).path: # if its a new episode or path changed add episode
                         season.deleteEpisode(ep.number)
                         season.episodes.append(ep)
+                            

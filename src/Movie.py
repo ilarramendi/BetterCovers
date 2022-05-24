@@ -6,7 +6,6 @@ from threading import Thread
 from re import findall
 from urllib.parse import quote
 
-
 import scrapers.IMDB
 from scrapers.letterboxd import getLBRatings, searchLB
 from scrapers.MetaCritic import getMetacriticScore
@@ -14,15 +13,11 @@ from scrapers.RottenTomatoes import (getRTMovieRatings, getRTTVRatings, searchRT
 from scrapers.TVTime import *
 from scrapers.Trakt import getTraktRating
 
-
-
-from functions import log, checkDate, getJSON, get, timediff, getName, getMediaFiles, readNFO, avg, frequent
-scrapers.IMDB.updateIMDBDataset('.', 10, 10, get)
-
+from functions import log, checkDate, getJSON, get, timediff, getName, getMediaFiles, readNFO, avg, frequent, process
 
 from MediaInfo import MediaInfo
 
-from Task import Task
+scrapers.IMDB.updateIMDBDataset('.', 10, 10, get) # so.... yea
 
 class Movie:
     def __init__(self, title, year, path, folder): # TODO add more params to constructor
@@ -36,7 +31,7 @@ class Movie:
         self.folder = folder
         self.ids = {}
         self.certifications = []
-        self.ageRating = 'NR'
+        self.age_rating = 'NR'
         self.ratings = {}
         self.media_info = MediaInfo()
         self.updates = {
@@ -117,20 +112,31 @@ class Movie:
     def __str__(self):
         return dumps(self.toJSON(), indent=5, default=str, sort_keys=True)
 
-    def generateTasks(self, overwrite, config, templates): 
-        ret = Task.generateTask(self.type, self, overwrite, config, templates)
+    def process(self, overwrite, templates, thread, workDirectory, wkhtmltoimage): 
+        success = []
+        st = time()
 
-        if self.type in ['movie', 'tv', 'season']:
-            ret.extend(Task.generateTask('backdrop', self, overwrite, config['backdrop'], templates)) # Seasons have backdrops?     
-        if self.type == 'tv':
-            for season in self.seasons: 
-                ret.extend(season.generateTasks(overwrite, config['season'], templates))
-        if self.type == 'season': 
-            for episode in self.episodes:
-                ret.extend(episode.generateTasks(overwrite, config['episode'], templates))
+        if len(self.images['covers']) > 0: 
+            template = self.getTemplate(templates, False)
+            if template and process(self, template, thread, workDirectory, wkhtmltoimage, self.images['covers'][0]['src']): success.append('cover')
+        else: log(f"Missing cover image for: {self.title}", 2, 3)
+
+        if self.type in ['movie', 'tv']: 
+            if len(self.images['backdrops']) > 0: 
+                template = self.getTemplate(templates, True)
+                if template and process(self, template, thread, workDirectory, wkhtmltoimage, self.images['backdrops'][0]['src']): success.append('backdrop')
+        else: log(f"Missing backdrop image for: {self.title}", 2, 3)
+
+        if len(success) > 0:
+            log(f"Succesfully generated {' and '.join(success)} image/s for: {self.title} in {round(time() - st)}s", 0, 1)
         
-        return ret
-            
+        tasks = []
+        if self.type == "tv":
+            for season in self.seasons:
+                tasks.append(Task(season.process))
+                tasks[-1].start()
+        for task in tasks: task.join()
+                   
     def getTemplate(self, templates, backdrop):
         def _ratingsOk(ratings):
             for rt in ratings:
@@ -158,19 +164,18 @@ class Movie:
         
         def _ageRatingOk(rating):
             order = ['G', 'PG', 'PG-13', 'R', 'NC-17', 'NR']
-            if order.indexOf(rating) < order.indexof(self.ageRating): return False
+            return self.age_rating not in rating if isinstance(rating, list) else order.indexOf(rating) > order.indexof(self.age_rating)
 
-        # TODO add type_backdrop to readme
-        type = (self.type + '_backdrop') if backdrop else self.type # type if its a backdrop
-        for template in templates: # Returns the first matching template
-            if 'type' not in template or type in template['type'].split(';'):
+        type = (self.type + '_backdrop') if backdrop else self.type
+        for template in templates:
+            if 'type' not in template or type in template['type']:
                 if 'ratings' not in template or _ratingsOk(template['ratings']): 
                     if 'mediainfo' not in template or _mediainfoOk(template['mediainfo']):
-                        if 'ageRating' not in template or _ageRatingOk(template['ageRating']):
-                            if 'productionCompanies' not in template or _companiesOk(template['productionCompanies']):
-                                return template['cover']
+                        if 'age_rating' not in template or _ageRatingOk(template['age_rating']):
+                            if 'production_companies' not in template or _companiesOk(template['production_companies']):
+                                return template
         
-        return 'backdrop' if backdrop or self.type == 'episode' else 'cover'  # default templates if no custom match found
+        return False
 
     def updateMetadata(self, omdbApi, tmdbApi, scraping, preferedImageLanguage):
         # Gets metadata from TMDB api
@@ -191,6 +196,8 @@ class Movie:
                             self.ids['TMDB'] = str(res['results'][0]['id'])
                         else:
                             for result in res['results']:
+                                print(result)
+                                # TODO error here
                                 if result['name'].lower() == self.title.lower():
                                     self.ids['TMDB'] = str(result['id'])
                                     break
@@ -265,10 +272,10 @@ class Movie:
                                     )
 
                         self.updates['TMDB'] = datetime.now()
-                        log('Finished getting TMDB metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
+                        success.append("TMDB")
                     else: log('TMDB id found but no results found for: ' + self.title, 3, 4)
                 else: log("TMDB id not found for: " + self.title, 3, 4)
-            else: log('No need to update TMDB metadata for: ' + self.title, 1, 3)
+            else: passed.append("TMDB")
         
         # Gets suplemetary metadata from OMDB api
         def _getOMDB():   
@@ -309,9 +316,9 @@ class Movie:
                             self.ids['IMDB'] = res['imdbID'] 
 
                         self.updates['OMDB'] = datetime.now()
-                        log('Finished getting OMDB metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                    else: log('No results found on OMDB for: ' + self.title, 2, 4)
-                else: log('No need to update OMDB metadata for: ' + self.title, 1, 3)
+                        success.append("OMDB")
+                    else: error.append("OMDB")
+                else: passed.append("OMDB")
         
         # Get RT ratings, certifications and url for media and seasons if needed
         def _getRT():
@@ -323,7 +330,7 @@ class Movie:
                         # RT URL
                         self.urls['RT'] = url
                         rt = getRTMovieRatings(url, get) if self.type == 'movie' else getRTTVRatings(url, get)
-                        if rt['statusCode'] == 403: return log('Rotten tomatoes api limit reached!', 3, 1)
+                        if rt['statusCode'] == 403: return error.append("RT")
                         
                         # RT and RTA Score
                         for rating in rt['ratings']: self.ratings[rating] = rt['ratings'][rating]
@@ -343,10 +350,10 @@ class Movie:
 
                         if len(rt['ratings']) > 0 or ('seasons' in rt and len(rt['seasons']) > 0):
                             self.updates['RT'] = datetime.now()
-                            log('Finished getting RT metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                        else: log('No ratings found on RottenTomatoes for: ' + self.title, 2, 4)
-                    else: log('No results found on RottenTomatoes for: ' + self.title, 2, 4)
-                else: log('No need to update RottenTomatoes metadata for: ' + self.title, 1, 3)
+                            success.append("RT")
+                        else: error.append("RT")
+                    else: error.append("RT")
+                else: passed.append("RT")
         
         # Gets IMBD and MTC scores and certifications from IMBD
         def _getIMDB():
@@ -357,8 +364,8 @@ class Movie:
                     if imdb:
                         self.ratings['IMDB'] = {'icon': 'IMDB', 'value': imdb[0]}
                         self.updates['IMDB'] = datetime.now()
-                        log('Found IMDB rating in dataset for: ' + self.title + ': ' + str(imdb[0]) + ', in: ' + timediff(start), 1, 3)
-                    else: log('No result found in IMDB DATASET for: ' + self.title, 2, 4)
+                        success.append("IMDB")
+                    else: error.append("IMDB")
                     
                     # TODO Fix
                     if self.type == 'tv': # TODO run this again when episodes are added
@@ -366,7 +373,7 @@ class Movie:
                         for ep in eps: # Get episodes ids
                             if int(ep[1]) in self.seasons and int(ep[2]) in self.seasons[int(ep[1])]['episodes']:
                                 self.seasons.getSeason(int(ep[1])).getEpisode(int(ep[2])).ids['IMDB'] = str(ep[0])
-                else: log('No need to update IMDB metadata for: ' + self.title, 1, 3)
+                else: passed.append("IMDB")
         
         # Gets movie ratings from letterboxd
         def _getLB():
@@ -380,9 +387,9 @@ class Movie:
                         if LB: 
                             self.ratings['LB'] = LB
                             self.updates['LB'] = datetime.now()
-                            log('Found LetterBox rating for: ' + self.title + ': ' + LB['value'] + ', in: ' + timediff(start), 1, 3)
-                    else: log('No results found in LetterBox for: ' + self.title, 2, 4)
-                else: log('No need to update Letterbox metadata for: ' + self.title, 1, 3)
+                            success.append("LB")
+                    else: error.append("LB")
+                else: passed.append("LB")
     
         #TODO fix
         # Get episode and season ratings from TVTime (all in only one request)
@@ -417,11 +424,11 @@ class Movie:
                                 if len(rts): season.ratings['TVTime'] = {'icon': 'TVTime', 'value': avg(rts)}
                             if len(rtsTotal): self.ratings['TVTime'] = {'icon': 'TVTime', 'value': avg(rtsTotal)}
                             
-                            log('Finished getting TVTime metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
                             self.updates['TVTime'] = datetime.now()
-                        else: log('No episode ratings found in TVTime for: ' + self.title, 2, 4)
-                    else: log('No result found in TVTime for: ' + self.title, 2, 4)
-                else: log('No need to update TVTime metadata for: ' + self.title, 1, 3)
+                            success.append("TVTime")
+                        else: error.append("TVTime")
+                    else: error.append("TVTime")
+                else: passed.append("TVTime")
         
         # TODO do this for seasons and episodes?
         # Gets ratings from metaCritic
@@ -438,9 +445,9 @@ class Movie:
                             self.certifications.remove('MTC-MS')
                         
                         self.updates['MC'] = datetime.now()
-                        log('Finished getting MetaCritic ratings for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting MetaCritic ratings for: ' + self.title, 2, 4)
-                else: log('No need to update MetaCritic metadata for: ' + self.title, 1, 3)
+                        success.append("MTC")
+                    else: error.append("MTC")
+                else: passed.append("MTC")
         
         # Gets ratings from Trakt
         def _getTrakt():
@@ -451,11 +458,14 @@ class Movie:
                     if rt:
                         self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
                         self.updates['Trakt'] = datetime.now()
-                        log('Finished getting Trakt ratings for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting Trakt ratings for: ' + self.title, 2, 4)
-                else: log('No need to update Trakt metadata for: ' + self.title, 1, 3)
+                        success.append("Trakt")
+                    else: error.append("Trakt")
+                else: passed.append("Trakt")
         
         tsks = []
+        success = []
+        passed = []
+        error = []
 
         _getTMDB() # Get general information first
 
@@ -463,6 +473,10 @@ class Movie:
             tsks.append(Thread(target=fn, args=()))
             tsks[-1].start()
         for tsk in tsks: tsk.join() # Wait for tasks to finish
+
+        if len(success) > 0: log(f"Successfully updated metadata for: {self.title} from: {', '.join(success)}", 0, 2)
+        if len(passed) > 0: log(f"No need to update metadata for: {self.title} from: {', '.join(passed)}", 1, 3)
+        if len(error) > 0: log(f"Error getting metadata for: {self.title} from: {', '.join(error)}", 2, 2)
 
         if self.type == 'tv': # TODO get specific production companies for eachg epiosode
             for sn in self.seasons:

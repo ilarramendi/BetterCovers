@@ -35,6 +35,11 @@ class Season(Movie):
             if episode.number == number: return episode
         return False
 
+    def process(self, overwrite, config, templates): 
+        process(self, self.getTemplate(templates, False), thread, workDirectory, wkhtmltoimage)
+        process(self, self.getTemplate(templates, True), thread, workDirectory, wkhtmltoimage)
+        for season in self.seasons: episode.process(overwrite, config, templates)
+
     def updateMetadata(self, showIDS, omdbApi, tmdbApi):
         for ep in self.episodes: ep.production_companies = self.production_companies
         

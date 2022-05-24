@@ -1,4 +1,4 @@
-import time
+from time import time
 import sys
 import requests
 import json
@@ -10,6 +10,9 @@ from os.path import join
 from math import sqrt
 from glob import glob
 from datetime import datetime, timedelta
+from subprocess import call, getstatusoutput
+from exif import Image as exifImage
+
 
 logLevel = 2
 showColor = True
@@ -54,9 +57,12 @@ def getUpdateInterval(releaseDate):
 # Logs to file and STDOUT with a specific level and color
 def log(text, type, level): # 0 = Success, 1 = Normal, 2 = Warning, 3 = Error
     if level <= logLevel:
-        print((datetime.now().strftime("[%m/%d/%Y %H:%M:%S] --> ") if logLevel > 2 else '') + (['\033[92m', '\033[37m', '\033[93m', '\033[91m'][type] if showColor else '') + text + '\033[0m')
+        colors = ['\033[92m', '\033[37m', '\033[93m', '\033[91m']
+        typestr = f"[{['Success', 'Info   ', 'Warning', 'Error  '][type]}]" 
+
+        print(f"[{datetime.now().strftime('%m/%d/%Y %H:%M:%S')}]{colors[type] if showColor else typestr} --> {text}\033[0m")
         with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
-            log.write('[' + ['Info   ', 'Error  ', 'Success', 'Warning'][type] + datetime.now().strftime("][%m/%d/%Y %H:%M:%S] --> ") + text + '\n')
+            log.write(f"{typestr}[{datetime.now().strftime('%m/%d/%Y %H:%M:%S')}] --> {text}\n")
 
 # returns a tuple of the name and year from file, if year its not found returns false in year
 def getName(folder):
@@ -68,7 +74,7 @@ def getName(folder):
             return [inf[0][0].translate({'.': ' ', '_': ' '}), int(inf[0][1])]
         else: return [inf[0][2].translate({'.': ' ', '_': ' '}), None]
     else:
-        log('Name not found for: ' + fl, 3, 1)
+        log(f"Name not found for: {fl}", 3, 1)
         return [None, None]
 
 #Makes a https request to a url and returns a JSON object if successfull
@@ -78,12 +84,12 @@ def getJSON(url, headers = {}):
     if 'application/json' in response.headers.get('content-type'):
         try:
             return response.json()
-        except Exception as ex: log('Error parsing JSON from response:\n' + response.text, 1, 1)
+        except Exception as ex: log(f"Error parsing JSON from response:\n{response.text}", 1, 1)
     return False
 
 # Return how much time passed since start
 def timediff(start):
-    return str(timedelta(seconds=round(time.time() - start)))
+    return str(timedelta(seconds=round(time() - start)))
 
 # Returns the average float as a string from a list of numbers
 def avg(lst):
@@ -124,6 +130,66 @@ def frequent(list):
             num = i
     return num 
 
+# Process metadata
+def process(metadata, template, thread, workDirectory, wkhtmltoimage, image):
+        st = time()
+        try:
+            with open(join(workDirectory, 'config/templates', template["template"])) as html:
+                HTML = html.read()
+        except:
+            log('Error opening: ' + join(workDirectory, 'config/templates', template["template"]), 3, 1)
+            return False
+        
+        for rt in metadata.ratings:
+            HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='{join(workDirectory, 'assets/ratings', metadata.ratings[rt]['icon'])}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
+        for mi, value in vars(metadata.media_info).items():
+            if value: HTML = HTML.replace(f"<!--{mi}-->", f"<div class='mediaInfoImgContainer {mi} {value}'><img src='{join(workDirectory, 'assets/mediainfo', value)}.png' class='mediainfoIcon'></div>")
+        
+        pcs = ''
+        for pc in metadata.production_companies:
+            pcs += f"<div class='pcWrapper {pc['id']}'><img src='{pc['logo']}' class='producionCompany'/></div>\n\t\t\t\t"
+        HTML = HTML.replace('<!--PRODUCTIONCOMPANIES-->', pcs)
+        
+        # TODO change this to be like the others
+        cert = ''
+        for cr in metadata.certifications:
+            cert += f"<img src='{join(workDirectory, 'assets/certifications', cr)}.png' class='certification' />"
+        HTML = HTML.replace('<!--CERTIFICATIONS-->', cert)
+        try:
+            with open(join(workDirectory, 'assets/ageRatings', metadata.age_rating + '.svg'), 'r') as svg:
+                HTML = HTML.replace('<!--AGERATING-->', svg.read())
+        except:
+            log(f"missing assets/ageRatings/{metadata.age_rating}.svg", 3, 1)
+        
+        HTML = HTML.replace('$IMGSRC', image) # TODO fix for image generation here
+        HTML = HTML.replace('<!--TITLE-->', metadata.title)
+
+        # Write new html file to disk
+        with open(join(workDirectory, 'threads', thread + '.html'), 'w') as out:
+            out.write(HTML)
+
+        # Generate image
+        i = 0
+        command = f"{wkhtmltoimage} --cache-dir {join(workDirectory, 'cache') } --enable-local-file-access 'file://{join(workDirectory, 'threads', thread)}.html' '{join(workDirectory, 'threads', thread)}.jpg'"
+        out = getstatusoutput(command)
+        if out[0] == 0:
+            imgSrc = join(workDirectory, 'threads', thread) + '.jpg'
+
+            # Tag image
+            with open(imgSrc, 'rb') as image: img = exifImage(image)
+            # img["software"] = f"BetterCovers: {metadata.hash}" # TODO fix
+            img["datetime_original"] = str(datetime.now())
+            with open(imgSrc, 'wb') as image: image.write(img.get_file())
+
+            # Copy to final location
+            for fl in template["out"]:
+                if call(['cp', '-f', imgSrc, f"{metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[0])}"]) != 0: 
+                    log(f"Error moving to: {metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[0])}", 3, 1)
+                    return False
+            
+            return True
+        else: log(f"Error generating image for: {metadata.title}\n{out[1]}", 3, 1)
+
 # Custom requests.get implementation with progressive random delay, retries and error catching
 def get(url, headers = {}):
     ret = requests.Response()
@@ -135,17 +201,17 @@ def get(url, headers = {}):
             rq = requests.get(url, headers=headers)
             if rq.status_code == 200: return rq
             elif rq.status_code == 401:
-                log('Api limit reached for: ' + site, 3, 2)
+                log(f"Api limit reached for: {site}", 3, 2)
                 return rq
             elif rq.status_code == 404:
-                log('Resource not found in: ' + url, 2, 3)
+                log(f"Resource not found in: {url}", 2, 3)
                 return rq
-            else: log('Error accessing ' + site + ' (' + str(rq.status_code) + ')', 3 if n == 2 else 2, 3 if n == 2 else 4)
+            else: log(f"Error accessing {site} ({rq.status_code})", 3 if n == 2 else 2, 3 if n == 2 else 4)
         except requests.exceptions.ConnectionError:
             ret.status_code = 401
-            log('Too many requests to: ' + site + ', try lowering amount of workers!', 3, 3) # TODO change this
+            log(f"Too many requests to: {site}, try lowering amount of workers!", 3, 3) # TODO change this
         except: 
-            log('Unknown error trying to access: ' + url, 3, 2)
+            log(f"Unknown error trying to access: {url}", 3, 2)
             ret.status_code = 777
         
         delay += 5 + random() * 5 # 5 to 10 seconds
