@@ -196,8 +196,7 @@ class Movie:
                             self.ids['TMDB'] = str(res['results'][0]['id'])
                         else:
                             for result in res['results']:
-                                # TODO error here
-                                if result['name'].lower() == self.title.lower():
+                                if result['title' if self.type == 'movie' else 'name'].lower() == self.title.lower():
                                     self.ids['TMDB'] = str(result['id'])
                                     break
                             else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)

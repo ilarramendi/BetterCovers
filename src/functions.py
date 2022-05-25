@@ -13,13 +13,12 @@ from datetime import datetime, timedelta
 from subprocess import call, getstatusoutput
 from exif import Image as exifImage
 
-
 logLevel = 2
 showColor = True
 
 logLock = Lock()
 wkhtmltoimage = ''
-mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts'] # Type of extensions to look for media files
+mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts', 'm4v'] # Type of extensions to look for media files
 
 # Returns all media files inside a folder except for trailers
 def getMediaFiles(folder):
@@ -132,66 +131,66 @@ def frequent(list):
 
 # Process metadata
 def process(metadata, template, thread, workDirectory, wkhtmltoimage, image):
-        if not template: return False
-        
-        st = time()
-        try:
-            with open(join(workDirectory, 'templates', template["template"])) as html:
-                HTML = html.read()
-        except:
-            log('Error opening: ' + join(workDirectory, 'templates', template["template"]), 3, 1)
-            return False
-        
-        for rt in metadata.ratings:
-            HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='{join(workDirectory, 'assets/ratings', metadata.ratings[rt]['icon'])}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
-        for mi, value in vars(metadata.media_info).items():
-            if value: HTML = HTML.replace(f"<!--{mi}-->", f"<div class='mediaInfoImgContainer {mi} {value}'><img src='{join(workDirectory, 'assets/mediainfo', value)}.png' class='mediainfoIcon'></div>")
-        
-        pcs = ''
-        for pc in metadata.production_companies:
-            pcs += f"<div class='pcWrapper {pc['id']}'><img src='{pc['logo']}' class='producionCompany'/></div>\n\t\t\t\t"
-        HTML = HTML.replace('<!--PRODUCTIONCOMPANIES-->', pcs)
-        
-        # TODO change this to be like the others
-        cert = ''
-        for cr in metadata.certifications:
-            cert += f"<img src='{join(workDirectory, 'assets/certifications', cr)}.png' class='certification' />"
-        HTML = HTML.replace('<!--CERTIFICATIONS-->', cert)
-        try:
-            with open(join(workDirectory, 'assets/ageRatings', metadata.age_rating + '.svg'), 'r') as svg:
-                HTML = HTML.replace('<!--AGERATING-->', svg.read())
-        except:
-            log(f"missing assets/ageRatings/{metadata.age_rating}.svg", 3, 1)
-        
-        HTML = HTML.replace('$IMGSRC', image) # TODO fix for image generation here
-        HTML = HTML.replace('<!--TITLE-->', metadata.title)
+    if not template: return False
+    
+    st = time()
+    try:
+        with open(join(workDirectory, 'templates', template["template"])) as html:
+            HTML = html.read()
+    except:
+        log('Error opening: ' + join(workDirectory, 'templates', template["template"]), 3, 1)
+        return False
+    
+    for rt in metadata.ratings:
+        HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='{join(workDirectory, 'assets/ratings', metadata.ratings[rt]['icon'])}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
+    for mi, value in vars(metadata.media_info).items():
+        if value: HTML = HTML.replace(f"<!--{mi}-->", f"<div class='mediaInfoImgContainer {mi} {value}'><img src='{join(workDirectory, 'assets/mediainfo', value)}.png' class='mediainfoIcon'></div>")
+    
+    pcs = ''
+    for pc in metadata.production_companies:
+        pcs += f"<div class='pcWrapper {pc['id']}'><img src='{pc['logo']}' class='producionCompany'/></div>\n\t\t\t\t"
+    HTML = HTML.replace('<!--PRODUCTIONCOMPANIES-->', pcs)
+    
+    # TODO change this to be like the others
+    cert = ''
+    for cr in metadata.certifications:
+        cert += f"<img src='{join(workDirectory, 'assets/certifications', cr)}.png' class='certification' />"
+    HTML = HTML.replace('<!--CERTIFICATIONS-->', cert)
+    try:
+        with open(join(workDirectory, 'assets/ageRatings', metadata.age_rating + '.svg'), 'r') as svg:
+            HTML = HTML.replace('<!--AGERATING-->', svg.read())
+    except:
+        log(f"missing assets/ageRatings/{metadata.age_rating}.svg", 3, 1)
+    
+    HTML = HTML.replace('$IMGSRC', image) # TODO fix for image generation here
+    HTML = HTML.replace('<!--TITLE-->', metadata.title)
 
-        # Write new html file to disk
-        with open(join(workDirectory, 'threads', thread + '.html'), 'w') as out:
-            out.write(HTML)
+    # Write new html file to disk
+    with open(join(workDirectory, 'threads', thread + '.html'), 'w') as out:
+        out.write(HTML)
 
-        # Generate image
-        i = 0
-        command = f"{wkhtmltoimage} --cache-dir {join(workDirectory, 'cache') } --enable-local-file-access 'file://{join(workDirectory, 'threads', thread)}.html' '{join(workDirectory, 'threads', thread)}.jpg'"
-        out = getstatusoutput(command)
-        if out[0] == 0:
-            imgSrc = join(workDirectory, 'threads', thread) + '.jpg'
+    # Generate image
+    i = 0
+    command = f"{wkhtmltoimage} --cache-dir {join(workDirectory, 'cache') } --enable-local-file-access 'file://{join(workDirectory, 'threads', thread)}.html' '{join(workDirectory, 'threads', thread)}.jpg'"
+    out = getstatusoutput(command)
+    if out[0] == 0:
+        imgSrc = join(workDirectory, 'threads', thread) + '.jpg'
 
-            # Tag image
-            with open(imgSrc, 'rb') as image: img = exifImage(image)
-            # img["software"] = f"BetterCovers: {metadata.hash}" # TODO fix
-            img["datetime_original"] = str(datetime.now())
-            with open(imgSrc, 'wb') as image: image.write(img.get_file())
+        # Tag image
+        with open(imgSrc, 'rb') as image: img = exifImage(image)
+        # img["software"] = f"BetterCovers: {metadata.hash}" # TODO fix
+        img["datetime_original"] = str(datetime.now())
+        with open(imgSrc, 'wb') as image: image.write(img.get_file())
 
-            # Copy to final location
-            for fl in template["out"]:
-                out = f"{metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[2].rpartition('.')[0])}"
-                if call(['cp', '-f', imgSrc, out]) != 0: 
-                    log(f"Error moving to: {out}", 3, 1)
-                    return False
-            
-            return True
-        else: log(f"Error generating image for: {metadata.title}\n{out[1]}", 3, 1)
+        # Copy to final location
+        for fl in template["out"]:
+            out = f"{metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[2].rpartition('.')[0])}"
+            if call(['cp', '-f', imgSrc, out]) != 0:
+                log(f"Error moving to: {out}", 3, 1)
+                return False
+
+        return True
+    else: log(f"Error generating image for: {metadata.title}\n{out[1]}", 3, 1)
 
 # Custom requests.get implementation with progressive random delay, retries and error catching
 def get(url, headers = {}):

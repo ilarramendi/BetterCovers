@@ -50,6 +50,9 @@ import scrapers.IMDB
 # TODO what is cover art archive?
 # TODO get fanart from somewhere to generate images
 # TODO fix hash for automatic image overwrite
+# TODO add matched to log
+# TODO fix tv show performance
+# TODO add again number of images generated at the end
 
 # region parameters
 # Check parameters
