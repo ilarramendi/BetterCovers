@@ -17,29 +17,23 @@ from TvShow import TvShow
 
 import functions
 
+import scrapers.IMDB
+
 # TODO change to tmdb api v4
-# TODO update all logs
 # TODO add moviechart
 # TODO update metadata on delete/add episode
-# TODO Update readme
-# TODO Make readme specific for cover configuration
 # TODO add log on each episode getting metadata
-# TODO Add logs on getMetadata
 # TODO Rotten Tomatoes api returns covers !
 # TODO MovieTweetings -> Interesting
-# TODO Create better function for requests with included wait
-# TODO delete icon from ratings since it can be calculated
-# TODO change h264 icon
+# TODO delete icon from ratings since it can be calculated on the fly
 # TODO images cache not working
 # TODO Get different ratings from metacritics
 # TODO pass scrapping enabled/disabled to getSeasons
 # TODO fix date in container 
-# TODO Fix templates, ratings getting too cramed
 # TODO Allow the script to be killed with CTRL + C
 
 # TODO Change ratings to be only values stored
 # TODO Trailers missiing url?
-# TODO change all srings concatenation to {}
 # TODO remove year point since releaseDate exists
 # TODO container logs some thimes get corrupted in console, this dosnt happend in portainer, wtf.
 # TODO Also logs in container update in steps or groups instead of normaly
@@ -52,8 +46,10 @@ import functions
 # TODO rethink log levels
 # TODO add options removed from covers.json like 4k-hdr
 # TODO try system links as a way to make images load faster in emby
-# TODO make metactitic scrapper work better
+# TODO make MTC and Trakt scrapper work better
+# TODO what is cover art archive?
 # TODO get fanart from somewhere to generate images
+# TODO fix hash for automatic image overwrite
 
 # region parameters
 # Check parameters
@@ -72,7 +68,7 @@ if '--log-level' in argv and (len(argv) == argv.index('--log-level') + 1 or not 
 
 pt = argv[1]
 folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [pt] # if its a single folder dont use glob
-threads = 20 if '-w' not in argv else int(argv[argv.index('-w') + 1])
+threads = 30 if '-w' not in argv else int(argv[argv.index('-w') + 1])
 processing = True
 overwrite = '-o' in argv
 workDirectory = abspath('./config' if '-wd' not in argv else argv[argv.index('-wd') + 1])
@@ -82,7 +78,7 @@ dry = '--dry' in argv
 functions.showColor = '--no-colors' not in argv
 # endregion
 
-dbVersion = 6
+dbVersion = 7
 configVersion = 7
 
 db = {'version': dbVersion, 'items': {}}
@@ -143,7 +139,7 @@ if exists(join(workDirectory, 'metadata.pickle')):
             db = pickle.load(pk)
             if 'version' not in db or db['version'] != dbVersion:
                 functions.log('Removing metadata file because this is a new version of the script', 3, 1)
-                db = {'version': dbVersion}
+                db = {'version': dbVersion, 'items': {}}
         except:
             functions.log(f'Error loading metadata from: "{join(workDirectory, "metadata.pickle")}"', 3, 1)
             exit()
@@ -175,9 +171,8 @@ if config['tmdbApi'] == '':
 functions.wkhtmltoimage = config['wkhtmltoimagePath']
 
 # Updates IMDB datasets
-# TODO fix
-#if config['scraping']['IMDB']: 
-# endregion
+if config['scraping']['IMDB']: scrapers.IMDB.updateIMDBDataset(workDirectory, 10, 10, functions.get) # so.... yea
+
 
 # Start
 functions.log('Starting BetterCovers for directory: ' + pt, 1, 2)
@@ -199,7 +194,7 @@ if config['agent']['apiKey'] != '':
     if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
         functions.log(f"Succesfully updated {config['agent']['type']} libraries ({config['agent']['url']})", 0, 2)
     else: functions.log(f"Error accessing  {config['agent']['type']} at {config['agent']['url']}", 2, 2)
-else: functions.log(f"Not updating {config['agent']['type']}  library, API key not set.", 1, 3)
+else: functions.log(f"Not updating {config['agent']['type']} library, API key not set.", 1, 3)
 
 functions.log(f"Done, total time was: {functions.timediff(st, False)}", 0, 1)
 

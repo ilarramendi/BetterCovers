@@ -1,4 +1,4 @@
-cache/
-metadata.json
-metadata.pickle
-BetterCovers.log
+config/cache/
+config/metadata.json
+config/metadata.pickle
+config/BetterCovers.log

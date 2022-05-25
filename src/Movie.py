@@ -17,8 +17,6 @@ from functions import log, checkDate, getJSON, get, timediff, getName, getMediaF
 
 from MediaInfo import MediaInfo
 
-scrapers.IMDB.updateIMDBDataset('.', 10, 10, get) # so.... yea
-
 class Movie:
     def __init__(self, title, year, path, folder): # TODO add more params to constructor
         self.title = title
