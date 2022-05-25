@@ -21,32 +21,12 @@ class MediaInfo:
 
     def __str__(self):
         return dumps(self.toJSON(), indent=5, default=str)
-
-    def toTask(self, config):
-        tsk = {}
-        
-        # Add enabled mediainfo properties
-        for property, value in vars(self).items():
-            if property != 'languages' and value and config[property][value]: tsk[property] = value
-        
-        # Add first selected language found
-        for lg in config['audio'].split(','):
-            if lg in self.languages:
-                tsk['language'] = lg
-                break
-        
-        # Replaces UHD and HDR for UHD-HDR if enabled
-        if 'color' in tsk and 'resolution' in tsk:
-            if tsk['color'] == 'HDR' and tsk['resolution'] == 'UHD' and config['color']['UHD-HDR']:
-                tsk['color'] = 'UHD-HDR'
-                del tsk['resolution']
-        
-        return tsk
     
-    def update(self, metadata, defaultAudioLanguage, mediainfoUpdateInterval):
+    def update(self, metadata, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe):
         if (datetime.now() - metadata.updates['mediaInfo']) > timedelta(days=mediainfoUpdateInterval):
-            cmd = 'ffprobe "' + metadata.path.translate({36: '\$'}) + '" -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet'
-            cmd2 = 'ffprobe "' + metadata.path.translate({36: '\$'}) + '" -show_streams -v quiet'
+            pt = metadata.path.translate({36: '\$'})
+            cmd = f'{ffprobe} "{pt}"  -of json -show_entries stream=index,codec_type,codec_name,height,width:stream_tags=language -v quiet'
+            cmd2 = f'{ffprobe} "{pt}"  -show_streams -v quiet'
             out = getstatusoutput(cmd)
             out2 = getstatusoutput(cmd2)
             
@@ -54,8 +34,8 @@ class MediaInfo:
             nm = metadata.path.lower()
             metadata.media_info.source = 'BR' if ('bluray' in nm or 'bdremux' in nm) else 'DVD' if 'dvd' in nm else 'WEBRIP' if 'webrip' in nm else 'WEBDL' if 'web-dl' in nm else None
 
-            if out[0] != 0: return log('Error getting media info for: "' + metadata.title + '", exit code: ' + str(out[0]) + '\n Command: ' + cmd, 3, 1)
-            if out2[0] != 0: return log('Error getting media info for: "' + metadata.title + '", exit code: ' + str(out2[0]) + '\n Command: ' + cmd2, 3, 1)
+            if out[0] != 0: return log(f"Error getting media info for: {metadata.title}, exit code: {out[0]}\n Command: {cmd}", 3, 1)
+            if out2[0] != 0: return log(f"Error getting media info for: {metadata.title}, exit code: {out2[0]} \n Command: {cmd2}", 3, 1)
                 
             # Get first video track
             video = False
@@ -65,7 +45,7 @@ class MediaInfo:
                     video = s
                     break
             
-            if not video: return log('Error getting media info, no video tracks found for: ' + metadata.title, 3, 1)
+            if not video: return log(f"Error getting media info, no video tracks found for: {metadata.title}", 3, 1)
             
             # Color space (HDR or SDR)
             metadata.media_info.color = 'HDR' if 'bt2020' in out2[1] else 'SDR'
@@ -77,8 +57,8 @@ class MediaInfo:
             if 'codec_name' in video:
                 if video['codec_name'] in ['h264', 'avc']: metadata.media_info.codec = 'AVC'
                 elif video['codec_name'] in ['h265', 'hevc']: metadata.media_info.codec = 'HEVC'
-                else: log('Unsupported video codec: ' + video['codec_name'].upper(), 2, 4)
-            else: log('Video codec not found for: ' + metadata.title, 2, 4)
+                else: log(f"Unsupported video codec: {video['codec_name'].upper()}", 2, 4)
+            else: log(f"Video codec not found for: {video['codec_name'].upper()}", 2, 4)
             
             # Audio languages
             for s in streams:
@@ -86,7 +66,8 @@ class MediaInfo:
                     metadata.media_info.languages.append(s['tags']['language'].upper())
             if len(metadata.media_info.languages) == 0:
                 if defaultAudioLanguage: metadata.media_info.languages = [defaultAudioLanguage]
-                log('No audio lenguage found for: ' + metadata.title, 2, 4)
+                log(f"Audio language not found for: {video['codec_name'].upper()}", 2, 4)
             
             metadata.updates['mediaInfo'] = datetime.now()
-        else: return log('No need to update Media Info for: ' + metadata.title, 1, 3)
+            log(f"Successfully updated Media Info for: {metadata.title}", 0, 2)
+        else: return log(f"No need to update Media Info for: {metadata.title}", 1, 3)

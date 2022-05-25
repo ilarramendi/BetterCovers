@@ -10,17 +10,17 @@ from functions import timediff, checkDate, getJSON, log, avg
 from scrapers.RottenTomatoes import (getRTEpisodeRatings, getRTSeasonRatings)
 from scrapers.TVTime import *
 
-from functions import get
+from functions import get, process
 
 minVotes = 3
 
 
 class Season(Movie):
-    def updateMediaInfo(self, defaultAudioLanguage, mediainfoUpdateInterval):
+    def updateMediaInfo(self, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe):
         start = time()
         # TODO Do this with threads
         for ep in self.episodes: 
-            ep.media_info.update(ep, defaultAudioLanguage, mediainfoUpdateInterval)
+            ep.media_info.update(ep, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe)
         self.getMediainfoFromChilds()
 
     def deleteEpisode(self, number):
@@ -35,11 +35,6 @@ class Season(Movie):
             if episode.number == number: return episode
         return False
 
-    def process(self, overwrite, config, templates): 
-        process(self, self.getTemplate(templates, False), thread, workDirectory, wkhtmltoimage)
-        process(self, self.getTemplate(templates, True), thread, workDirectory, wkhtmltoimage)
-        for season in self.seasons: episode.process(overwrite, config, templates)
-
     def updateMetadata(self, showIDS, omdbApi, tmdbApi):
         for ep in self.episodes: ep.production_companies = self.production_companies
         
@@ -47,12 +42,10 @@ class Season(Movie):
         def _getTMDB():
             if 'TMDB' in showIDS:
                 if checkDate(self.updates['TMDB'], self.release_date):
-                    start = time()
-                    # Can search by id here but its the same (?
-                    res = getJSON('https://api.themoviedb.org/3/tv/' + showIDS['TMDB'] + '/season/' + str(self.number) + '?api_key=' + tmdbApi + '&language=en&append_to_response=releases,external_ids,videos,production_companies,images')
+                    res = getJSON(f"https://api.themoviedb.org/3/tv/{showIDS['TMDB']}/season/{self.number}?api_key={tmdbApi}&language=en&append_to_response=releases,external_ids,videos,production_companies,images")
                     if res:
                         if 'poster_path' in res and res['poster_path'] != 'N/A' and res['poster_path']:
-                            imgSrc = 'https://image.tmdb.org/t/p/original' + res['poster_path']
+                            imgSrc = f"https://image.tmdb.org/t/p/original{res['poster_path']}"
                             for img in self.images['covers']:
                                 if img['src'] == imgSrc: break
                             else: 
@@ -80,11 +73,11 @@ class Season(Movie):
                                 if episodeMetadata:
                                     # Cover Images
                                     if 'still_path' in episode and episode['still_path'] != 'N/A' and episode['still_path']: 
-                                        imgSrc = 'https://image.tmdb.org/t/p/original' + episode['still_path']
-                                        for img in episodeMetadata.images['covers']:
+                                        imgSrc = f"https://image.tmdb.org/t/p/original{episode['still_path']}"
+                                        for img in episodeMetadata.images['backdrops']:
                                             if img['src'] == imgSrc: break
                                         else: 
-                                            episodeMetadata.images['covers'].append({'src': imgSrc, 'height': 0, 'language': 'en', 'source': 'TMDB'})
+                                            episodeMetadata.images['backdrops'].append({'src': imgSrc, 'height': 0, 'language': 'en', 'source': 'TMDB'})
                                     
                                     # Ratings
                                     if 'vote_average' in episode and episode['vote_average'] != 'N/A' and 'vote_count' in episode and episode['vote_count'] > minVotes:
@@ -111,7 +104,7 @@ class Season(Movie):
                             for prop in res['images']:
                                 mtProp = prop if prop != 'posters' else 'covers'
                                 for image in res['images'][prop]:
-                                    imgSrc = 'https://image.tmdb.org/t/p/original' + image['file_path']
+                                    imgSrc =  f"https://image.tmdb.org/t/p/original{image['file_path']}"
                                     
                                     for img in self.images[mtProp]:
                                         if img['src'] == imgSrc: break
@@ -124,13 +117,12 @@ class Season(Movie):
                                         )
                         
                         self.updates['TMDB'] = datetime.now()
-                        log('Finished getting TMDB metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting info on TMDB for: ' + self.title, 3, 4)
-                else: log('No need to update TMDB metadata for: ' + self.title, 1, 3)
+                        success.append("TMDB")
+                    else: error.append("TMDB")
+                else: passed.append("TMDB")
         
         # Get IMDB ratings and ids for episodes
         def _getOMDB():  
-            start = time()
             if len(omdbApi) > 0 and 'IMDBID' in showIDS:
                 if checkDate(self.updates['OMDB'], self.release_date):
                     res = getJSON('http://www.omdbapi.com/?i=' + showIDS['IMDBID'] + '&Season=' + str(number) + '&apikey=' + omdbApi)
@@ -147,13 +139,12 @@ class Season(Movie):
                             
                         self.updates['OMDB'] = datetime.now()
                         if len(rts) > 0: self.ratings['IMDB'] = {'icon': 'IMDB', 'value': avg(rts)}
-                        log('Finished getting OMDB metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting info on OMDB for: ' + self.title, 3, 4)
-                else: log('No need to update OMDB metadata for: ' + self.title, 1, 3)
+                        success.append("OMDB")
+                    else: error.append("OMDB")
+                else: passed.append("OMDB")
         
         # Ger RT ratings and certifications for season and episodes
         def _getRT():
-            start = time()
             if 'RT' in self.urls:
                 if checkDate(self.updates['RT'], self.release_date):
                     RT = getRTSeasonRatings(self.urls['RT'], get)
@@ -173,7 +164,7 @@ class Season(Movie):
                                             episode.ratings[rt] = RT['ratings'][rt]
                                             episode.updates['RT'] = datetime.now()
                                             
-                                            log('Found ' + rt + ' rating in RottenTomatoes for: ' + episode.title + ' in: ' + timediff(start2), 1, 4)
+                                            log(f'Found {rt} rating in RottenTomatoes for: {episode.title} in: {timediff(start2)}s', 1, 4)
                                         if len(RTE['ratings']) == 0:
                                             log('No ratings found on RT for: ' + episode.title, 2, 4)
                                     else: log('Error getting episode ratings from RT for: ' + episode.title, 2, 4)
@@ -185,15 +176,16 @@ class Season(Movie):
                         elif 'RT-CF' in self.certifications: self.certifications.remove('RT-CF')
                         
                         self.updates['RT'] = datetime.now() 
-                        log('Finished getting RT metadata for: ' + self.title + ' in: ' + timediff(start), 1, 3)
-                    elif RT['statusCode'] == 403: return log('RottenTomatoes API limit reached!', 3, 1)
-                    else: log('Error geting metadata from RottenTomatoes: ' + str(RT['statusCode']), 2, 4)            
-                else: log('No need to update TMDB metadata for: ' + self.title, 1, 3)
+                        success.append("RT")
+                    elif RT['statusCode'] == 403:
+                        error.append("RT")
+                        return log('RottenTomatoes API limit reached!', 3, 1)
+                    else: error.append("RT") 
+                else: passed.append("RT")
 
         # Gets episode and season ratings from TVTime
         def _getTVTime():
-            if checkDate(self.updates['TvTime'], self.release_date):
-                start = time()
+            if checkDate(self.updates['TVTime'], self.release_date):
                 success = False
                 rts = []
                 for episode in self.episodes:
@@ -204,14 +196,14 @@ class Season(Movie):
                             episode.ratings['TVTime'] = {'icon': 'TVTime', 'value': rating}
                             rts.append(float(rating))
                             success = True
-                            log('Found rating in TvTime for ' + episode.title + ': ' + rating + ' in: ' + timediff(start2), 0, 4)
-                        else: log('Error getting rating in TvTime for: ' + episode.title, 2, 4)
+                            log(f'Found rating in TvTime for {episode.title}: {rating} in: {timediff(start2)}s', 0, 4)
+                        else: log(f'Error getting rating in TvTime for: {episode.title}', 2, 4)
                 if success:
-                    log('Finished getting TVTime metadata for: ' + self.title + ' in: ' + timediff(start), 1, 5)
-                    self.updates['TvTime'] = datetime.now()
+                    success.append("TVTime")
+                    self.updates['TVTime'] = datetime.now()
                     self.ratings['TVTime'] = {'icon': 'TVTime', 'value': avg(rts)}
-                else: log('Error getting TVTime metadata for: ' + self.title, 2, 3)
-            else: log('No need to update TVTime metadata for: ' + self.title, 1, 4)
+                else: error.append("TVTime")
+            else: passed.append("TVTime")
         
         # Gets ratings from Trakt
         def _getTrakt():
@@ -222,9 +214,9 @@ class Season(Movie):
                     if rt:
                         self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
                         self.updates['Trakt'] = datetime.now()
-                        log('Found rating in Trakt for ' + self.title + ': ' + rt + ' in: ' + timediff(start), 1, 3)
-                    else: log('Error getting Trakt ratings for: ' + self.title, 2, 4)
-                else: log('No need to update Trakt metadata for: ' + self.title, 1, 3)
+                        success.append("Trakt")
+                    else: error.append("Trakt")
+                else: passed.append("Trakt")
             
             for eps in self.episodes:
                 if 'TMDB' in eps.ids:
@@ -238,11 +230,19 @@ class Season(Movie):
                         else: log('Error getting Trakt ratings for:' + eps.title, 2, 4)
                     else: log('No need to update Trakt metadata for: ' + eps.title, 1, 3)
             
+        tsks = []
+        success = []
+        passed = []
+        error = []
+
         # Get TMDB first
         _getTMDB()
 
-        tsks = []
         for fn in [_getOMDB, _getRT, _getTrakt]:
             tsks.append(Thread(target=fn, args=()))
             tsks[-1].start()
         for tsk in tsks: tsk.join()
+
+        if len(success) > 0: log(f"Successfully updated metadata for: {self.title} from: {', '.join(success)}", 0, 2)
+        if len(passed) > 0: log(f"No need to update metadata for: {self.title} from: {', '.join(passed)}", 1, 3)
+        if len(error) > 0: log(f"Error getting metadata for: {self.title} from: {', '.join(error)}", 2, 2)

@@ -22,6 +22,7 @@
      "IMDBRatingsUpdateInterval": 7,
      "preferedImageLanguage": "en-US",
      "wkhtmltoimagePath": "/usr/bin/wkhtmltoimage",
+     "ffprobe": "/usr/bin/ffprobe",
      "audioOrder": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL",
      "templates": [
           {
@@ -35,7 +36,7 @@
                "out": ["folder.jpg"]
           },
           {
-               "type": ["episode"],
+               "type": ["episode_backdrop"],
                "template": "backdrop.html",
                "out": ["$NAME.jpg"]
           }

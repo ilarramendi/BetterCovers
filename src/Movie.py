@@ -94,7 +94,7 @@ class Movie:
         getMetadata.start()
         
         # Update mediainfo for movies sync
-        self.media_info.update(self, config['defaultAudioLanguage'], config['mediaInfoUpdateInterval']) 
+        self.media_info.update(self, config['defaultAudioLanguage'], config['mediaInfoUpdateInterval'], config['ffprobe']) 
 
         getMetadata.join() 
 
@@ -116,27 +116,31 @@ class Movie:
         success = []
         st = time()
 
-        if len(self.images['covers']) > 0: 
-            template = self.getTemplate(templates, False)
-            if template and process(self, template, thread, workDirectory, wkhtmltoimage, self.images['covers'][0]['src']): success.append('cover')
-        else: log(f"Missing cover image for: {self.title}", 2, 3)
+        if self.type != 'episode':
+            if len(self.images['covers']) > 0: 
+                if process(self, self.getTemplate(templates, False), thread, workDirectory, wkhtmltoimage, self.images['covers'][0]['src']):
+                    success.append('cover')
+            else: log(f"Missing cover image for: {self.title}", 2, 3)
 
-        if self.type in ['movie', 'tv']: 
+        if self.type in ['movie', 'tv', 'episode']: 
             if len(self.images['backdrops']) > 0: 
-                template = self.getTemplate(templates, True)
-                if template and process(self, template, thread, workDirectory, wkhtmltoimage, self.images['backdrops'][0]['src']): success.append('backdrop')
-        else: log(f"Missing backdrop image for: {self.title}", 2, 3)
+                if process(self, self.getTemplate(templates, True), thread, workDirectory, wkhtmltoimage, self.images['backdrops'][0]['src']):
+                    success.append('backdrop')
+            else: log(f"Missing backdrop image for: {self.title}", 2, 3)
 
         if len(success) > 0:
-            log(f"Succesfully generated {' and '.join(success)} image/s for: {self.title} in {round(time() - st)}s", 0, 1)
+            log(f"Succesfully generated {' and '.join(success)} image{'s' if len(success) > 1 else ''} for: {self.title} in {timediff(st)}", 0, 1)
         
         tasks = []
         if self.type == "tv":
             for season in self.seasons:
-                tasks.append(Task(season.process))
+                tasks.append(Thread(target=season.process, args=(overwrite, templates, f"{thread}_{season.number}", workDirectory, wkhtmltoimage)))
                 tasks[-1].start()
         for task in tasks: task.join()
-                   
+
+        if self.type == 'season':
+            for episode in self.episodes: episode.process(overwrite, templates, f"{thread}_{self.number}", workDirectory, wkhtmltoimage)
+               
     def getTemplate(self, templates, backdrop):
         def _ratingsOk(ratings):
             for rt in ratings:
@@ -181,31 +185,28 @@ class Movie:
         # Gets metadata from TMDB api
         def _getTMDB():
             if checkDate(self.updates['TMDB'], self.release_date):
-                start = time()
-                
                 if 'TMDB' not in self.ids and 'IMDB' in self.ids: # If missing TMDB id search by IMDBID
-                    res = getJSON('https://api.themoviedb.org/3/find/' + self.ids['IMDB'] + '?api_key=' + tmdbApi + '&language=' + preferedImageLanguage + '&external_source=imdb_id')
+                    res = getJSON(f"https://api.themoviedb.org/3/find/{self.ids['IMDB']}?api_key={tmdbApi}&language={preferedImageLanguage}&external_source=imdb_id")
                     if res and len(res[self.type + '_results']) == 1:  
                         self.ids['TMDB'] = str(res[self.type + '_results'][0]['id'])
-                    else: log("No results found searching by IMDB id in TMDB: " + self.ids['IMDB'], 2, 5)
+                    else: log(f"No results found searching by IMDB id in TMDB: {self.ids['IMDB']}", 2, 5)
                 
                 if 'TMDB' not in self.ids: # If still missing TMDB id search by title
-                    res = getJSON('https://api.themoviedb.org/3/search/' + self.type + '?api_key=' + tmdbApi + '&language=en&page=1&include_adult=false&append_to_response=releases,external_ids&query=' + quote(self.title) + ('&year=' + str(self.year) if self.year else ''))
+                    res = getJSON(f"https://api.themoviedb.org/3/search/{self.type}?api_key={tmdbApi}&language=en&page=1&include_adult=false&append_to_response=releases,external_ids&query={quote(self.title)}{f'&year={self.year}' if self.year else ''}")
                     if res and 'results' in res:
                         if len(res['results']) == 1:
                             self.ids['TMDB'] = str(res['results'][0]['id'])
                         else:
                             for result in res['results']:
-                                print(result)
                                 # TODO error here
                                 if result['name'].lower() == self.title.lower():
                                     self.ids['TMDB'] = str(result['id'])
                                     break
-                            else: log("No results found searching by title in TMDB: " + self.title, 3, 4)
-                    else: log("No results found searching by title in TMDB: " + self.title, 3, 4)
+                            else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)
+                    else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)
 
                 if 'TMDB' in self.ids: # If TMDB id is found get results
-                    result = getJSON('https://api.themoviedb.org/3/' + self.type + '/' + self.ids['TMDB'] + '?api_key=' + tmdbApi + '&language=en&append_to_response=releases,external_ids,videos,production_companies,images')
+                    result = getJSON(f"https://api.themoviedb.org/3/{self.type}/{self.ids['TMDB']}?api_key={tmdbApi}&language=en&append_to_response=releases,external_ids,videos,production_companies,images")
                     if result:
                         # TMDB Rating
                         if 'vote_average' in result and result['vote_average'] != 0:
@@ -253,13 +254,13 @@ class Movie:
                                     for prc in self.production_companies: 
                                         if prc['id'] == pc['id']: break
                                     else:
-                                        self.production_companies.append({'id': pc['id'], 'name': pc['name'], 'logo': 'https://image.tmdb.org/t/p/original' + pc['logo_path']})
+                                        self.production_companies.append({'id': pc['id'], 'name': pc['name'], 'logo': f"https://image.tmdb.org/t/p/original{pc['logo_path']}"})
                         
                         # Images
                         for prop in result['images']:
                             mtProp = prop if prop != 'posters' else 'covers'
                             for image in result['images'][prop]:
-                                imgSrc = 'https://image.tmdb.org/t/p/original' + image['file_path']
+                                imgSrc = f"https://image.tmdb.org/t/p/original{image['file_path']}"
                                 
                                 for img in self.images[mtProp]:
                                     if img['src'] == imgSrc: break
@@ -273,18 +274,16 @@ class Movie:
 
                         self.updates['TMDB'] = datetime.now()
                         success.append("TMDB")
-                    else: log('TMDB id found but no results found for: ' + self.title, 3, 4)
-                else: log("TMDB id not found for: " + self.title, 3, 4)
+                    else: log(f"TMDB id found but no results found for: {self.title}", 3, 4)
+                else: log(f"TMDB id not found for: {self.title}", 3, 4)
             else: passed.append("TMDB")
         
         # Gets suplemetary metadata from OMDB api
         def _getOMDB():   
             if len(omdbApi) > 0 and ('IMDB' in self.ids or self.title):
                 if checkDate(self.updates['OMDB'], self.release_date):
-                    start = time()
-                    url = 'http://www.omdbapi.com/?apikey=' + omdbApi + '&tomatoes=true'
-                    url += '&i=' + self.ids['IMDB'] if 'IMDBID' in self.ids else '&t=' + quote(self.title.replace(' ', '+')) + ('&y=' + str(self.year) if self.year else '')
-                    res = getJSON(url)
+                    title = quote(self.title.replace(' ', '+')) + (f'&y={self.year}' if self.year else '')
+                    res = getJSON(f"http://www.omdbapi.com/?apikey={omdbApi}&tomatoes=true{f'&i={self.ids.IMDB}' if 'IMDB' in self.ids else f'&t={title}'}")
                     if res:
                         # Images
                         if 'Poster' in res and res['Poster'] != 'N/A':
@@ -324,7 +323,6 @@ class Movie:
         def _getRT():
             if scraping['RT']: 
                 if checkDate(self.updates['RT'], self.release_date):
-                    start = time()
                     url = self.urls['RT'] if 'RT' in self.urls else searchRT(self.type, self.title, self.year, getJSON)
                     if url:
                         # RT URL
@@ -359,7 +357,6 @@ class Movie:
         def _getIMDB():
             if scraping['IMDB'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['IMDB'], self.release_date): 
-                    start = time()
                     imdb = scrapers.IMDB.getIMDBRating(self.ids['IMDB'])
                     if imdb:
                         self.ratings['IMDB'] = {'icon': 'IMDB', 'value': imdb[0]}
@@ -379,7 +376,6 @@ class Movie:
         def _getLB():
             if self.type == 'movie' and scraping['LB'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['LB'], self.release_date):
-                    start = time()
                     LB = self.urls['LB'] if 'LB' in self.urls else searchLB(self.ids['IMDB'], self.title, self.year, get)
                     if LB: 
                         self.urls['LB'] = LB
@@ -396,8 +392,7 @@ class Movie:
         def _getTVTime():
             if self.type == 'tv' and scraping['TVTime']:
                 if checkDate(self.updates['TVTime'], self.release_date):
-                    start = time()
-                    tvTime = searchTVTime(self.title, self.year, getJSON) # TODO search by id
+                    tvTime = searchTVTime(self.title, self.year, getJSON) # TODO search by id TODO fix
                     if tvTime:
                         self.ids['TvTime'] = tvTime['id']
 
@@ -435,7 +430,6 @@ class Movie:
         def _getMetaCritic():
             if scraping['MetaCritic'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['MC'], self.release_date):
-                    start = time()
                     sc = getMetacriticScore(self.ids['IMDB'], get)
                     if sc:
                         self.ratings['MTC'] = {'icon': 'MTC-MS' if sc['MTC-MS'] else 'MTC', 'value': sc['rating']}
@@ -453,7 +447,6 @@ class Movie:
         def _getTrakt():
             if scraping['Trakt'] and 'TMDB' in self.ids:
                 if checkDate(self.updates['Trakt'], self.release_date):
-                    start = time()
                     rt = getTraktRating(self.ids['TMDB'], get)
                     if rt:
                         self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
@@ -467,18 +460,20 @@ class Movie:
         passed = []
         error = []
 
-        _getTMDB() # Get general information first
+        start = time()
 
-        for fn in [_getOMDB, _getRT, _getIMDB, _getLB, _getTVTime, _getMetaCritic, _getTrakt]: # Starts rest of the tasks
+        _getTMDB()
+
+        for fn in [_getOMDB, _getRT, _getIMDB, _getLB, _getMetaCritic, _getTrakt]:
             tsks.append(Thread(target=fn, args=()))
             tsks[-1].start()
         for tsk in tsks: tsk.join() # Wait for tasks to finish
 
-        if len(success) > 0: log(f"Successfully updated metadata for: {self.title} from: {', '.join(success)}", 0, 2)
+        if len(success) > 0: log(f"Successfully updated metadata for: {self.title} from: {', '.join(success)} in {timediff(start)}s", 0, 2)
         if len(passed) > 0: log(f"No need to update metadata for: {self.title} from: {', '.join(passed)}", 1, 3)
         if len(error) > 0: log(f"Error getting metadata for: {self.title} from: {', '.join(error)}", 2, 2)
 
-        if self.type == 'tv': # TODO get specific production companies for eachg epiosode
+        if self.type == 'tv': # TODO get specific production companies for each epiosode
             for sn in self.seasons:
                 sn.production_companies = self.production_companies
     

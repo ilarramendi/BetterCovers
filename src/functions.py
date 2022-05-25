@@ -20,7 +20,6 @@ showColor = True
 logLock = Lock()
 wkhtmltoimage = ''
 mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts'] # Type of extensions to look for media files
-workDirectory = ''
 
 # Returns all media files inside a folder except for trailers
 def getMediaFiles(folder):
@@ -88,8 +87,9 @@ def getJSON(url, headers = {}):
     return False
 
 # Return how much time passed since start
-def timediff(start):
-    return str(timedelta(seconds=round(time() - start)))
+def timediff(start, seconds=True):
+    sec = time() - start
+    return "{:.2f}".format(sec) if seconds else timedelta(seconds=round(sec))
 
 # Returns the average float as a string from a list of numbers
 def avg(lst):
@@ -132,12 +132,14 @@ def frequent(list):
 
 # Process metadata
 def process(metadata, template, thread, workDirectory, wkhtmltoimage, image):
+        if not template: return False
+        
         st = time()
         try:
-            with open(join(workDirectory, 'config/templates', template["template"])) as html:
+            with open(join(workDirectory, 'templates', template["template"])) as html:
                 HTML = html.read()
         except:
-            log('Error opening: ' + join(workDirectory, 'config/templates', template["template"]), 3, 1)
+            log('Error opening: ' + join(workDirectory, 'templates', template["template"]), 3, 1)
             return False
         
         for rt in metadata.ratings:
@@ -183,8 +185,9 @@ def process(metadata, template, thread, workDirectory, wkhtmltoimage, image):
 
             # Copy to final location
             for fl in template["out"]:
-                if call(['cp', '-f', imgSrc, f"{metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[0])}"]) != 0: 
-                    log(f"Error moving to: {metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[0])}", 3, 1)
+                out = f"{metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[2].rpartition('.')[0])}"
+                if call(['cp', '-f', imgSrc, out]) != 0: 
+                    log(f"Error moving to: {out}", 3, 1)
                     return False
             
             return True

@@ -13,7 +13,7 @@ class TvShow(Movie):
     def refresh(self, config):
         self.updateFiles()
 
-        if len(self.seasons == 0): return 
+        if len(self.seasons) == 0: return 
         
         # Update metadata if needed
         self.updateMetadata(config['omdbApi'], config['tmdbApi'], config['scraping'], config['preferedImageLanguage'])
@@ -22,7 +22,7 @@ class TvShow(Movie):
         tsks = [] 
         for sn in self.seasons: 
             tsks.append(Thread(target=sn.updateMetadata, args=(self.ids, config['omdbApi'], config['tmdbApi'])))
-            tsks.append(Thread(target=sn.updateMediaInfo, args=(config['defaultAudioLanguage'], config['mediaInfoUpdateInterval'])))
+            tsks.append(Thread(target=sn.updateMediaInfo, args=(config['defaultAudioLanguage'], config['mediaInfoUpdateInterval'], config['ffprobe'])))
             tsks[-1].start()
             tsks[-2].start()
         for tsk in tsks: tsk.join()

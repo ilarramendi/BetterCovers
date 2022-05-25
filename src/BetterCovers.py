@@ -51,11 +51,14 @@ import functions
 # TODO dont update metadata each run if last time didnt give results
 # TODO rethink log levels
 # TODO add options removed from covers.json like 4k-hdr
+# TODO try system links as a way to make images load faster in emby
+# TODO make metactitic scrapper work better
+# TODO get fanart from somewhere to generate images
 
 # region parameters
 # Check parameters
 if len(argv) == 1:
-    functions.log('A path is needed to work: BetterCovers "/media/movies/*"', 3, 0)
+    functions.log('A path is needed to work: "/media/movies/*"', 3, 0)
     exit()
 if '-wd' in argv and len(argv) == argv.index('-wd') + 1:
     functions.log('-wd parameter requieres a correct directory: -wd ./BetterCovers', 3, 0)
@@ -72,7 +75,7 @@ folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [p
 threads = 20 if '-w' not in argv else int(argv[argv.index('-w') + 1])
 processing = True
 overwrite = '-o' in argv
-workDirectory = abspath('./' if '-wd' not in argv else argv[argv.index('-wd') + 1])
+workDirectory = abspath('./config' if '-wd' not in argv else argv[argv.index('-wd') + 1])
 functions.workDirectory = workDirectory
 functions.logLevel = 2 if '--log-level' not in argv else int(argv[argv.index('--log-level') + 1]) 
 dry = '--dry' in argv
@@ -123,7 +126,7 @@ def processFolder(folder, thread):
 
     # Refresh metadata
     metadata.refresh(config)
-    if metadata.type == 'tv' and len(metadata.seasons) == 0: return functions.log('Empty folder: ' + folder, 1, 2)
+    if metadata.type == 'tv' and len(metadata.seasons) == 0: return functions.log(f'Empty folder: "{folder}"', 1, 2)
     
     # Generate images
     if not dry: metadata.process(overwrite, config['templates'], str(thread), workDirectory, config['wkhtmltoimagePath'])        
@@ -142,12 +145,12 @@ if exists(join(workDirectory, 'metadata.pickle')):
                 functions.log('Removing metadata file because this is a new version of the script', 3, 1)
                 db = {'version': dbVersion}
         except:
-            functions.log('Error loading metadata from: ' + join(workDirectory, 'metadata.pickle'), 3, 1)
+            functions.log(f'Error loading metadata from: "{join(workDirectory, "metadata.pickle")}"', 3, 1)
             exit()
 
 # Load configuration file
-if exists(join(workDirectory, 'config', 'config.json')):
-    cfg = join(workDirectory, 'config', 'config.json')
+if exists(join(workDirectory, 'config.json')):
+    cfg = join(workDirectory, 'config.json')
     try:
         with open(cfg, 'r') as js:
             config = json.load(js)
@@ -155,7 +158,7 @@ if exists(join(workDirectory, 'config', 'config.json')):
                 functions.log('Wrong version of config file, please delete!', 1, 1)
                 exit()
     except:
-        functions.log('Error loading config file from: ' + cfg, 3, 0)
+        functions.log('Error loading config file from: "{cfg}"', 3, 0)
         exit()
 else:
     functions.log('Missing config/config.json inside work directory', 3, 0)
@@ -167,13 +170,6 @@ if not exists(join(workDirectory, 'threads')): call(['mkdir', join(workDirectory
 if config['tmdbApi'] == '':
     functions.log('TMDB api key is needed to run. (WHY DID YOU REMOVE IT?!?!)', 1, 0)
     exit() 
-
-# Check Dependencies
-for dp in [d for d in ['wkhtmltox','ffmpeg'] if d]:
-    cl = getstatusoutput('apt-cache policy ' + dp)[1] # TODO fix this for windows
-    if 'Installed: (none)' in cl:
-        functions.log(dp + ' is not installed', 1, 0)
-        exit()
 
 # Set path to wkhtmltoimage
 functions.wkhtmltoimage = config['wkhtmltoimagePath']
@@ -199,12 +195,11 @@ if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads')
 
 # Update Agent
 if config['agent']['apiKey'] != '':
-    url = config['agent']['url'] + ('/Library/refresh?api_key=' + config['agent']['apiKey'] if config['agent']['type'] == 'emby' else '/ScheduledTasks/Running/6330ee8fb4a957f33981f89aa78b030f')
-    time.sleep(2)
+    url = f"{config['agent']['url']}{'/Library/refresh?api_key=' + config['agent']['apiKey'] if config['agent']['type'] == 'emby' else '/ScheduledTasks/Running/6330ee8fb4a957f33981f89aa78b030f'}"
     if post(url, headers={'X-MediaBrowser-Token': config['agent']['apiKey']}).status_code < 300:
-        functions.log('Succesfully updated ' + config['agent']['type'] + ' libraries (' + config['agent']['url'] + ')', 0, 2)
-    else: functions.log('Error accessing ' + config['agent']['type'] + ' at ' + config['agent']['url'], 2, 2)
-else: functions.log('Not updating ' + config['agent']['type'] + ' library, API key not set.', 1, 3)
+        functions.log(f"Succesfully updated {config['agent']['type']} libraries ({config['agent']['url']})", 0, 2)
+    else: functions.log(f"Error accessing  {config['agent']['type']} at {config['agent']['url']}", 2, 2)
+else: functions.log(f"Not updating {config['agent']['type']}  library, API key not set.", 1, 3)
 
-functions.log('Done, total time was: ' + functions.timediff(st), 0, 1)
+functions.log(f"Done, total time was: {functions.timediff(st, False)}", 0, 1)
 
