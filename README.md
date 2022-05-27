@@ -2,9 +2,9 @@
 BetterCovers is a script to automaticaly generate covers and backdrops with embeded ratings, mediainfo, language, certifications, age ratings, source, production companies, etc!
 
 ## Examples
-<img src="https://user-images.githubusercontent.com/30437204/170800614-e4f1ff01-7fff-4cae-91a9-1a83528b9865.jpg" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/170798832-ce6621fd-06e7-4442-8dbf-1614de14af8e.jpg" width="49.7%">
-<img src="https://user-images.githubusercontent.com/30437204/170798830-06c0388d-f294-4b91-91d9-e8b8f969bd98.jpg" width="100%">
-<img src="https://user-images.githubusercontent.com/30437204/170800901-0389e701-e491-4b6a-8b10-654c3bffd97f.jpg" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/170800614-e4f1ff01-7fff-4cae-91a9-1a83528b9865.jpg" title="Free Guy" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/170798832-ce6621fd-06e7-4442-8dbf-1614de14af8e.jpg" title="Family Guy Season 11" width="49.7%">
+<img src="https://user-images.githubusercontent.com/30437204/170798830-06c0388d-f294-4b91-91d9-e8b8f969bd98.jpg" title="Castle Rock Season 1 Episode 6" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/170800901-0389e701-e491-4b6a-8b10-654c3bffd97f.jpg" title="Free Guy" width="100%">
 
 The script is made to be fully customizable, all properties can be disabled and custom cover templates can be selected based on a large number of filters!   
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Or configure the agent in the config file to automaticaly update the library!)
@@ -16,10 +16,9 @@ The easiest option for running is using [docker](https://hub.docker.com/r/ilarra
 docker run -i --rm \
   -v /path/to/media:/media \
   -v /path/to/config:/config \
-  -e parameters="-w 20" `#OPTIONAL` \
-  -e TZ=America/New_York `#OPTIONAL` \
+  -e parameters="-w 50" `#OPTIONAL` \
   -e fileMask="*" `#OPTIONAL` \
-  ilarramendi/bettercovers asd
+  ilarramendi/bettercovers
 ```
 ### Python
 Clone the project: `git clone https://github.com/ilarramendi/BetterCovers`  
