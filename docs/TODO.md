@@ -28,3 +28,5 @@
 - [ ] NYTIMES Critic's Pick as certifications
 - [ ] Add directors to filters!
 - [ ] https://fanart.tv/
+- [ ] Add subtitles to filters
+- [ ] Some times the RT api returns a wrong url?

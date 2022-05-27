@@ -64,7 +64,6 @@ class MediaInfo:
                     self.languages.append(s['tags']['language'].upper())
             if len(self.languages) == 0:
                 if defaultAudioLanguage: self.languages = [defaultAudioLanguage]
-                log(f"Audio language not found for: {video['codec_name'].upper()}", 2, 4)
             
             metadata.updates['mediaInfo'] = datetime.now()
             return [[str(metadata.number)], [], []] if metadata.type == 'episode' else log(f'Successfully updated Media Info for: "{metadata.title}"', 0, 2)

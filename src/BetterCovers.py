@@ -38,7 +38,7 @@ folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [f
 threads = 30 if '-w' not in argv else int(argv[argv.index('-w') + 1])
 overwrite = '-o' in argv
 workDirectory = abspath('./config' if '-wd' not in argv else argv[argv.index('-wd') + 1])
-src.functions.logFile = join(workDirectory, 'logs', datetime.now().strftime("%Y-%m-%d %H:%M") + '.log')
+src.functions.logFile = join(workDirectory, 'logs', datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '.log')
 logLevel = 2 if '--log-level' not in argv else int(argv[argv.index('--log-level') + 1]) 
 src.functions.logLevel = logLevel
 dry = '--dry' in argv
