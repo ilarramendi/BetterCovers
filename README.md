@@ -22,7 +22,7 @@ docker run -i --rm \
 ```
 ### Python
 Clone the project: `git clone https://github.com/ilarramendi/BetterCovers`  
-Install python requirments: `pip3 install -r requirements.txt`  
+Install python requirments: `pip3 install -r requests jellyfish exif`  
 Install program requirments: `sudo apt install -y wkhtmltopdf ffmpeg`  
 Run: `python3 BetterCovers.py '/path/to/media/*'`  
  
@@ -44,7 +44,7 @@ For better identification folders names can have imdb and/or tmdb ids like: `[tm
 
 
 ## Config.json
-[config.md](https://github.com/ilarramendi/BetterCovers/blob/main/config.md)
+[config.md](https://github.com/ilarramendi/BetterCovers/blob/main/docs/config.md)
 
 ## Parameters
 `-o` Ovewrite any cover found (images are automaticaly overwriten if info changes)  
