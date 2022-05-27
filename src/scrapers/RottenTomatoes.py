@@ -4,18 +4,20 @@ from urllib.parse import quote
 from time import sleep
 from jellyfish import jaro_distance
 
-SEARCH_URL = 'https://www.rottentomatoes.com/api/private/v2.0/search?q='
 BASE_URL = 'https://www.rottentomatoes.com'
+SEARCH_URL = f'{BASE_URL}/api/private/v2.0/search?q='
 
-dictType = {'movie': 'movies', 'tv': 'tvSeries'}
-dictTitle = {'movie': 'name', 'tv': 'title'}
-dictYear = {'movie': 'year', 'tv': 'startYear'}
-dictUrl = {'movie': 'm', 'tv': 'tv'}
+
 
 from src.functions import getJSON, get
 
 # Searches in rottentomatoes by title and returns an url
 def searchRT(type, title, year):
+    dictType = {'movie': 'movies', 'tv': 'tvSeries'}
+    dictTitle = {'movie': 'name', 'tv': 'title'}
+    dictYear = {'movie': 'year', 'tv': 'startYear'}
+    dictUrl = {'movie': 'm', 'tv': 'tv'}
+
     rq = getJSON(SEARCH_URL + title.lower().replace(' ', '+'))
     if rq:
         max = 0
@@ -85,16 +87,16 @@ def getRTMovieRatings(url):
     res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code}
     sleep(1) # RT gets angry :)
     if rq.status_code != 200: return res
-    sc = findall('<score-board[^>]*>', rq.text)
+    sc = findall(r'<score-board[^>]*>', rq.text)
     if len(sc) == 0: return res
     
     if 'certified-fresh' in sc[0]: res['certifications'] = ['RT-CF'] # Certified fresh
 
-    rt = findall('tomatometerscore="(\d+)"', sc[0])
+    rt = findall(r'tomatometerscore="(\d+)"', sc[0])
     # Sets icon to RT-CF, RT, or RT-LS acording to value
     if len(rt) == 1: 
         res['ratings']['RT'] = {'icon': 'RT-CF' if len(res['certifications']) > 0 else 'RT' if int(rt[0]) >= 60 else 'RT-LS', 'value': "%.1f" % (float(rt[0]) / 10)}
-    rta = findall('audiencescore="(\d+)"', sc[0])
+    rta = findall(r'audiencescore="(\d+)"', sc[0])
     if len(rta) == 1: 
         res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': "%.1f" % (float(rta[0]) / 10)} 
     

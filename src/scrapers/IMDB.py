@@ -1,6 +1,5 @@
 from re import findall
-import json
-from os.path import exists, realpath, join
+from os.path import exists, join
 from glob import glob
 import urllib.request
 from datetime import datetime
@@ -11,7 +10,7 @@ minRatings = 5
 ratingsFile = ''
 episodesFile = ''
 
-from src.functions import get
+from src.functions import get, log
 
 # TODO caca
 # Downloads if necesary new dataset and sets its path for functions below
@@ -20,31 +19,31 @@ def updateIMDBDataset(wd, updateInterval):
 
     global ratingsFile, episodesFile
     rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs'))
-    if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > updateInterval:
+    if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%Y-%m-%d')).days > updateInterval:
         tz = urllib.request.urlopen('https://datasets.imdbws.com/title.ratings.tsv.gz')
         if tz.getcode() == 200:
-            out = join(wd, 'cache/IMDBRatings_' + datetime.now().strftime('%m-%d-%Y') + '.tvs')
+            out = join(wd, 'cache/IMDBRatings_' + datetime.now().strftime('%Y-%m-%d') + '.tvs')
             with open(out, 'wb') as outfile: # Extract gz in memory and save output to file
                 outfile.write(gzip.decompress(tz.read()))
                 ratingsFile = out
-            print('Succesfully updated IMDB Ratings Dataset')
-        else: print('Error downloading Ratings Dataset from IMDB')
+            log('Succesfully updated IMDB Ratings Dataset', 0, 2)
+        else: log('Error downloading Ratings Dataset from IMDB', 3, 1)
     else: 
-        print('No need to update IMDB Ratings Dataset')
+        log('No need to update IMDB Ratings Dataset', 1, 4)
         ratingsFile = rtsFile[0]
 
     epsFile = glob(join(wd, 'cache/IMDBEpisodes*.tvs'))
-    if len(epsFile) == 0 or (datetime.now() - datetime.strptime(epsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > updateInterval:
+    if len(epsFile) == 0 or (datetime.now() - datetime.strptime(epsFile[0].rpartition('_')[2].rpartition('.')[0], '%Y-%m-%d')).days > updateInterval:
         tz = urllib.request.urlopen('https://datasets.imdbws.com/title.episode.tsv.gz')
         if tz.getcode() == 200:
-            out = join(wd, './cache/IMDBEpisodes_' + datetime.now().strftime('%m-%d-%Y') + '.tvs')
+            out = join(wd, './cache/IMDBEpisodes_' + datetime.now().strftime('%Y-%m-%d') + '.tvs')
             with open(out, 'wb') as outfile: # Extract gz in memory and save output to file
                 outfile.write(gzip.decompress(tz.read()))
                 episodesFile = out
-            print('Succesfully updated IMDB Episodes Dataset')
-        else: print('Error downloading Episodes Dataset from IMDB')
+            log('Succesfully updated IMDB Episodes Dataset', 0, 2)
+        else: log('Error downloading Episodes Dataset from IMDB', 3, 1)
     else: 
-        print('No need to update IMDB Episodes Dataset')   
+        log('No need to update IMDB Episodes Dataset', 1, 4)   
         episodesFile = epsFile[0]
 
 def getIMDBRating(id):

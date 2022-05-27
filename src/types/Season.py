@@ -1,20 +1,15 @@
-from Movie import Movie
+import json
+from time import time
 from threading import Thread
 from datetime import datetime
-from time import time
 
-import json
-
-from scrapers.Trakt import getTraktRating
-from functions import timediff, checkDate, getJSON, log, avg
-from scrapers.RottenTomatoes import (getRTEpisodeRatings, getRTSeasonRatings)
-from scrapers.TVTime import *
-
-from functions import get, process
+from src.types.Movie import Movie
+from src.scrapers.TVTime import *
+from src.scrapers.Trakt import getTraktRating
+from src.scrapers.RottenTomatoes import (getRTEpisodeRatings, getRTSeasonRatings)
+from src.functions import timediff, checkDate, getJSON, log, avg, get, process
 
 minVotes = 3
-
-
 class Season(Movie):
     def updateMediaInfo(self, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe):
         start = time()

@@ -1,0 +1,29 @@
+# HELO
+- [ ] change to tmdb api v4
+- [ ] update metadata on delete/add episode
+- [ ] add log on each episode getting metadata
+- [ ] MovieTweetings -> Interesting
+- [ ] make a image cache to lower number of requests
+- [ ] pass scrapping enabled/disabled to getSeasons
+- [ ] fix date in container 
+- [ ] Allow the script to be killed with CTRL + C
+- [ ] Change ratings to be only values stored
+- [ ] Trailers missiing url?
+- [ ] remove year data point since releaseDate exists
+- [ ] container logs some thimes get corrupted in console, this dosnt happend in portainer, wtf
+- [ ] Also logs in container update in steps or groups instead of normaly
+- [ ] change user of docker container from root using GUID
+- [ ] make a function to check the configuration file
+- [ ] make readme more detail and easier to understand
+- [ ] Change time.time to the code timing function but is not realy relevant since all timers take more than 3 seconds so i guess is good enought this comment went a bit long but yea
+- [ ] make css noob-friendly (add css variables)
+- [ ] dont update metadata each run if last time didnt give results
+- [ ] rethink log levels
+- [ ] add options removed from covers.json like 4k-hdr
+- [ ] try system links as a way to make images load faster in emby
+- [ ] what is cover art archive?
+- [ ] get fanart from somewhere to generate images
+- [ ] fix hash for automatic image overwrite
+- [ ] fix tv show performance
+- [ ] NYTIMES Critic's Pick as certifications
+- [ ] Add directors to filters!

@@ -29,7 +29,7 @@ Run: `python3 BetterCovers.py '/path/to/media/*'`
 ## Folder structure
 Each movie needs to be inside a unique folder.  
 Each TV show season must be inside a unique folder.  
-For better identification folders names can have imdb or tmdb ids like: `[tmdbid=123456]` or `[imdbid=123456]`   
+For better identification folders names can have imdb and/or tmdb ids like: `[tmdbid=123456]` or `[imdbid=123456]`   
 
 ## Planned features
 - [ ] Option to save images on Agent metadata folder to improve menu loading time (media images on HDD load a bit slow on emby) (linx file to another drive with linux?)

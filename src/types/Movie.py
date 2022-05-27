@@ -1,22 +1,20 @@
-from datetime import datetime, timedelta
-from json import dumps
-from os.path import join, exists
+from urllib.parse import quote
 from time import time
 from threading import Thread
 from re import findall
-from urllib.parse import quote
+from os.path import join, exists
+from json import dumps
+from datetime import datetime, timedelta
 
-import scrapers.IMDB
-from scrapers.letterboxd import getLBRatings, searchLB
-from scrapers.MetaCritic import getMetacriticScore
-from scrapers.RottenTomatoes import (getRTMovieRatings, getRTTVRatings, searchRT)
-from scrapers.TVTime import *
-from scrapers.Trakt import getTraktRating
-from scrapers.RogerEbert import getRERatings
-
-from functions import log, checkDate, getJSON, get, timediff, getName, readNFO, avg, frequent, process
-
-from MediaInfo import MediaInfo
+from src.scrapers.IMDB import getIMDBRating, getEpisodesIMDBID
+from src.types.MediaInfo import MediaInfo
+from src.scrapers.TVTime import *
+from src.scrapers.Trakt import getTraktRating
+from src.scrapers.RottenTomatoes import (getRTMovieRatings, getRTTVRatings, searchRT)
+from src.scrapers.RogerEbert import getRERatings
+from src.scrapers.MetaCritic import getMetacriticScore
+from src.scrapers.letterboxd import getLBRatings, searchLB
+from src.functions import log, checkDate, getJSON, get, timediff, getName, readNFO, avg, frequent, process
 
 class Movie:
     def __init__(self, title, year, path, folder): # TODO add more params to constructor
@@ -53,23 +51,25 @@ class Movie:
         }
 
         
-        # Movie
-        if str(type(self)) == "<class 'Movie.Movie'>": 
+
+        if str(type(self)) == "<class 'src.types.Movie.Movie'>": 
             self.type = 'movie'
+        # Movie
+        print(type(self))
 
         # TV
-        if str(type(self)) == "<class 'TvShow.TvShow'>": 
+        if str(type(self)) == "<class 'src.types.TvShow.TvShow'>": 
             self.seasons = []
             self.type = 'tv'
 
         # Season
-        if str(type(self)) == "<class 'Season.Season'>": 
+        if str(type(self)) == "<class 'src.types.Season.Season'>": 
             self.episodes = []
             self.type = 'season'
             self.number = -1
 
         # Episode
-        if str(type(self)) == "<class 'Episode.Episode'>": 
+        if str(type(self)) == "<class 'src.types.Episode.Episode'>": 
             self.type = 'episode'
             self.number = -1
         
@@ -359,7 +359,7 @@ class Movie:
         def _getIMDB():
             if scraping['IMDB'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['IMDB'], self.release_date): 
-                    imdb = scrapers.IMDB.getIMDBRating(self.ids['IMDB'])
+                    imdb = getIMDBRating(self.ids['IMDB'])
                     if imdb:
                         self.ratings['IMDB'] = {'icon': 'IMDB', 'value': imdb[0]}
                         self.updates['IMDB'] = datetime.now()
@@ -368,7 +368,7 @@ class Movie:
                     
                     # TODO Fix
                     if self.type == 'tv': # TODO run this again when episodes are added
-                        eps = scrapers.IMDB.getEpisodesIMDBID(self.ids['IMDB'])
+                        eps = getEpisodesIMDBID(self.ids['IMDB'])
                         for ep in eps: # Get episodes ids
                             if int(ep[1]) in self.seasons and int(ep[2]) in self.seasons[int(ep[1])]['episodes']:
                                 self.seasons.getSeason(int(ep[1])).getEpisode(int(ep[2])).ids['IMDB'] = str(ep[0])
@@ -378,10 +378,10 @@ class Movie:
         def _getLB():
             if self.type == 'movie' and scraping['LB'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['LB'], self.release_date):
-                    LB = self.urls['LB'] if 'LB' in self.urls else searchLB(self.ids['IMDB'], self.title, self.year, get)
+                    LB = self.urls['LB'] if 'LB' in self.urls else searchLB(self.ids['IMDB'], self.title, self.year)
                     if LB: 
                         self.urls['LB'] = LB
-                        LB = getLBRatings(LB, get)
+                        LB = getLBRatings(LB)
                         if LB: 
                             self.ratings['LB'] = LB
                             self.updates['LB'] = datetime.now()
@@ -393,7 +393,7 @@ class Movie:
         def _getTVTime():
             if self.type == 'tv' and scraping['TVTime']:
                 if checkDate(self.updates['TVTime'], self.release_date):
-                    tvTime = searchTVTime(self.title, self.year, getJSON) # TODO search by id TODO fix
+                    tvTime = searchTVTime(self.title, self.year) # TODO search by id TODO fix
                     if tvTime:
                         self.ids['TvTime'] = tvTime['id']
 
@@ -402,7 +402,7 @@ class Movie:
                         else:
                             self.images['covers'].append(tvTime['image'])
                         
-                        ratings = getTVTimeRatings(self.ids['TvTime'], getJSON)
+                        ratings = getTVTimeRatings(self.ids['TvTime'])
                         if ratings:
                             for season in ratings:
                                 for episode in season:
@@ -431,7 +431,7 @@ class Movie:
         def _getMetaCritic():
             if scraping['MetaCritic'] and 'IMDB' in self.ids:
                 if checkDate(self.updates['MC'], self.release_date):
-                    sc = getMetacriticScore(self.ids['IMDB'], get)
+                    sc = getMetacriticScore(self.ids['IMDB'])
                     if sc:
                         self.ratings['MTC'] = {'icon': 'MTC-MS' if sc['MTC-MS'] else 'MTC', 'value': sc['rating']}
                         if sc['MTC-MS']:
@@ -448,7 +448,7 @@ class Movie:
         def _getTrakt():
             if scraping['Trakt'] and 'TMDB' in self.ids:
                 if checkDate(self.updates['Trakt'], self.release_date):
-                    rt = getTraktRating(self.ids['TMDB'], get)
+                    rt = getTraktRating(self.ids['TMDB'])
                     if rt:
                         self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
                         self.updates['Trakt'] = datetime.now()
@@ -459,7 +459,7 @@ class Movie:
         def _getRE():
             if scraping['RE']:
                 if checkDate(self.updates['RE'], self.release_date):
-                    rt = getRERatings(self.title)
+                    rt = getRERatings(self.title, self.year)
                     if rt:
                         self.ratings['RE'] = {'icon': 'RE-GM' if rt[1] else 'RE', 'value': rt[0]}
                         

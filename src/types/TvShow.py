@@ -1,11 +1,11 @@
-from glob import glob
-from os.path import join
-from re import findall
 from threading import Thread
+from re import findall
+from os.path import join
+from glob import glob
 
-from Movie import Movie
-from Season import Season
-from Episode import Episode
+from src.types.Season import Season
+from src.types.Movie import Movie
+from src.types.Episode import Episode
 
 mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts'] # Type of extensions to look for media files
 

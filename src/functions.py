@@ -1,18 +1,17 @@
-from time import time
 import sys
 import requests
 import json
-
+from time import time
 from threading import Thread
+from subprocess import call, getstatusoutput
 from re import findall
 from random import random
 from os.path import join
 from math import sqrt
-from glob import glob
-from datetime import datetime, timedelta
-from subprocess import call, getstatusoutput
-from exif import Image as exifImage
 from jellyfish import jaro_distance
+from glob import glob
+from exif import Image as exifImage
+from datetime import datetime, timedelta
 
 logLevel = 2
 showColor = True

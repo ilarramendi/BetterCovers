@@ -1,5 +1,5 @@
 {
-     "version": 7,
+     "version": 8,
      "tmdbApi": "c13bbebafbd3dad0e281c6241304aeff",
      "omdbApi": "",
      "agent": {
@@ -17,12 +17,12 @@
           "RE": true
      },
      "defaultAudioLanguage": "ENG",
-     "mediaInfoUpdateInterval": 14,
+     "mediaInfoUpdateInterval": 30,
      "IMDBDatasetUpdateInterval": 7,
      "preferedImageLanguage": "en-US",
      "wkhtmltoimage": "/usr/bin/wkhtmltoimage",
      "ffprobe": "/usr/bin/ffprobe",
-     "languagesOrder": ["SPA", "ENG", "JPN", "POR", "FRE", "ITA", "DAN", "KOR", "RUS", "SWE", "ZHO", "HIN", "AZE", "IND", "DUT", "POL"],
+     "languagesOrder": ["SPA","ENG",  "JPN", "POR", "FRE", "ITA", "DAN", "KOR", "RUS", "SWE", "ZHO", "HIN", "AZE", "IND", "DUT", "POL"],
      "extensions": ["mkv", "mp4", "avi", "m2ts", "m4v"],
      "templates": [
           {

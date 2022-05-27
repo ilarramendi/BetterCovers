@@ -1,11 +1,8 @@
-from functions import log
-from datetime import datetime, timedelta
 from subprocess import DEVNULL, call, getstatusoutput
 from json import loads, dumps
+from datetime import datetime, timedelta
 
-from functions import log
-
-
+from src.functions import log
 class MediaInfo:
     def __init__(self):
         self.source = None
