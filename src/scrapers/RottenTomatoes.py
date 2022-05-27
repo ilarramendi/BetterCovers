@@ -7,8 +7,6 @@ from jellyfish import jaro_distance
 BASE_URL = 'https://www.rottentomatoes.com'
 SEARCH_URL = f'{BASE_URL}/api/private/v2.0/search?q='
 
-
-
 from src.functions import getJSON, get
 
 # Searches in rottentomatoes by title and returns an url
@@ -45,7 +43,7 @@ def _parseTvRatings(text):
     return res
 
 # Scraps ratings for show and gets seasons urls
-def getRTTVRatings(url, get):
+def getRTTVRatings(url):
     rq = get(BASE_URL + url)
     res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code, 'seasons': {}}
     sleep(1) # RT gets angry
@@ -60,7 +58,7 @@ def getRTTVRatings(url, get):
     
     return res
 
-def getRTSeasonRatings(url, get):
+def getRTSeasonRatings(url):
     ret = {}
     rq = get(BASE_URL + url)
     ret['statusCode'] = rq.status_code
@@ -77,7 +75,7 @@ def getRTSeasonRatings(url, get):
         
     return ret
 
-def getRTEpisodeRatings(url, get):
+def getRTEpisodeRatings(url):
     rq = get(BASE_URL + url)
     sleep(1) # RT gets angry
     return {'statusCode': rq.status_code, 'ratings': _parseTvRatings(rq.text)['ratings'] if rq.status_code == 200 else {}}

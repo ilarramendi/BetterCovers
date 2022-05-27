@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 logLevel = 2
 showColor = True
 
-workDirectory = '' # Used for logging
+logFile = '' # Used for logging
 
 # Returns all media files inside a folder except for trailers
 def getMediaFiles(folder, mediaExtensions):
@@ -57,7 +57,7 @@ def log(text, type, level): # 0 = Success, 1 = Normal, 2 = Warning, 3 = Error
         typestr = f"[{['SUCCESS', 'INFO   ', 'WARNING', 'ERROR  '][type]}]" 
 
         print(f"[{datetime.now().strftime('%m/%d/%Y %H:%M:%S')}]{colors[type] if showColor else typestr} --> {text}\033[0m")
-        with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
+        with open(logFile, 'a') as log:
             log.write(f"{typestr}[{datetime.now().strftime('%m/%d/%Y %H:%M:%S')}] --> {text}\n")
 
 # returns a tuple of the name and year from file, if year its not found returns false in year
@@ -141,8 +141,13 @@ def process(metadata, template, thread, workDirectory, wkhtmltoimage, image, lan
     
     for rt in metadata.ratings:
         HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='../assets/ratings/{metadata.ratings[rt]['icon']}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
+    
+    UHDHDR = 'UHD-HDR' not in template or template['UHD-HDR'] or metadata.media_info.color != 'HDR' or metadata.media_info.resolution != 'UHD'
     for mi in ['source', 'color', 'codec', 'resolution']:
         value = getattr(metadata.media_info, mi)
+        if UHDHDR:
+            value = 'UHD-HDR' if mi == 'color' else False if mi == 'resolution' else value
+
         if value: 
             HTML = HTML.replace(f"<!--{mi}-->", f"<div class='mediaInfoImgContainer {mi} {value}'><img src='../assets/mediainfo/{value}.png' class='mediainfoIcon'></div>")
     for language in languagesOrder:

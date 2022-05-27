@@ -1,3 +1,5 @@
+from jellyfish import jaro_distance
+
 from src.functions import getJSON
 
 BASE_URL = 'https://www.tvtime.com'
@@ -9,13 +11,18 @@ headers = {
 }
 
 # Searches TVTime by title and returns an url
-def searchTVTime(title, year):
+def searchTVTime(title):
     rq = getJSON(f"{BASE_URL}/search?limit=20&q={title.lower().replace(' ', '+')}", headers)
+    max = 0
+    ret = ''
     if rq:
         for item in rq:
-            print(item) # TODO fix
+            dist = jaro_distance(item['name'], title)
+            if dist > max:
+                max = dist
+                ret = item['id']
 
-    return False
+    return ret if max > 0.85 else False
 
 # Gets episodes urls and rating from show url for TVTime
 def getTVTimeRatings(id):

@@ -27,3 +27,4 @@
 - [ ] fix tv show performance
 - [ ] NYTIMES Critic's Pick as certifications
 - [ ] Add directors to filters!
+- [ ] https://fanart.tv/

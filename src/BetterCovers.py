@@ -9,8 +9,9 @@ from shutil import rmtree
 from requests import post
 from os.path import abspath, exists, join
 from glob import glob
-from datetime import timedelta
+from datetime import timedelta, datetime
 
+import src.functions
 from src.functions import log, timediff, getName, getMediaFiles
 from src.types.TvShow import TvShow
 from src.types.Movie import Movie
@@ -37,8 +38,9 @@ folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [f
 threads = 30 if '-w' not in argv else int(argv[argv.index('-w') + 1])
 overwrite = '-o' in argv
 workDirectory = abspath('./config' if '-wd' not in argv else argv[argv.index('-wd') + 1])
-workDirectory = workDirectory
+src.functions.logFile = join(workDirectory, 'logs', datetime.now().strftime("%Y-%m-%d %H:%M") + '.log')
 logLevel = 2 if '--log-level' not in argv else int(argv[argv.index('--log-level') + 1]) 
+src.functions.logLevel = logLevel
 dry = '--dry' in argv
 showColor = '--no-colors' not in argv
 # endregion
@@ -125,6 +127,7 @@ else:
     exit()
 
 if not exists(join(workDirectory, 'threads')): call(['mkdir', join(workDirectory, 'threads')])
+if not exists(join(workDirectory, 'logs')): call(['mkdir', join(workDirectory, 'logs')])
 # endregion
 
 # Check for TMDB api key
@@ -147,7 +150,7 @@ if '--json' in argv: # If parameter --json also write to a json file
     with open(join(workDirectory, 'metadata.json'), 'w') as js:
         json.dump({'version': db['version'], 'items': [db['items'][item].toJSON() for item in db['items']]}, js, indent=7, default=str, sort_keys=True)
 
-if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
+# if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
 
 # Update Agent
 if config['agent']['apiKey'] != '':

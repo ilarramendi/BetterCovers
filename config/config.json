@@ -37,7 +37,7 @@
           },
           {
                "type": ["episode_backdrop"],
-               "template": "backdrop.html",
+               "template": "backdrop2.html",
                "out": ["$NAME.jpg"]
           }
      ]

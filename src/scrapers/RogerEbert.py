@@ -5,7 +5,7 @@ from src.functions import get
 
 def getRERatings(title, year):
     req = get(
-        f"https://www.rogerebert.com/reviews?utf8=%E2%9C%93&sort%5Border%5D=newest&filters%5Byears%5D%5B%5D={year - 2}&filters%5Byears%5D%5B%5D={year + 2}&filters%5Bstar_rating%5D%5B%5D=0.0&filters%5Bstar_rating%5D%5B%5D=4.0&filters%5Bno_stars%5D=1&page=1&filters%5Btitle%5D={title}",
+        f"https://www.rogerebert.com/reviews?utf8=%E2%9C%93&sort%5Border%5D=newest&filters%5Byears%5D%5B%5D={year - 2 if year else '1000'}&filters%5Byears%5D%5B%5D={year + 2 if year else '3000'}&filters%5Bstar_rating%5D%5B%5D=0.0&filters%5Bstar_rating%5D%5B%5D=4.0&filters%5Bno_stars%5D=1&page=1&filters%5Btitle%5D={title}",
         {"Host":"www.rogerebert.com", 'User-Agent': 'Chrome/94.0.4606.81'}
     )
     max = 0

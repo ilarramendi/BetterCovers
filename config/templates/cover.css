@@ -74,8 +74,10 @@
 }
 
 .mediainfoIcon {
-    max-height: 100%;
-    max-width: 100%;
+    max-width: 650px;
+    width: auto;
+    height: 100%;
+    border-radius: 20px;
 }
 
 .footer {

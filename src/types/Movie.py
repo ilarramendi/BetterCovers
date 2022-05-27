@@ -55,7 +55,6 @@ class Movie:
         if str(type(self)) == "<class 'src.types.Movie.Movie'>": 
             self.type = 'movie'
         # Movie
-        print(type(self))
 
         # TV
         if str(type(self)) == "<class 'src.types.TvShow.TvShow'>": 
@@ -134,12 +133,12 @@ class Movie:
         tasks = []
         if self.type == "tv":
             for season in self.seasons:
-                tasks.append(Thread(target=season.process, args=(overwrite, config['templates'], f"{thread}_{season.number}", workDirectory, wkhtmltoimage)))
+                tasks.append(Thread(target=season.process, args=(overwrite, config, f"{thread}_{season.number}", workDirectory)))
                 tasks[-1].start()
         for task in tasks: task.join()
 
         if self.type == 'season':
-            for episode in self.episodes: episode.process(overwrite, config['templates'], f"{thread}_{self.number}", workDirectory, wkhtmltoimage)
+            for episode in self.episodes: episode.process(overwrite, config, f"{thread}_{self.number}", workDirectory)
         
         return len(success)
         
@@ -202,7 +201,7 @@ class Movie:
                             for result in res['results']:
                                 if result['title' if self.type == 'movie' else 'name'].lower() == self.title.lower():
                                     self.ids['TMDB'] = str(result['id'])
-                                    log(f'Matched file "{self.title} ({self.year})" to "{result["title" if self.type == "movie" else "name"]} ({result["release_date"].partition("-")[0]})"', 1, 2)
+                                    log(f'Matched file "{self.title} ({self.year})" to "{result["title" if self.type == "movie" else "name"]} ({result["release_date" if self.type == "movie" else "first_air_date"].partition("-")[0]})"', 1, 2)
                                     break
                             else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)
                     else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)
@@ -341,12 +340,12 @@ class Movie:
                         elif 'RT-CF' in self.certifications:
                             self.certifications.remove('RT-CF')
                         
-                        # TODO FIX
-                        '''
+
                         if 'seasons' in rt:
                             for sn in rt['seasons']:
-                                if sn in metadata['seasons']: metadata['seasons'][sn]['URLS']['RT'] = rt['seasons'][sn]
-                        '''
+                                season = self.getSeason(sn)
+                                if season: season.urls['RT'] = rt['seasons'][sn]
+
 
                         if len(rt['ratings']) > 0 or ('seasons' in rt and len(rt['seasons']) > 0):
                             self.updates['RT'] = datetime.now()
@@ -393,15 +392,9 @@ class Movie:
         def _getTVTime():
             if self.type == 'tv' and scraping['TVTime']:
                 if checkDate(self.updates['TVTime'], self.release_date):
-                    tvTime = searchTVTime(self.title, self.year) # TODO search by id TODO fix
+                    tvTime = self.ids['TvTime'] if 'TvTime' in self.ids else searchTVTime(self.title) # TODO search by id
                     if tvTime:
-                        self.ids['TvTime'] = tvTime['id']
-
-                        for image in self.images['covers']:
-                            if image['src'] == tvTime['image']: break
-                        else:
-                            self.images['covers'].append(tvTime['image'])
-                        
+                        self.ids['TvTime'] = tvTime
                         ratings = getTVTimeRatings(self.ids['TvTime'])
                         if ratings:
                             for season in ratings:
@@ -450,8 +443,13 @@ class Movie:
                 if checkDate(self.updates['Trakt'], self.release_date):
                     rt = getTraktRating(self.ids['TMDB'])
                     if rt:
-                        self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
+                        self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt[0]}
+                        self.urls['Trakt'] = rt[1]
                         self.updates['Trakt'] = datetime.now()
+
+                        if self.type == 'tv':
+                            for season in self.seasons:
+                                season.urls['Trakt'] = f"{self.urls['Trakt']}/seasons/{season.number}"
                         success.append("Trakt")
                     else: error.append("Trakt")
                 else: passed.append("Trakt")

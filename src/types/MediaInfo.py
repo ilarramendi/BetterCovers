@@ -32,8 +32,8 @@ class MediaInfo:
             nm = metadata.path.lower()
             self.source = 'BR' if ('bluray' in nm or 'bdremux' in nm) else 'DVD' if 'dvd' in nm else 'WEBRIP' if 'webrip' in nm else 'WEBDL' if 'web-dl' in nm else None
 
-            if out[0] != 0: return log(f"Error getting media info for: {metadata.title}, exit code: {out[0]}\n Command: {cmd}", 3, 1)
-            if out2[0] != 0: return log(f"Error getting media info for: {metadata.title}, exit code: {out2[0]} \n Command: {cmd2}", 3, 1)
+            if out[0] != 0: return [[], [], [str(metadata.number)]] if metadata.type == 'episode' else log(f"Error getting media info for: {metadata.title}, exit code: {out[0]}\n Command: {cmd}", 3, 1)
+            if out2[0] != 0: return [[], [], [str(metadata.number)]] if metadata.type == 'episode' else log(f"Error getting media info for: {metadata.title}, exit code: {out2[0]} \n Command: {cmd2}", 3, 1)
                 
             # Get first video track
             video = False
@@ -43,7 +43,7 @@ class MediaInfo:
                     video = s
                     break
             
-            if not video: return log(f"Error getting media info, no video tracks found for: {metadata.title}", 3, 1)
+            if not video: return [[], [], [str(metadata.number)]] if metadata.type == 'episode' else  log(f"Error getting media info, no video tracks found for: {metadata.title}", 3, 1)
             
             # Color space (HDR or SDR)
             self.color = 'HDR' if 'bt2020' in out2[1] else 'SDR'
@@ -65,6 +65,8 @@ class MediaInfo:
             if len(self.languages) == 0:
                 if defaultAudioLanguage: self.languages = [defaultAudioLanguage]
                 log(f"Audio language not found for: {video['codec_name'].upper()}", 2, 4)
+            
             metadata.updates['mediaInfo'] = datetime.now()
-            log(f'Successfully updated Media Info for: "{metadata.title}"', 0, 2)
-        else: return log(f'No need to update Media Info for: "{metadata.title}"', 1, 4)
+            return [[str(metadata.number)], [], []] if metadata.type == 'episode' else log(f'Successfully updated Media Info for: "{metadata.title}"', 0, 2)
+        else: 
+            return [[], [str(metadata.number)], []] if metadata.type == 'episode' else log(f'No need to update Media Info for: "{metadata.title}"', 1, 4)

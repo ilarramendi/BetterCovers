@@ -1,4 +1,4 @@
-from threading import Thread
+from threading import Thread, Lock
 from re import findall
 from os.path import join
 from glob import glob
@@ -7,8 +7,7 @@ from src.types.Season import Season
 from src.types.Movie import Movie
 from src.types.Episode import Episode
 
-mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts'] # Type of extensions to look for media files
-
+from functions import log
 class TvShow(Movie):
     def refresh(self, config):
         self.updateFiles(config['extensions'])
@@ -20,6 +19,8 @@ class TvShow(Movie):
 
         # Does all seasons in parallel, this can be improved for efficiency (generaly slow for anime with lots of chapters in each season)
         tsks = [] 
+        lock = Lock()
+        results = [[], [], []]
         for sn in self.seasons: 
             tsks.append(Thread(target=sn.updateMetadata, args=(self.ids, config['omdbApi'], config['tmdbApi'])))
             tsks.append(Thread(target=sn.updateMediaInfo, args=(config['defaultAudioLanguage'], config['mediaInfoUpdateInterval'], config['ffprobe'])))
@@ -27,7 +28,7 @@ class TvShow(Movie):
             tsks[-2].start()
         for tsk in tsks: tsk.join()
         
-        self.getMediainfoFromChilds()
+        self.getMediainfoFromChilds()      
 
     def getSeason(self, number):
         for season in self.seasons:

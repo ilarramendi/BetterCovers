@@ -5,18 +5,25 @@ from datetime import datetime
 
 from src.types.Movie import Movie
 from src.scrapers.TVTime import *
-from src.scrapers.Trakt import getTraktRating
+from src.scrapers.Trakt import getTraktRating, getTraktSeasonRatings
 from src.scrapers.RottenTomatoes import (getRTEpisodeRatings, getRTSeasonRatings)
-from src.functions import timediff, checkDate, getJSON, log, avg, get, process
+from src.functions import timediff, checkDate, getJSON, log, avg, process
 
 minVotes = 3
 class Season(Movie):
     def updateMediaInfo(self, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe):
         start = time()
         # TODO Do this with threads
+        result = [[], [], []]
         for ep in self.episodes: 
-            ep.media_info.update(ep, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe)
+            for i, item in enumerate(ep.media_info.update(ep, defaultAudioLanguage, mediainfoUpdateInterval, ffprobe)):
+                result[i].extend(item)
+       
         self.getMediainfoFromChilds()
+        
+        if len(result[0]) > 0: log(f'Successfully updated MediaInfo for: "{self.title}" episodes: {", ".join(result[0])} in {timediff(start)}s', 0, 2)
+        if len(result[1]) > 0: log(f'No need to update MediaInfo for: "{self.title}" episodes: {", ".join(result[1])}', 1, 4)
+        if len(result[2]) > 0: log(f'Error getting MediaInfo for: "{self.title}" episodes: {", ".join(result[2])}', 2, 3)
 
     def deleteEpisode(self, number):
         i = -1
@@ -142,7 +149,7 @@ class Season(Movie):
         def _getRT():
             if 'RT' in self.urls:
                 if checkDate(self.updates['RT'], self.release_date):
-                    RT = getRTSeasonRatings(self.urls['RT'], get)
+                    RT = getRTSeasonRatings(self.urls['RT'])
                     if RT['statusCode'] == 200: # Get episodes urls and ratings
                         for ep in RT['episodes']: # Set episodes RT url
                             episode = self.getEpisode(ep[0])
@@ -150,7 +157,7 @@ class Season(Movie):
                                 episode.urls['RT'] = ep[1]
                                 if checkDate(episode.updates['RT'], episode.release_date):
                                     start2 = time()
-                                    RTE = getRTEpisodeRatings(episode.urls['RT'], get)
+                                    RTE = getRTEpisodeRatings(episode.urls['RT'])
                                     if RTE['statusCode'] == 401:
                                         log('Rotten Tomatoes limit reached!', 3, 1)
                                         break
@@ -186,7 +193,7 @@ class Season(Movie):
                 for episode in self.episodes:
                     if 'TVTime' in episode.urls:
                         start2 = time()
-                        rating = getTVTimeEpisodeRating(episode.urls['TVTime'], get)
+                        rating = getTVTimeEpisodeRating(episode.urls['TVTime'])
                         if rating:
                             episode.ratings['TVTime'] = {'icon': 'TVTime', 'value': rating}
                             rts.append(float(rating))
@@ -202,28 +209,21 @@ class Season(Movie):
         
         # Gets ratings from Trakt
         def _getTrakt():
-            if 'TMDB' in self.ids:
+            if 'Trakt' in self.urls:
                 if checkDate(self.updates['Trakt'], self.release_date):
                     start = time()
-                    rt = getTraktRating(self.ids['TMDB'], get)
+                    rt = getTraktSeasonRatings(self.urls['Trakt'])
                     if rt:
-                        self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
+                        self.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt['rating']}
                         self.updates['Trakt'] = datetime.now()
+                        for episode in rt['episodes']:
+                            ep = self.getEpisode(int(episode[1]))
+                            if ep:
+                                ep.ratings['Trakt'] = {'icon': 'Trakt', 'value':  "%.1f" % (int(episode[2]) / 10)}
+                                ep.urls['Trakt'] = episode[0]
                         success.append("Trakt")
                     else: error.append("Trakt")
                 else: passed.append("Trakt")
-            
-            for eps in self.episodes:
-                if 'TMDB' in eps.ids:
-                    if checkDate(eps.updates['Trakt'], eps.release_date):
-                        start = time()
-                        rt = getTraktRating(eps.ids['TMDB'], get)
-                        if rt:
-                            eps.ratings['Trakt'] = {'icon': 'Trakt', 'value': rt}
-                            eps.updates['Trakt'] = datetime.now()
-                            log('Found rating in Trakt for ' + eps.title + ': ' + rt + ' in: ' + timediff(start), 1, 3)
-                        else: log('Error getting Trakt ratings for:' + eps.title, 2, 4)
-                    else: log('No need to update Trakt metadata for: ' + eps.title, 1, 3)
             
         tsks = []
         success = []

@@ -1,4 +1,11 @@
-config/cache/
-config/metadata.json
+dist
+CoverRatings.spec
+config/threads/
 config/metadata.pickle
-config/BetterCovers.log
+config/metadata.json
+config/logs/
+config/cache/
+build
+BetterCovers.spec
+.vscode
+__pycache__
