@@ -3,7 +3,7 @@ import sys
 import requests
 import json
 
-from threading import Lock, Thread
+from threading import Thread
 from re import findall
 from random import random
 from os.path import join
@@ -12,16 +12,15 @@ from glob import glob
 from datetime import datetime, timedelta
 from subprocess import call, getstatusoutput
 from exif import Image as exifImage
+from jellyfish import jaro_distance
 
 logLevel = 2
 showColor = True
 
-logLock = Lock()
-wkhtmltoimage = ''
-mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts', 'm4v'] # Type of extensions to look for media files
+workDirectory = '' # Used for logging
 
 # Returns all media files inside a folder except for trailers
-def getMediaFiles(folder):
+def getMediaFiles(folder, mediaExtensions):
     mediaFiles = []
     for ex in mediaExtensions: 
         mediaFiles += glob(join(folder.translate({91: '[[]', 93: '[]]'}), '*.' + ex))
@@ -56,7 +55,7 @@ def getUpdateInterval(releaseDate):
 def log(text, type, level): # 0 = Success, 1 = Normal, 2 = Warning, 3 = Error
     if level <= logLevel:
         colors = ['\033[92m', '\033[37m', '\033[93m', '\033[91m']
-        typestr = f"[{['Success', 'Info   ', 'Warning', 'Error  '][type]}]" 
+        typestr = f"[{['SUCCESS', 'INFO   ', 'WARNING', 'ERROR  '][type]}]" 
 
         print(f"[{datetime.now().strftime('%m/%d/%Y %H:%M:%S')}]{colors[type] if showColor else typestr} --> {text}\033[0m")
         with open(join(workDirectory, 'BetterCovers.log'), 'a') as log:
@@ -130,7 +129,7 @@ def frequent(list):
     return num 
 
 # Process metadata
-def process(metadata, template, thread, workDirectory, wkhtmltoimage, image):
+def process(metadata, template, thread, workDirectory, wkhtmltoimage, image, languagesOrder):
     if not template: return False
     
     st = time()
@@ -142,20 +141,24 @@ def process(metadata, template, thread, workDirectory, wkhtmltoimage, image):
         return False
     
     for rt in metadata.ratings:
-        HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='{join(workDirectory, 'assets/ratings', metadata.ratings[rt]['icon'])}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
-    for mi, value in vars(metadata.media_info).items():
-        if value: HTML = HTML.replace(f"<!--{mi}-->", f"<div class='mediaInfoImgContainer {mi} {value}'><img src='{join(workDirectory, 'assets/mediainfo', value)}.png' class='mediainfoIcon'></div>")
+        HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='../assets/ratings/{metadata.ratings[rt]['icon']}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
+    for mi in ['source', 'color', 'codec', 'resolution']:
+        value = getattr(metadata.media_info, mi)
+        if value: 
+            HTML = HTML.replace(f"<!--{mi}-->", f"<div class='mediaInfoImgContainer {mi} {value}'><img src='../assets/mediainfo/{value}.png' class='mediainfoIcon'></div>")
+    for language in languagesOrder:
+        if language in metadata.media_info.languages:
+            HTML = HTML.replace(f"<!--language-->", f"<div class='mediaInfoImgContainer language {language}'><img src='../assets/language/{language}.png' class='mediainfoIcon'></div>")
+            break
     
     pcs = ''
     for pc in metadata.production_companies:
-        pcs += f"<div class='pcWrapper {pc['id']}'><img src='{pc['logo']}' class='producionCompany'/></div>\n\t\t\t\t"
+        pcs += f"<img src='{pc['logo']}' class='producionCompany PC_{pc['id']}'/>\n\t\t\t\t"
     HTML = HTML.replace('<!--PRODUCTIONCOMPANIES-->', pcs)
     
-    # TODO change this to be like the others
-    cert = ''
     for cr in metadata.certifications:
-        cert += f"<img src='{join(workDirectory, 'assets/certifications', cr)}.png' class='certification' />"
-    HTML = HTML.replace('<!--CERTIFICATIONS-->', cert)
+        HTML = HTML.replace(f"<!--{cr}-->", f"<img src='../assets/certifications/{cr}.png' class='certification' />")
+
     try:
         with open(join(workDirectory, 'assets/ageRatings', metadata.age_rating + '.svg'), 'r') as svg:
             HTML = HTML.replace('<!--AGERATING-->', svg.read())

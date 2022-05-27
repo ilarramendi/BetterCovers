@@ -11,14 +11,16 @@ minRatings = 5
 ratingsFile = ''
 episodesFile = ''
 
+from src.functions import get
+
 # TODO caca
 # Downloads if necesary new dataset and sets its path for functions below
-def updateIMDBDataset(wd, ratingsUpdateInterval, episodesUpdateInterval, get):
+def updateIMDBDataset(wd, updateInterval):
     if not exists(join(wd, 'cache')): call(['mkdir', join(wd, 'cache')])
 
     global ratingsFile, episodesFile
-    rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs')) # WD is always an absolute path
-    if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > ratingsUpdateInterval:
+    rtsFile = glob(join(wd, 'cache/IMDBRatings*.tvs'))
+    if len(rtsFile) == 0 or (datetime.now() - datetime.strptime(rtsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > updateInterval:
         tz = urllib.request.urlopen('https://datasets.imdbws.com/title.ratings.tsv.gz')
         if tz.getcode() == 200:
             out = join(wd, 'cache/IMDBRatings_' + datetime.now().strftime('%m-%d-%Y') + '.tvs')
@@ -32,7 +34,7 @@ def updateIMDBDataset(wd, ratingsUpdateInterval, episodesUpdateInterval, get):
         ratingsFile = rtsFile[0]
 
     epsFile = glob(join(wd, 'cache/IMDBEpisodes*.tvs'))
-    if len(epsFile) == 0 or (datetime.now() - datetime.strptime(epsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > episodesUpdateInterval:
+    if len(epsFile) == 0 or (datetime.now() - datetime.strptime(epsFile[0].rpartition('_')[2].rpartition('.')[0], '%m-%d-%Y')).days > updateInterval:
         tz = urllib.request.urlopen('https://datasets.imdbws.com/title.episode.tsv.gz')
         if tz.getcode() == 200:
             out = join(wd, './cache/IMDBEpisodes_' + datetime.now().strftime('%m-%d-%Y') + '.tvs')

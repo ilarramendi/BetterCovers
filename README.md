@@ -32,7 +32,7 @@ Each TV show season must be inside a unique folder.
 For better identification folders names can have imdb or tmdb ids like: `[tmdbid=123456]` or `[imdbid=123456]`   
 
 ## Planned features
-- [ ] Option to save images on Agent metadata folder to improve menu loading time (media images on HDD load a bit slow on emby)
+- [ ] Option to save images on Agent metadata folder to improve menu loading time (media images on HDD load a bit slow on emby) (linx file to another drive with linux?)
 - [ ] Different themes (suggestions are apreciate)
 - [ ] Use existing cover
 - [ ] Add aditional mediainfo properties (dolby, ATMOS, audio channels)
@@ -40,6 +40,8 @@ For better identification folders names can have imdb or tmdb ids like: `[tmdbid
 - [ ] Add connection to plex api
 - [ ] Add original downloaded image cache for faster cover creation (wkhtmltopdf cache not working)
 - [ ] Make docker container lighter and faster
+- [ ] Way to choose cover (web ui?)
+
 
 ## Config.json
 [config.md](https://github.com/ilarramendi/BetterCovers/blob/main/config.md)

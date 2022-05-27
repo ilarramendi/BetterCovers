@@ -1,0 +1,52 @@
+.wrapper {
+    width: 3840 !important;
+    height: 2160 !important;
+    margin-right: -5px; /* This is needed because it generates a white border on the right*/
+}
+
+.ratingIcon {
+    height: 100%;
+    width: auto;
+    margin-right: 15px;
+}
+.ratingsContainer {
+    padding: 12px;
+    width: 250px;
+}
+.ratingContainer {flex-direction: row;}
+
+.mediainfoContainer {
+    height: 200px; 
+    padding: 15px;
+    background-color: #0005; 
+}
+
+.mediaInfoImgContainer{
+    transform: rotate(-90deg)
+}
+
+.mediainfoIcon {
+    height: 250px;
+    max-width: unset;
+}
+
+.certification {
+    width: auto;
+    height: 400px;
+}
+.certification:not(:last-child) {
+    margin-right: 50px;
+}
+
+.certificationsContainer {
+    padding: 20px;
+    margin: 70px;
+    width: min-content;
+    height: min-content;
+    display: flex;
+}
+
+.contentContainer {
+    justify-content: flex-start;
+    align-items: flex-end;
+}

@@ -29,6 +29,8 @@
     
 }
 
+.SDR {display: none !important;}
+
 .ratingsContainer:empty {
     width: 0;
     min-width: 0;
@@ -38,7 +40,7 @@
 .ratingIcon {width: 200px}
 
 .ratingText {
-    font-size: 160px;
+    font-size: 135px;
     color: white;
 }
 
@@ -87,24 +89,19 @@
 .pcContainer {
     display: flex;
     justify-content: flex-end;
-    align-items: flex-end;
+    align-items: center;
     max-width: 100%;
     width: max-content;
     margin: 0 25px 0 auto;
-}
-
-.pcWrapper {
-    display: flex;
-    max-height: 225px;
-    max-width: 600px;
-    margin: 0 10px 10px 0
+    padding: 20px;
 }
 
 .producionCompany {
-    max-height: 100%;
-    max-width: 100%;
-    margin: 0 0 20px 20px;
-    padding: 5px;
+    width: auto;
+    max-width: 400px;
+    margin-left: 20px;
+    max-height: 200px;
+    background-color: #fff2;
 } 
 
 .ageRatingIcon {

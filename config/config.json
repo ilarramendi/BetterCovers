@@ -10,25 +10,25 @@
      "scraping": {
           "RT": true,
           "IMDB": true,
-          "textlessPosters": false,
           "LB": true,
           "TVTime": true,
           "MetaCritic": true,
-          "Trakt": true
+          "Trakt": true,
+          "RE": true
      },
      "defaultAudioLanguage": "ENG",
      "mediaInfoUpdateInterval": 14,
-     "IMDBTitlesUpdateInterval": 7,
-     "IMDBRatingsUpdateInterval": 7,
+     "IMDBDatasetUpdateInterval": 7,
      "preferedImageLanguage": "en-US",
-     "wkhtmltoimagePath": "/usr/bin/wkhtmltoimage",
+     "wkhtmltoimage": "/usr/bin/wkhtmltoimage",
      "ffprobe": "/usr/bin/ffprobe",
-     "audioOrder": "ENG,SPA,JPN,POR,FRE,ITA,DAN,KOR,RUS,SWE,ZHO,HIN,AZE,IND,DUT,POL",
+     "languagesOrder": ["SPA", "ENG", "JPN", "POR", "FRE", "ITA", "DAN", "KOR", "RUS", "SWE", "ZHO", "HIN", "AZE", "IND", "DUT", "POL"],
+     "extensions": ["mkv", "mp4", "avi", "m2ts", "m4v"],
      "templates": [
           {
                "type": ["tv_backdrop", "movie_backdrop"],
-               "template": "backdrop.html",
-               "out": ["backdrop.jpg"]
+               "template": "backdrop2.html",
+               "out": ["backdrop.jpg", "thumb.jpg"]
           },
           {
                "type": ["tv", "movie", "season"],

@@ -10,11 +10,6 @@ def searchTVTime(title, year, getJSON):
     if rq:
         for item in rq:
             print(item)
-            if match(escape(title.lower()) + ('\ \(?' + str(year) + '\(?') if year else '', item['name'].lower()):
-                return {'id': str(item['id']), 'image': {'src': item['big_image'], 'height': 0, 'language': 'en', 'source': 'TVtime'}}
-        for item in rq:
-            if title.lower() == item['name'].lower():
-                return {'id': str(item['id']), 'image': {'src': item['big_image'], 'height': 0, 'language': 'en', 'source': 'TVtime'}}    
 
     return False
 

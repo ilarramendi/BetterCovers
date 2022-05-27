@@ -41,7 +41,7 @@ import scrapers.IMDB
 # TODO make a function to check the configuration file
 # TODO make readme more detail and easier to understand
 # TODO Change time.time to the code timing function but is not realy relevant since all timers take more than 3 seconds so i guess is good enought this comment went a bit long but yea
-# TODO make css noob-friendly
+# TODO make css noob-friendly (add css variables)
 # TODO dont update metadata each run if last time didnt give results
 # TODO rethink log levels
 # TODO add options removed from covers.json like 4k-hdr
@@ -53,6 +53,11 @@ import scrapers.IMDB
 # TODO add matched to log
 # TODO fix tv show performance
 # TODO add again number of images generated at the end
+# TODO make a method to check the similarity in 2 strings to match on search
+# TODO NYTIMES Critic's Pick as certifications
+# TODO change places where i pass get as a parameter to scrapper
+# TODO REDO ALL SCRAPPERS LIKE RE
+# TODO Add directors to filters!
 
 # region parameters
 # Check parameters
@@ -72,7 +77,6 @@ if '--log-level' in argv and (len(argv) == argv.index('--log-level') + 1 or not 
 pt = argv[1]
 folders = sorted(glob(pt + ('/' if pt[-1] != '/' else ''))) if '*' in pt else [pt] # if its a single folder dont use glob
 threads = 30 if '-w' not in argv else int(argv[argv.index('-w') + 1])
-processing = True
 overwrite = '-o' in argv
 workDirectory = abspath('./config' if '-wd' not in argv else argv[argv.index('-wd') + 1])
 functions.workDirectory = workDirectory
@@ -83,6 +87,9 @@ functions.showColor = '--no-colors' not in argv
 
 dbVersion = 7
 configVersion = 7
+
+tasks = 0
+tasksLock = Lock()
 
 db = {'version': dbVersion, 'items': {}}
 config = {}
@@ -105,8 +112,6 @@ def processFolders():
     # Wait for threads to end
     for th in thrs: 
         if th: th.join()
-    global processing
-    processing = False
 
 # Updates all information for a given movie or tv show and generates tasks
 def processFolder(folder, thread):
@@ -114,24 +119,23 @@ def processFolder(folder, thread):
     if folder in db['items']: metadata = db['items'][folder]
     else:
         title, year = functions.getName(folder)
-        mediaFiles = functions.getMediaFiles(folder)
+        mediaFiles = functions.getMediaFiles(folder, config['extensions'])
         type = 'tv' if len(mediaFiles) == 0 else 'movie'
         path = mediaFiles[0] if type == 'movie' else folder
 
         metadata = Movie(title, year, path, folder) if type == 'movie' else TvShow(title, year, path, folder)
         db['items'][folder] = metadata
     
-    #functions.log('Processing: ' + metadata.title, 1, 2)
-
     # Refresh metadata
     metadata.refresh(config)
     if metadata.type == 'tv' and len(metadata.seasons) == 0: return functions.log(f'Empty folder: "{folder}"', 1, 2)
     
     # Generate images
-    if not dry: metadata.process(overwrite, config['templates'], str(thread), workDirectory, config['wkhtmltoimagePath'])        
+    if not dry: 
+        global tasks, tasksLock
+        tsks = metadata.process(overwrite, config, str(thread), workDirectory)
+        with tasksLock: tasks += tsks
 
-
-    #functions.log('Finished getting metadata for: ' + metadata.title + ((', and generated ' + str(len(generatedTasks)) + ' tasks in: ' + functions.timediff(start)) if not dry else ''), 0, 2)
 # endregion
 
 # region check files and dependencies
@@ -170,12 +174,8 @@ if config['tmdbApi'] == '':
     functions.log('TMDB api key is needed to run. (WHY DID YOU REMOVE IT?!?!)', 1, 0)
     exit() 
 
-# Set path to wkhtmltoimage
-functions.wkhtmltoimage = config['wkhtmltoimagePath']
-
 # Updates IMDB datasets
-if config['scraping']['IMDB']: scrapers.IMDB.updateIMDBDataset(workDirectory, 10, 10, functions.get) # so.... yea
-
+if config['scraping']['IMDB']: scrapers.IMDB.updateIMDBDataset(workDirectory, config['IMDBDatasetUpdateInterval'])
 
 # Start
 functions.log('Starting BetterCovers for directory: ' + pt, 1, 2)
@@ -184,12 +184,12 @@ processFolders()
 
 # Write metadata to pickle file
 with open(join(workDirectory, 'metadata.pickle'), 'wb') as file:
-    pickle.dump(db, file, protocol=pickle.HIGHEST_PROTOCOL)
+    pickle.dump(db, file)
 if '--json' in argv: # If parameter --json also write to a json file
     with open(join(workDirectory, 'metadata.json'), 'w') as js:
         json.dump({'version': db['version'], 'items': [db['items'][item].toJSON() for item in db['items']]}, js, indent=7, default=str, sort_keys=True)
 
-if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
+# if exists(join(workDirectory, 'threads')): rmtree(join(workDirectory, 'threads'))
 
 # Update Agent
 if config['agent']['apiKey'] != '':
@@ -199,5 +199,5 @@ if config['agent']['apiKey'] != '':
     else: functions.log(f"Error accessing  {config['agent']['type']} at {config['agent']['url']}", 2, 2)
 else: functions.log(f"Not updating {config['agent']['type']} library, API key not set.", 1, 3)
 
-functions.log(f"Done, total time was: {functions.timediff(st, False)}", 0, 1)
+functions.log(f"Done, total time was: {functions.timediff(st, False)} and generated {tasks} images.", 0, 1)
 

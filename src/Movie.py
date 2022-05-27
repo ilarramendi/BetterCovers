@@ -12,8 +12,9 @@ from scrapers.MetaCritic import getMetacriticScore
 from scrapers.RottenTomatoes import (getRTMovieRatings, getRTTVRatings, searchRT)
 from scrapers.TVTime import *
 from scrapers.Trakt import getTraktRating
+from scrapers.RogerEbert import getRERatings
 
-from functions import log, checkDate, getJSON, get, timediff, getName, getMediaFiles, readNFO, avg, frequent, process
+from functions import log, checkDate, getJSON, get, timediff, getName, readNFO, avg, frequent, process
 
 from MediaInfo import MediaInfo
 
@@ -41,7 +42,8 @@ class Movie:
             "TVTime": datetime.utcfromtimestamp(1),
             "MC": datetime.utcfromtimestamp(1),
             "Trakt": datetime.utcfromtimestamp(1),
-            "mediaInfo": datetime.utcfromtimestamp(1)
+            "mediaInfo": datetime.utcfromtimestamp(1),
+            "RE": datetime.utcfromtimestamp(1)
         }
         self.type = ''
         self.images = {
@@ -110,19 +112,19 @@ class Movie:
     def __str__(self):
         return dumps(self.toJSON(), indent=5, default=str, sort_keys=True)
 
-    def process(self, overwrite, templates, thread, workDirectory, wkhtmltoimage): 
+    def process(self, overwrite, config, thread, workDirectory): 
         success = []
         st = time()
 
         if self.type != 'episode':
             if len(self.images['covers']) > 0: 
-                if process(self, self.getTemplate(templates, False), thread, workDirectory, wkhtmltoimage, self.images['covers'][0]['src']):
+                if process(self, self.getTemplate(config['templates'], False), thread, workDirectory, config['wkhtmltoimage'], self.images['covers'][0]['src'], config['languagesOrder']):
                     success.append('cover')
             else: log(f"Missing cover image for: {self.title}", 2, 3)
 
         if self.type in ['movie', 'tv', 'episode']: 
             if len(self.images['backdrops']) > 0: 
-                if process(self, self.getTemplate(templates, True), thread, workDirectory, wkhtmltoimage, self.images['backdrops'][0]['src']):
+                if process(self, self.getTemplate(config['templates'], True), thread, workDirectory, config['wkhtmltoimage'], self.images['backdrops'][0]['src'], config['languagesOrder']):
                     success.append('backdrop')
             else: log(f"Missing backdrop image for: {self.title}", 2, 3)
 
@@ -132,13 +134,15 @@ class Movie:
         tasks = []
         if self.type == "tv":
             for season in self.seasons:
-                tasks.append(Thread(target=season.process, args=(overwrite, templates, f"{thread}_{season.number}", workDirectory, wkhtmltoimage)))
+                tasks.append(Thread(target=season.process, args=(overwrite, config['templates'], f"{thread}_{season.number}", workDirectory, wkhtmltoimage)))
                 tasks[-1].start()
         for task in tasks: task.join()
 
         if self.type == 'season':
-            for episode in self.episodes: episode.process(overwrite, templates, f"{thread}_{self.number}", workDirectory, wkhtmltoimage)
-               
+            for episode in self.episodes: episode.process(overwrite, config['templates'], f"{thread}_{self.number}", workDirectory, wkhtmltoimage)
+        
+        return len(success)
+        
     def getTemplate(self, templates, backdrop):
         def _ratingsOk(ratings):
             for rt in ratings:
@@ -198,6 +202,7 @@ class Movie:
                             for result in res['results']:
                                 if result['title' if self.type == 'movie' else 'name'].lower() == self.title.lower():
                                     self.ids['TMDB'] = str(result['id'])
+                                    log(f'Matched file "{self.title} ({self.year})" to "{result["title" if self.type == "movie" else "name"]} ({result["release_date"].partition("-")[0]})"', 1, 2)
                                     break
                             else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)
                     else: log(f"No results found searching by title in TMDB: {self.title}", 3, 4)
@@ -320,11 +325,11 @@ class Movie:
         def _getRT():
             if scraping['RT']: 
                 if checkDate(self.updates['RT'], self.release_date):
-                    url = self.urls['RT'] if 'RT' in self.urls else searchRT(self.type, self.title, self.year, getJSON)
+                    url = self.urls['RT'] if 'RT' in self.urls else searchRT(self.type, self.title, self.year)
                     if url:
                         # RT URL
                         self.urls['RT'] = url
-                        rt = getRTMovieRatings(url, get) if self.type == 'movie' else getRTTVRatings(url, get)
+                        rt = getRTMovieRatings(url) if self.type == 'movie' else getRTTVRatings(url)
                         if rt['statusCode'] == 403: return error.append("RT")
                         
                         # RT and RTA Score
@@ -384,7 +389,6 @@ class Movie:
                     else: error.append("LB")
                 else: passed.append("LB")
     
-        #TODO fix
         # Get episode and season ratings from TVTime (all in only one request)
         def _getTVTime():
             if self.type == 'tv' and scraping['TVTime']:
@@ -452,6 +456,22 @@ class Movie:
                     else: error.append("Trakt")
                 else: passed.append("Trakt")
         
+        def _getRE():
+            if scraping['RE']:
+                if checkDate(self.updates['RE'], self.release_date):
+                    rt = getRERatings(self.title)
+                    if rt:
+                        self.ratings['RE'] = {'icon': 'RE-GM' if rt[1] else 'RE', 'value': rt[0]}
+                        
+                        if rt[1]:
+                            if 'RE-GM' not in self.certifications: self.certifications.append('RE-GM')
+                        elif 'RE-GM' in self.certifications: self.certifications.remove('RE-GM')
+                        
+                        self.updates['RE'] = datetime.now()
+                        success.append("RE")
+                    else: error.append("RE")
+                else: passed.append("RE")
+    
         tsks = []
         success = []
         passed = []
@@ -461,14 +481,14 @@ class Movie:
 
         _getTMDB()
 
-        for fn in [_getOMDB, _getRT, _getIMDB, _getLB, _getMetaCritic, _getTrakt]:
+        for fn in [_getOMDB, _getRT, _getIMDB, _getLB, _getMetaCritic, _getTrakt, _getTVTime, _getRE]:
             tsks.append(Thread(target=fn, args=()))
             tsks[-1].start()
         for tsk in tsks: tsk.join() # Wait for tasks to finish
 
-        if len(success) > 0: log(f"Successfully updated metadata for: {self.title} from: {', '.join(success)} in {timediff(start)}s", 0, 2)
-        if len(passed) > 0: log(f"No need to update metadata for: {self.title} from: {', '.join(passed)}", 1, 3)
-        if len(error) > 0: log(f"Error getting metadata for: {self.title} from: {', '.join(error)}", 2, 2)
+        if len(success) > 0: log(f'Successfully updated metadata for: "{self.title}" from: {", ".join(success)} in {timediff(start)}s', 0, 2)
+        if len(passed) > 0: log(f'No need to update metadata for: "{self.title}" from: {", ".join(passed)}', 1, 4)
+        if len(error) > 0: log(f'Error getting metadata for: "{self.title}" from: {", ".join(error)}', 2, 3)
 
         if self.type == 'tv': # TODO get specific production companies for each epiosode
             for sn in self.seasons:

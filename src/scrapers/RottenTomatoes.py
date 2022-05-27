@@ -2,23 +2,31 @@ import json
 from re import findall
 from urllib.parse import quote
 from time import sleep
+from jellyfish import jaro_distance
 
 SEARCH_URL = 'https://www.rottentomatoes.com/api/private/v2.0/search?q='
 BASE_URL = 'https://www.rottentomatoes.com'
 
+dictType = {'movie': 'movies', 'tv': 'tvSeries'}
+dictTitle = {'movie': 'name', 'tv': 'title'}
+dictYear = {'movie': 'year', 'tv': 'startYear'}
+dictUrl = {'movie': 'm', 'tv': 'tv'}
+
+from src.functions import getJSON, get
+
 # Searches in rottentomatoes by title and returns an url
-def searchRT(type, title, year, getJSON):
+def searchRT(type, title, year):
     rq = getJSON(SEARCH_URL + title.lower().replace(' ', '+'))
     if rq:
-        dictType = {'movie': 'movies', 'tv': 'tvSeries'}
-        dictTitle = {'movie': 'name', 'tv': 'title'}
-        dictYear = {'movie': 'year', 'tv': 'startYear'}
-        dictUrl = {'movie': 'm', 'tv': 'tv'}
-        
-        if dictType[type] in rq:
-            for media in rq[dictType[type]]:
-                if title.lower() == media[dictTitle[type]].lower() and (not year or not media[dictYear[type]] or abs(year - media[dictYear[type]]) <= 1):
-                    return media['url']
+        max = 0
+        maxUrl = ''
+        for media in rq[dictType[type]]:
+            dist = jaro_distance(title.lower(), media[dictTitle[type]].lower())
+            if max < dist:
+                max = dist
+                maxUrl = media['url']
+    
+        if max > 0.85: return maxUrl # Treshold to match name
     return False
 
 # Internal function to parse ratings from page content
@@ -72,10 +80,10 @@ def getRTEpisodeRatings(url, get):
     sleep(1) # RT gets angry
     return {'statusCode': rq.status_code, 'ratings': _parseTvRatings(rq.text)['ratings'] if rq.status_code == 200 else {}}
 
-def getRTMovieRatings(url, get):
+def getRTMovieRatings(url):
     rq = get(BASE_URL + url)
     res = {'ratings': {}, 'certifications': [], 'statusCode': rq.status_code}
-    sleep(1) # RT gets angry
+    sleep(1) # RT gets angry :)
     if rq.status_code != 200: return res
     sc = findall('<score-board[^>]*>', rq.text)
     if len(sc) == 0: return res
@@ -89,4 +97,7 @@ def getRTMovieRatings(url, get):
     rta = findall('audiencescore="(\d+)"', sc[0])
     if len(rta) == 1: 
         res['ratings']['RTA'] = {'icon': 'RTA' if int(rta[0]) >= 60 else 'RTA-LS', 'value': "%.1f" % (float(rta[0]) / 10)} 
+    
+    for rating in res['ratings']:
+        if res['ratings'][rating]['value'] == '10.0': res['ratings'][rating]['value'] = '10'
     return res

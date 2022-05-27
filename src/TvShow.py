@@ -11,9 +11,9 @@ mediaExtensions = ['mkv', 'mp4', 'avi', 'm2ts'] # Type of extensions to look for
 
 class TvShow(Movie):
     def refresh(self, config):
-        self.updateFiles()
+        self.updateFiles(config['extensions'])
 
-        if len(self.seasons) == 0: return 
+        if len(self.seasons) == 0: return log(f"No seasons found for: {self.title}", 2, 3)
         
         # Update metadata if needed
         self.updateMetadata(config['omdbApi'], config['tmdbApi'], config['scraping'], config['preferedImageLanguage'])
@@ -44,7 +44,7 @@ class TvShow(Movie):
         if i > -1: del self.seasons[i]
 
     # Update season and episodes
-    def updateFiles(self):
+    def updateFiles(self, mediaExtensions):
         item = TvShow(False, False, False, False)
         for folder in glob(join(self.path.translate({91: '[[]', 93: '[]]'}), '*')):
             sn = findall('.*\/[Ss]eason[ ._-](\d{1,3})$', folder)
