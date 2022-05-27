@@ -18,7 +18,7 @@ docker run -i --rm \
   -e parameters="-w 20" `#OPTIONAL` \
   -e TZ=America/New_York `#OPTIONAL` \
   -e fileMask="*" `#OPTIONAL` \
-  ilarramendi/bettercovers 
+  ilarramendi/bettercovers asd
 ```
 ### Python
 Clone the project: `git clone https://github.com/ilarramendi/BetterCovers`  
