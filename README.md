@@ -2,9 +2,9 @@
 BetterCovers is a script to automaticaly generate covers and backdrops with embeded ratings, mediainfo, language, certifications, age ratings, source, production companies, etc!
 
 ## Examples
-<img src="https://user-images.githubusercontent.com/30437204/170798829-dc02b859-f8c7-4d50-b28a-74c95289619f.jpg" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/170798832-ce6621fd-06e7-4442-8dbf-1614de14af8e.jpg" width="49.7%">
+<img src="https://user-images.githubusercontent.com/30437204/170800614-e4f1ff01-7fff-4cae-91a9-1a83528b9865.jpg" width="49.7%"> <img src="https://user-images.githubusercontent.com/30437204/170798832-ce6621fd-06e7-4442-8dbf-1614de14af8e.jpg" width="49.7%">
 <img src="https://user-images.githubusercontent.com/30437204/170798830-06c0388d-f294-4b91-91d9-e8b8f969bd98.jpg" width="100%">
-<img src="https://user-images.githubusercontent.com/30437204/170798833-27bac0c2-8cdd-4b4b-9344-e9c8ea4e1883.jpg" width="100%">
+<img src="https://user-images.githubusercontent.com/30437204/170800901-0389e701-e491-4b6a-8b10-654c3bffd97f.jpg" width="100%">
 
 The script is made to be fully customizable, all properties can be disabled and custom cover templates can be selected based on a large number of filters!   
 After executing the script you have to refresh the library on Emby/Plex/Jellyfin for this to take effect! (Or configure the agent in the config file to automaticaly update the library!)

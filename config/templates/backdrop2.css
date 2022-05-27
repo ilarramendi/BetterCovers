@@ -7,7 +7,7 @@
 .source {display: none;}
 
 .ratingText {
-    font-size: 160px;
+    font-size: 150px;
 }
 
 .ratingIcon {
@@ -25,6 +25,7 @@
 .mediainfoContainer {
     padding: 15px;
     background-color: #0005; 
+    height: 220px;
 }
 
 .mediaInfoImgContainer{
