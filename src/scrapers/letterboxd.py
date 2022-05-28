@@ -1,7 +1,7 @@
 from re import findall
 from jellyfish import jaro_distance
 
-from functions import get
+from src.functions import get
 
 BASE_URL = 'https://letterboxd.com' 
 

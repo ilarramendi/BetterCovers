@@ -7,7 +7,7 @@ from src.types.Season import Season
 from src.types.Movie import Movie
 from src.types.Episode import Episode
 
-from functions import log
+from src.functions import log
 class TvShow(Movie):
     def refresh(self, config):
         self.updateFiles(config['extensions'])
