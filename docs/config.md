@@ -1,4 +1,7 @@
 # Config.json
+## This file is incomplete
+
+Any visual change you want can be done editing the files in /config/templates/
 
 This specifies settings for running the scrip.
 | Name                      | Description                                             | Values                                 |
@@ -33,6 +36,7 @@ This section enables/disables different ratings providers
 | MetaCritic     | Get MTC-MS certifications and MTC ratings             | true or false              |
 | Trakt          | Get Trakt ratings                                     | true or false              |
 
+# This is working but the documentation is incorrect, ask for instructions on github if interested
 ## Templates
 This section defined wich template is going to be used based on media properties/ratings/etc, the first template matching will be selected so place the more restrictive options first.
 The only required property is: `cover`
