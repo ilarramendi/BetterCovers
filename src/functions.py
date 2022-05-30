@@ -145,7 +145,7 @@ def process(metadata, template, thread, workDirectory, wkhtmltoimage, image, lan
     for rt in metadata.ratings:
         HTML = HTML.replace(f"<!--{rt}-->", f"<div class='ratingContainer {rt} {metadata.ratings[rt]['icon']}'><img src='../assets/ratings/{metadata.ratings[rt]['icon']}.png' class='ratingIcon'/><label class='ratingText'>{metadata.ratings[rt]['value']}</label></div>")
     
-    UHDHDR = 'UHD-HDR' not in template or template['UHD-HDR'] or metadata.media_info.color != 'HDR' or metadata.media_info.resolution != 'UHD'
+    UHDHDR = ('UHD-HDR' not in template or template['UHD-HDR']) and metadata.media_info.color == 'HDR' or metadata.media_info.resolution == 'UHD'
     for mi in ['source', 'color', 'codec', 'resolution']:
         value = getattr(metadata.media_info, mi)
         if UHDHDR:
