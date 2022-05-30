@@ -22,7 +22,7 @@ docker run -i --rm \
 ```
 ### Python
 Clone the project: `git clone https://github.com/ilarramendi/BetterCovers`  
-Install python requirments: `pip3 install -r requests jellyfish exif`  
+Install python requirments: `pip3 install requests jellyfish exif`  
 Install program requirments: `sudo apt install -y wkhtmltopdf ffmpeg`  
 Run: `python3 BetterCovers.py '/path/to/media/*'`  
  
