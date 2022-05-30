@@ -1,3 +1,4 @@
+import urllib.request
 import sys
 import requests
 import json
@@ -6,17 +7,19 @@ from threading import Thread
 from subprocess import call, getstatusoutput
 from re import findall
 from random import random
-from os.path import join
+from os.path import join, exists
 from math import sqrt
 from jellyfish import jaro_distance
 from glob import glob
 from exif import Image as exifImage
 from datetime import datetime, timedelta
+from base64 import b64decode
 
 logLevel = 2
 showColor = True
 
 logFile = '' # Used for logging
+imageCache = ''
 
 # Returns all media files inside a folder except for trailers
 def getMediaFiles(folder, mediaExtensions):
@@ -226,3 +229,8 @@ def get(url, headers = {}):
         delay += 5 + random() * 5 # 5 to 10 seconds
         n += 1
     return ret
+
+def getImage(name):
+    out = f"{imageCache}/{name}.jpg"
+    if not exists(out): urllib.request.urlretrieve(b64decode(name).decode('ascii'), out) # TODO retry if fails
+    return out
