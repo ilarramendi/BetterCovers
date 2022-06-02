@@ -4,7 +4,7 @@ import requests
 import json
 from time import time
 from threading import Thread
-from subprocess import call, getstatusoutput
+from subprocess import call, getstatusoutput, DEVNULL
 from re import findall
 from random import random
 from os.path import join, exists
@@ -131,7 +131,7 @@ def frequent(list):
     return num 
 
 # Process metadata
-def process(metadata, template, thread, workDirectory, wkhtmltoimage, image, languagesOrder):
+def process(metadata, template, thread, workDirectory, chromium, image, languagesOrder, size):
     if not template: return False
     
     st = time()
@@ -181,17 +181,16 @@ def process(metadata, template, thread, workDirectory, wkhtmltoimage, image, lan
 
     # Generate image
     i = 0
-    command = f"{wkhtmltoimage} --cache-dir {join(workDirectory, 'cache') } --enable-local-file-access 'file://{join(workDirectory, 'threads', thread)}.html' '{join(workDirectory, 'threads', thread)}.jpg'"
-    out = getstatusoutput(command)
-    if out[0] == 0:
-        imgSrc = join(workDirectory, 'threads', thread) + '.jpg'
+    imgSrc = join(workDirectory, 'threads', thread) + '.jpg'
 
+    command = [chromium, '--headless', '--no-sandbox', '--disable-gpu', f"{join(workDirectory, 'threads', thread)}.html", f"--screenshot={imgSrc}", f"--window-size={size}"]
+    out = call(command, stdout=DEVNULL, stderr=DEVNULL) # 
+    if out == 0:
         # Tag image
-        with open(imgSrc, 'rb') as image: img = exifImage(image)
+        #with open(imgSrc, 'rb') as image: img = exifImage(image)
         # img["software"] = f"BetterCovers: {metadata.hash}" # TODO fix
-        img["datetime_original"] = str(datetime.now())
-        with open(imgSrc, 'wb') as image: image.write(img.get_file())
-
+        #img["datetime_original"] = str(datetime.now())
+        #with open(imgSrc, 'wb') as image: image.write(img.get_file())
         # Copy to final location
         for fl in template["out"]:
             out = f"{metadata.folder}/{fl.replace('$NAME', metadata.path.rpartition('/')[2].rpartition('.')[0])}"
@@ -200,7 +199,7 @@ def process(metadata, template, thread, workDirectory, wkhtmltoimage, image, lan
                 return False
 
         return True
-    else: log(f"Error generating image for: {metadata.title}\n{out[1]}", 3, 1)
+    else: log(f"Error generating image for: {metadata.title}, {out}", 3, 1)
 
 # Custom requests.get implementation with progressive random delay, retries and error catching
 def get(url, headers = {}):
@@ -231,6 +230,7 @@ def get(url, headers = {}):
     return ret
 
 def getImage(name):
-    out = f"{imageCache}/{name}.jpg"
-    if not exists(out): urllib.request.urlretrieve(b64decode(name).decode('ascii'), out) # TODO retry if fails
+    out = f"{imageCache}/{name.decode('ascii')}.jpg"
+    if not exists(out):
+        urllib.request.urlretrieve(b64decode(name).decode('ascii'), out) # TODO retry if fails
     return out

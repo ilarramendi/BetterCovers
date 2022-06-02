@@ -14,7 +14,8 @@ from src.scrapers.RottenTomatoes import (getRTMovieRatings, getRTTVRatings, sear
 from src.scrapers.RogerEbert import getRERatings
 from src.scrapers.MetaCritic import getMetacriticScore
 from src.scrapers.letterboxd import getLBRatings, searchLB
-from src.functions import log, checkDate, getJSON, get, timediff, getName, readNFO, avg, frequent, process
+from src.functions import log, checkDate, getJSON, get, timediff, getName, readNFO, avg, frequent, process, getImage
+from base64 import b64encode
 
 class Movie:
     def __init__(self, title, year, path, folder): # TODO add more params to constructor
@@ -117,13 +118,13 @@ class Movie:
 
         if self.type != 'episode':
             if len(self.images['covers']) > 0: 
-                if process(self, self.getTemplate(config['templates'], False), thread, workDirectory, config['wkhtmltoimage'], self.images['covers'][0]['src'], config['languagesOrder']):
+                if process(self, self.getTemplate(config['templates'], False), thread, workDirectory, config['chromium'], getImage(b64encode(self.images['covers'][0]['src'].encode('ascii'))), config['languagesOrder'], '2000,3000'):
                     success.append('cover')
             else: log(f"Missing cover image for: {self.title}", 2, 3)
 
         if self.type in ['movie', 'tv', 'episode']: 
             if len(self.images['backdrops']) > 0: 
-                if process(self, self.getTemplate(config['templates'], True), thread, workDirectory, config['wkhtmltoimage'], self.images['backdrops'][0]['src'], config['languagesOrder']):
+                if process(self, self.getTemplate(config['templates'], True), thread, workDirectory, config['chromium'], getImage(b64encode(self.images['backdrops'][0]['src'].encode('ascii'))), config['languagesOrder'], '3000,2000'):
                     success.append('backdrop')
             else: log(f"Missing backdrop image for: {self.title}", 2, 3)
 

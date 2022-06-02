@@ -1,0 +1,107 @@
+<div class="scene">
+    <div class="box">
+      <div class="box__face box__face--front">
+        <img class="cover" src="$IMGSRC"> 
+        <div class="mediainfoContainer">
+            <!--color-->
+            <!--resolution-->
+            <!--language-->
+            <!--codec-->
+            <!--source-->
+        </div>
+      </div>
+      <div class="box__face box__face--left">
+        <div class="ratingsContainer">
+            <!--TMDB-->
+            <!--IMDB-->
+            <!--MTC-->
+            <!--RE-->
+            <!--RT-->
+            <!--LB-->
+            <!--RTA-->
+            <!--Trakt-->
+            <!--TVTime-->
+        </div>
+      </div>
+      <div class="box__face box__face--top"></div>
+    </div>
+  </div> 
+<style>
+    .mediainfoContainer {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 200px;
+        width: 100%;
+        max-width: 100%;
+        background-color: #0007;
+        padding: 10px;
+        display: flex;
+        justify-content: space-evenly;
+        box-sizing: border-box;
+    }
+
+    .mediainfoIcon {height: 100%;}
+
+    .ratingIcon {width: 100%;}
+
+    .ratingText {font-size: 150px;}
+
+    .ratingsContainer {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        height: 100%;
+        padding: 30px;
+        flex-direction: column;
+        background-color: rgb(18, 33, 73);
+        box-sizing: border-box;
+    }
+
+    .cover {
+        width: 100%;
+        height: 100%;
+    }
+
+    body { font-family: sans-serif; }
+
+    .scene {perspective: 6000px; margin-top: 50px; margin-left: 50px;}
+    .box {
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 1s;
+        transform: rotateY(  30deg);
+    }
+
+    .box__face {
+        position: absolute;
+        border: 2px solid black;
+        font-size: 40px;
+        font-weight: bold;
+        color: white;
+        text-align: center;
+    }
+
+    .box__face--front {
+        width: 2000px;
+        height: 3000px;
+        line-height: 200px;
+        background: hsla(  0, 100%, 50%, 0.7);
+    }
+
+    .box__face--left {
+        width: 300px;
+        height: 3000px;
+        transform: rotateY(-90deg) translateZ(150px) translateX(-150px);
+    }
+
+    .box__face--top {
+        width: 2000px;
+        height: 100px;
+        top: 50px;
+        line-height: 100px;
+        transform: rotateX( 90deg) translateZ(100px);
+        background: hsla(240, 100%, 50%, 0.7);
+    }
+
+</style>
